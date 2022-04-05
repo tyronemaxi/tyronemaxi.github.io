@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Redis 和 MySQL 数据一致性">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 和 MySQL 数据一致性">
+<meta property="og:url" content="http://example.com/posts/c4a988da/index.html">
+<meta property="og:site_name" content="Tyrone&#39;s Blog">
+<meta property="og:description" content="Redis 和 MySQL 数据一致性">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/Redis-MySQL架构.png">
+<meta property="og:image" content="http://example.com/images/Cache-Aside.png">
+<meta property="og:image" content="http://example.com/images/Cache-Aside-write.png">
+<meta property="og:image" content="http://example.com/images/Cache-Aside-whole-process.png">
+<meta property="og:image" content="http://example.com/images/Cache-Aside-write-process.png">
+<meta property="og:image" content="http://example.com/images/Cache-Aside-write-behind-process.png">
+<meta property="article:published_time" content="2022-04-05T08:03:09.000Z">
+<meta property="article:modified_time" content="2022-04-05T14:40:37.551Z">
+<meta property="article:author" content="tyrone">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="MySQL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/Redis-MySQL架构.png">
+
+<link rel="canonical" href="http://example.com/posts/c4a988da/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Redis 和 MySQL 数据一致性 | Tyrone's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tyrone's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/c4a988da/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="tyrone">
+      <meta itemprop="description" content="人生最好的境界就是保持内心丰富的安静">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tyrone's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis 和 MySQL 数据一致性
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-04-05 16:03:09 / 修改时间：22:40:37" itemprop="dateCreated datePublished" datetime="2022-04-05T16:03:09+08:00">2022-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+            <div class="post-description">Redis 和 MySQL 数据一致性</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Redis、MySQL-如何保证数据一致性"><a href="#Redis、MySQL-如何保证数据一致性" class="headerlink" title="Redis、MySQL 如何保证数据一致性"></a>Redis、MySQL 如何保证数据一致性</h1><blockquote>
+<p>一般情况下，Redis 是用来实现应用和数据库之间的一个读操作的缓存层。主要目的是去减少数据库的 IO ,还可以提升数据库的 IO 性能。</p>
+</blockquote>
+<p>整体架构：<br><img src="/images/Redis-MySQL架构.png" width = "500" height = "300" alt="" align=center /></p>
+<p>当应用程序需要去读取某个数据的时候，首先会尝试 Redis 里面去加载，如果命中了就直接去加载，直接返回数据，如果没有命中，就查询数据库，然后再将查询到的数据写入到 redis 缓存中。</p>
+<p>在这个架构里面呢，会出现<code>数据一致性的问题</code>。</p>
+<p>一份数据同时被保存在 redis 和 mysql 里面，当某个数据需要被更新的时候，由于更新数据是具有前后顺序的，它并不像 mysql 中的多表事务操作，可以满足 ACID 的特性。</p>
+<p>常规解决办法只有两种：</p>
+<ol>
+<li><p>先更新数据库，再更新缓存。</p>
+<p>该种方案，若出现缓存失败的话，会出现数据不一致的问题。</p>
+</li>
+<li><p>先删除缓存，再更新数据库。</p>
+<p>该种方案，是借助再次访问该数据的时候，发现 redis 里的数据为空，然后查询数据库再次加载。但是这两个操作并不是原子操作，所以在这个过程中，如果出现其他线程来访问，还是会存在数据不一致的问题。</p>
+</li>
+</ol>
+<p>那么，需要在极端情况下仍要保证 redis 和 mysql 数据一致性，就需要采用 <code>最终一致性</code>的方案。</p>
+<p>例如 <code>基于 MQ 的可靠性消息通信</code>来实现数据最终的一致性。</p>
+<p>或者，直接通过 Canel 组件，监控 mysql 中的 bingo 的日志，将更新后的数据同步到 Redis 里面。</p>
+<h2 id="一致性-consistency"><a href="#一致性-consistency" class="headerlink" title="一致性(consistency)"></a>一致性(consistency)</h2><blockquote>
+<p>一致性就是缓存和数据库存储数据的两份数据保持一致性</p>
+</blockquote>
+<ul>
+<li>强一致性要求：<blockquote>
+<p>所谓强一致性，就是对于 app 来说，缓存和数据库存储的数据读写是符合原子性的，要求读写的一致性，实现起来时对系统的影响大。</p>
+</blockquote>
+</li>
+<li>弱一致性：<blockquote>
+<p>这部分对于缓存层和数据库层数据一致性要求较低，不要求在更新数据时，缓存和数据库立即同步更新的情况，也不会要求缓存和数据库多久达到一致性，但是会尽可能保证<br>到某个时间级别后，数据能够达到一致性状态。</p>
+</blockquote>
+</li>
+<li>最终一致性：<blockquote>
+<p>最终一致性是弱一致性的一个特例，系统会保证在一定时间内，能够达到一个数据一致的状态。</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="三种经典的缓存模式"><a href="#三种经典的缓存模式" class="headerlink" title="三种经典的缓存模式"></a>三种经典的缓存模式</h2><ul>
+<li>Cache-Aside Pattern</li>
+<li>Read-Through/Write through</li>
+<li> Write behind</li>
+</ul>
+<h3 id="Cache-Aside-读流程"><a href="#Cache-Aside-读流程" class="headerlink" title="Cache-Aside 读流程"></a>Cache-Aside 读流程</h3><blockquote>
+<p>旁路缓存模式，它的提出是为了尽可能地解决缓存与数据库的数据不一致问题</p>
+</blockquote>
+<p>Cache-Aside 读流程</p>
+<img src="/images/Cache-Aside.png" width = "250" height = "300" alt="" align=center />
+
+
+<ol>
+<li>读取数据的时候，先读缓存，缓存命中时，直接返回数据。</li>
+<li>缓存未命中时，读取数据库，取数据的时候同时更新数据到缓存中，返回响应</li>
+</ol>
+<h3 id="Cache-Aside-写流程"><a href="#Cache-Aside-写流程" class="headerlink" title="Cache-Aside 写流程"></a>Cache-Aside 写流程</h3><blockquote>
+<p>更新的时候，先更新数据库，然后再删除缓存<br><img src="/images/Cache-Aside-write.png" width = "250" height = "300" alt="" align=center /></p>
+</blockquote>
+<h3 id="Read-Through"><a href="#Read-Through" class="headerlink" title="Read-Through"></a>Read-Through</h3><blockquote>
+<p>Read/Write Through 模式中，服务端把<code>缓存</code>作为<code>主要数据存储</code>。应用程序跟数据库缓存交互，都是通过<code>抽象缓存层</code>完成的</p>
+</blockquote>
+<img src="/images/Cache-Aside-whole-process.png" width = "600" height = "400" alt="" align=center />
+
+<p>Read-Through 的思想是采用的将缓存作为主要的存储结构，是从性能的角度出发。</p>
+<h3 id="Write-Through"><a href="#Write-Through" class="headerlink" title="Write-Through"></a>Write-Through</h3><blockquote>
+<p>这种模式下，当发生请求时，是由缓存抽象层完成数据源和缓存数据的更新<br><img src="/images/Cache-Aside-write-process.png" width = "600" height = "400" alt="" align=center /></p>
+</blockquote>
+<h3 id="Write-behind-（异步缓存写入）"><a href="#Write-behind-（异步缓存写入）" class="headerlink" title="Write behind （异步缓存写入）"></a>Write behind （异步缓存写入）</h3><blockquote>
+<p>Write behind 和 Read-Through/Write-Through 相似，都是由 <code>Cache Provider</code>来负责缓存和数据库看的读写。<br>但是 前者是同步更新缓存和数据的，Write Behind 则只是更新缓存，不直接更新数据库，通过<code>批量异步</code>的方式来更新数据库。<br><img src="/images/Cache-Aside-write-behind-process.png" width = "600" height = "400" alt="" align=center /></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+    
+      <div>
+     <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:24px;">-------------THANKS  FOR  READING-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"><i class="fa fa-tag"></i> Redis</a>
+              <a href="/tags/MySQL/" rel="tag"><i class="fa fa-tag"></i> MySQL</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/d92d1b7b/" rel="prev" title="基本的数据结构和算法.md">
+      <i class="fa fa-chevron-left"></i> 基本的数据结构和算法.md
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis%E3%80%81MySQL-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">1.</span> <span class="nav-text">Redis、MySQL 如何保证数据一致性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E8%87%B4%E6%80%A7-consistency"><span class="nav-number">1.1.</span> <span class="nav-text">一致性(consistency)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E7%BB%8F%E5%85%B8%E7%9A%84%E7%BC%93%E5%AD%98%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.2.</span> <span class="nav-text">三种经典的缓存模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Cache-Aside-%E8%AF%BB%E6%B5%81%E7%A8%8B"><span class="nav-number">1.2.1.</span> <span class="nav-text">Cache-Aside 读流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Cache-Aside-%E5%86%99%E6%B5%81%E7%A8%8B"><span class="nav-number">1.2.2.</span> <span class="nav-text">Cache-Aside 写流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Read-Through"><span class="nav-number">1.2.3.</span> <span class="nav-text">Read-Through</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Write-Through"><span class="nav-number">1.2.4.</span> <span class="nav-text">Write-Through</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Write-behind-%EF%BC%88%E5%BC%82%E6%AD%A5%E7%BC%93%E5%AD%98%E5%86%99%E5%85%A5%EF%BC%89"><span class="nav-number">1.2.5.</span> <span class="nav-text">Write behind （异步缓存写入）</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="tyrone"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">tyrone</p>
+  <div class="site-description" itemprop="description">人生最好的境界就是保持内心丰富的安静</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tyrone</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">16k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">14 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
