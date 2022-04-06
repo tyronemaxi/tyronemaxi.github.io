@@ -51,53 +51,6 @@
       </tags>
   </entry>
   <entry>
-    <title>乐观锁与悲观锁-Python 实现</title>
-    <url>/posts/102bc233/</url>
-    <content><![CDATA[<h1 id="Python-乐观锁与悲观锁"><a href="#Python-乐观锁与悲观锁" class="headerlink" title="Python 乐观锁与悲观锁"></a>Python 乐观锁与悲观锁</h1><p>参考：<a href="https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6">https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6</a></p>
-<blockquote>
-<p>乐观锁和悲观锁是两种思想，用于解决并发场景下的数据竞争问题</p>
-</blockquote>
-<h2 id="什么是乐观锁-？"><a href="#什么是乐观锁-？" class="headerlink" title="什么是乐观锁 ？"></a>什么是乐观锁 ？</h2><blockquote>
-<p>乐观锁在操作数据时采用乐观的态度，认为不会出现多个操作数据的事件。因此乐观锁不糊上锁，只是在进行更新操作的时候<br>判断该期间是否同时存在修改了数据的情况：若在修改时数据已被修改则放弃操作，否则继续执行操作。</p>
-</blockquote>
-<h2 id="乐观锁的实现"><a href="#乐观锁的实现" class="headerlink" title="乐观锁的实现"></a>乐观锁的实现</h2><blockquote>
-<ol>
-<li>CAS 机制。2.版本号机制。这里将采用 python + orm 的实现方式</li>
-</ol>
-</blockquote>
-<h3 id="CSA-Compare-and-Swap"><a href="#CSA-Compare-and-Swap" class="headerlink" title="CSA (Compare and Swap)"></a>CSA (Compare and Swap)</h3><p>CSA 的操作主要包括了 3 个操作数：</p>
-<ul>
-<li>需要读写的内存位置(V)</li>
-<li>进行比较的预期值(A)</li>
-<li>拟写入的新值(B)<br>具体的操作逻辑为：若内存位置的值等于预期的 A 值，则将该位置更新为新值 B, 否则不进行任何操作。<br>直到重试次数消耗完毕。<h3 id="CSA-实现"><a href="#CSA-实现" class="headerlink" title="CSA 实现"></a>CSA 实现</h3><blockquote>
-<p>乐观锁（Optimistic Lock）,适用于多读</p>
-</blockquote>
-</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> django.shortcuts <span class="keyword">import</span> render</span><br><span class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> JsonResponse</span><br><span class="line"><span class="keyword">from</span> django.views.generic <span class="keyword">import</span> View</span><br><span class="line"><span class="keyword">from</span> django.db <span class="keyword">import</span> transaction</span><br><span class="line"><span class="keyword">from</span> 应用名.models <span class="keyword">import</span> GoodsSKU</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 类视图 (并发，乐观锁)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Order</span>(<span class="params">View</span>):</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @transaction.atomic</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span>(<span class="params">self, request</span>):</span></span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;订单创建&#x27;&#x27;&#x27;</span></span><br><span class="line">        count = <span class="number">3</span>  <span class="comment"># 订购3件商品</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置事务保存点</span></span><br><span class="line">        s1 = transaction.savepoint()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 乐观锁，最多尝试5次</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">5</span>):</span><br><span class="line">            <span class="comment"># 查询商品的信息(库存)</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                sku = GoodsSKU.objects.get(<span class="built_in">id</span>=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment"># 商品不存在</span></span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">1</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品不存在&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 判断商品的库存</span></span><br><span class="line">            <span class="keyword">if</span> count &gt; sku.stock:</span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">2</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品库存不足&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新商品的库存和销量</span></span><br><span class="line">            orgin_stock = sku.stock  <span class="comment"># 原库存 (数据库隔离级别必须是Read Committed；如果是Repeatable Read,那么多次尝试读取的原库存都是一样的,读不到其他线程提交更新后的数据。)</span></span><br><span class="line">            new_stock = orgin_stock - count  <span class="comment"># 更新后的库存</span></span><br><span class="line">            new_sales = sku.sales + count  <span class="comment"># 更新后的销量</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># update 商品表 set stock=new_stock, sales=new_sales where id=1 and stock = orgin_stock</span></span><br><span class="line">            <span class="comment"># 通过where子句中的条件判断库存是否进行了修改。(并发，乐观锁)</span></span><br><span class="line">            <span class="comment"># 返回受影响的行数</span></span><br><span class="line">            res = GoodsSKU.objects.<span class="built_in">filter</span>(<span class="built_in">id</span>=<span class="number">1</span>, stock=orgin_stock).update(stock=new_stock, sales=new_sales)</span><br><span class="line">            <span class="keyword">if</span> res == <span class="number">0</span>:  <span class="comment"># 如果修改失败</span></span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">4</span>:</span><br><span class="line">                    <span class="comment"># 如果尝试5次都失败</span></span><br><span class="line">                    transaction.savepoint_rollback(s1)</span><br><span class="line">                    <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">3</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;下单失败&#x27;</span>&#125;)</span><br><span class="line">                <span class="keyword">continue</span>  <span class="comment"># 再次尝试</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 否则更新成功</span></span><br><span class="line">            <span class="comment"># 跳出尝试循环</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 提交事务</span></span><br><span class="line">        transaction.savepoint_commit(s1)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 返回应答</span></span><br><span class="line">        <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">4</span>, <span class="string">&#x27;message&#x27;</span>: <span class="string">&#x27;创建成功&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
-<h2 id="什么是悲观锁"><a href="#什么是悲观锁" class="headerlink" title="什么是悲观锁 ?"></a>什么是悲观锁 ?</h2><p>悲观锁在操作数据的时候，比较悲观，认为别人会同时修改数据。<br>因此操作数据时会直接把数据锁住，直到操作完成后才会释放锁；上锁期间其他人不能修改数据</p>
-<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><p>例如，有用户 A 和用户 B，在同一家店铺去购买同一个商品，但是商品的可购买数量只有一个<br><img src="/images/img.png" alt="direct"></p>
-<p>若，用户 A 和用户 B 同时下单，就会报错。<br>悲观锁的实现，往往依靠数据库提供的锁机制，在数据库中，我们如何用悲观锁去结局这个事情呢？</p>
-<ol>
-<li>用户 A 在执行购买商品的时候，先尝试对该商品加上悲观锁。</li>
-<li>若加锁失败，说明商品正在被其他事务进行修改，当前查询需要等待或者抛出异常，具体返回的方式需要开发者根据具体情况去定义</li>
-<li>加锁成功：对商品进行修改</li>
-<li>在此期间如果有其他用户对数据做修改或加锁的操作，都会等待我们解锁后或直接抛出异常<br><img src="/images/img_1.png" alt="direct"></li>
-</ol>
-<h2 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h2><p>那么如何加上悲观锁呢，1. 首先关闭 MySQL 数据库的自动提交属性。因为 MySQL 默认使用 autocommit 模式（默认提交）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set autocommit = 0;</span><br></pre></td></tr></table></figure>
-<p>悲观锁加锁 sql 语句： </p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select num form t_goods where id = 2 for update</span><br></pre></td></tr></table></figure>
-<p>此时，其他事务都不能获取到此行的数据去进行操作。</p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -221,6 +174,53 @@
       <tags>
         <tag>Redis</tag>
         <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>乐观锁与悲观锁-Python 实现</title>
+    <url>/posts/102bc233/</url>
+    <content><![CDATA[<h1 id="Python-乐观锁与悲观锁"><a href="#Python-乐观锁与悲观锁" class="headerlink" title="Python 乐观锁与悲观锁"></a>Python 乐观锁与悲观锁</h1><p>参考：<a href="https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6">https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6</a></p>
+<blockquote>
+<p>乐观锁和悲观锁是两种思想，用于解决并发场景下的数据竞争问题</p>
+</blockquote>
+<h2 id="什么是乐观锁-？"><a href="#什么是乐观锁-？" class="headerlink" title="什么是乐观锁 ？"></a>什么是乐观锁 ？</h2><blockquote>
+<p>乐观锁在操作数据时采用乐观的态度，认为不会出现多个操作数据的事件。因此乐观锁不糊上锁，只是在进行更新操作的时候<br>判断该期间是否同时存在修改了数据的情况：若在修改时数据已被修改则放弃操作，否则继续执行操作。</p>
+</blockquote>
+<h2 id="乐观锁的实现"><a href="#乐观锁的实现" class="headerlink" title="乐观锁的实现"></a>乐观锁的实现</h2><blockquote>
+<ol>
+<li>CAS 机制。2.版本号机制。这里将采用 python + orm 的实现方式</li>
+</ol>
+</blockquote>
+<h3 id="CSA-Compare-and-Swap"><a href="#CSA-Compare-and-Swap" class="headerlink" title="CSA (Compare and Swap)"></a>CSA (Compare and Swap)</h3><p>CSA 的操作主要包括了 3 个操作数：</p>
+<ul>
+<li>需要读写的内存位置(V)</li>
+<li>进行比较的预期值(A)</li>
+<li>拟写入的新值(B)<br>具体的操作逻辑为：若内存位置的值等于预期的 A 值，则将该位置更新为新值 B, 否则不进行任何操作。<br>直到重试次数消耗完毕。<h3 id="CSA-实现"><a href="#CSA-实现" class="headerlink" title="CSA 实现"></a>CSA 实现</h3><blockquote>
+<p>乐观锁（Optimistic Lock）,适用于多读</p>
+</blockquote>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> django.shortcuts <span class="keyword">import</span> render</span><br><span class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> JsonResponse</span><br><span class="line"><span class="keyword">from</span> django.views.generic <span class="keyword">import</span> View</span><br><span class="line"><span class="keyword">from</span> django.db <span class="keyword">import</span> transaction</span><br><span class="line"><span class="keyword">from</span> 应用名.models <span class="keyword">import</span> GoodsSKU</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 类视图 (并发，乐观锁)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Order</span>(<span class="params">View</span>):</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @transaction.atomic</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span>(<span class="params">self, request</span>):</span></span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;订单创建&#x27;&#x27;&#x27;</span></span><br><span class="line">        count = <span class="number">3</span>  <span class="comment"># 订购3件商品</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置事务保存点</span></span><br><span class="line">        s1 = transaction.savepoint()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 乐观锁，最多尝试5次</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">5</span>):</span><br><span class="line">            <span class="comment"># 查询商品的信息(库存)</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                sku = GoodsSKU.objects.get(<span class="built_in">id</span>=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment"># 商品不存在</span></span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">1</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品不存在&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 判断商品的库存</span></span><br><span class="line">            <span class="keyword">if</span> count &gt; sku.stock:</span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">2</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品库存不足&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新商品的库存和销量</span></span><br><span class="line">            orgin_stock = sku.stock  <span class="comment"># 原库存 (数据库隔离级别必须是Read Committed；如果是Repeatable Read,那么多次尝试读取的原库存都是一样的,读不到其他线程提交更新后的数据。)</span></span><br><span class="line">            new_stock = orgin_stock - count  <span class="comment"># 更新后的库存</span></span><br><span class="line">            new_sales = sku.sales + count  <span class="comment"># 更新后的销量</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># update 商品表 set stock=new_stock, sales=new_sales where id=1 and stock = orgin_stock</span></span><br><span class="line">            <span class="comment"># 通过where子句中的条件判断库存是否进行了修改。(并发，乐观锁)</span></span><br><span class="line">            <span class="comment"># 返回受影响的行数</span></span><br><span class="line">            res = GoodsSKU.objects.<span class="built_in">filter</span>(<span class="built_in">id</span>=<span class="number">1</span>, stock=orgin_stock).update(stock=new_stock, sales=new_sales)</span><br><span class="line">            <span class="keyword">if</span> res == <span class="number">0</span>:  <span class="comment"># 如果修改失败</span></span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">4</span>:</span><br><span class="line">                    <span class="comment"># 如果尝试5次都失败</span></span><br><span class="line">                    transaction.savepoint_rollback(s1)</span><br><span class="line">                    <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">3</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;下单失败&#x27;</span>&#125;)</span><br><span class="line">                <span class="keyword">continue</span>  <span class="comment"># 再次尝试</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 否则更新成功</span></span><br><span class="line">            <span class="comment"># 跳出尝试循环</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 提交事务</span></span><br><span class="line">        transaction.savepoint_commit(s1)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 返回应答</span></span><br><span class="line">        <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">4</span>, <span class="string">&#x27;message&#x27;</span>: <span class="string">&#x27;创建成功&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+<h2 id="什么是悲观锁"><a href="#什么是悲观锁" class="headerlink" title="什么是悲观锁 ?"></a>什么是悲观锁 ?</h2><p>悲观锁在操作数据的时候，比较悲观，认为别人会同时修改数据。<br>因此操作数据时会直接把数据锁住，直到操作完成后才会释放锁；上锁期间其他人不能修改数据</p>
+<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><p>例如，有用户 A 和用户 B，在同一家店铺去购买同一个商品，但是商品的可购买数量只有一个<br><img src="/images/img.png" alt="direct"></p>
+<p>若，用户 A 和用户 B 同时下单，就会报错。<br>悲观锁的实现，往往依靠数据库提供的锁机制，在数据库中，我们如何用悲观锁去结局这个事情呢？</p>
+<ol>
+<li>用户 A 在执行购买商品的时候，先尝试对该商品加上悲观锁。</li>
+<li>若加锁失败，说明商品正在被其他事务进行修改，当前查询需要等待或者抛出异常，具体返回的方式需要开发者根据具体情况去定义</li>
+<li>加锁成功：对商品进行修改</li>
+<li>在此期间如果有其他用户对数据做修改或加锁的操作，都会等待我们解锁后或直接抛出异常<br><img src="/images/img_1.png" alt="direct"></li>
+</ol>
+<h2 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h2><p>那么如何加上悲观锁呢，1. 首先关闭 MySQL 数据库的自动提交属性。因为 MySQL 默认使用 autocommit 模式（默认提交）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set autocommit = 0;</span><br></pre></td></tr></table></figure>
+<p>悲观锁加锁 sql 语句： </p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select num form t_goods where id = 2 for update</span><br></pre></td></tr></table></figure>
+<p>此时，其他事务都不能获取到此行的数据去进行操作。</p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
       </tags>
   </entry>
   <entry>
