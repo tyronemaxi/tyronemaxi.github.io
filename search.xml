@@ -90,12 +90,12 @@
 </blockquote>
 </li>
 </ul>
-<h2 id="三种经典的缓存模式"><a href="#三种经典的缓存模式" class="headerlink" title="三种经典的缓存模式"></a>三种经典的缓存模式</h2><ul>
+<h1 id="三种经典的缓存模式"><a href="#三种经典的缓存模式" class="headerlink" title="三种经典的缓存模式"></a>三种经典的缓存模式</h1><ul>
 <li>Cache-Aside Pattern</li>
 <li>Read-Through/Write through</li>
 <li> Write behind</li>
 </ul>
-<h3 id="Cache-Aside-读流程"><a href="#Cache-Aside-读流程" class="headerlink" title="Cache-Aside 读流程"></a>Cache-Aside 读流程</h3><blockquote>
+<h2 id="Cache-Aside-读流程"><a href="#Cache-Aside-读流程" class="headerlink" title="Cache-Aside 读流程"></a>Cache-Aside 读流程</h2><blockquote>
 <p>旁路缓存模式，它的提出是为了尽可能地解决缓存与数据库的数据不一致问题</p>
 </blockquote>
 <p>Cache-Aside 读流程</p>
@@ -106,24 +106,24 @@
 <li>读取数据的时候，先读缓存，缓存命中时，直接返回数据。</li>
 <li>缓存未命中时，读取数据库，取数据的时候同时更新数据到缓存中，返回响应</li>
 </ol>
-<h3 id="Cache-Aside-写流程"><a href="#Cache-Aside-写流程" class="headerlink" title="Cache-Aside 写流程"></a>Cache-Aside 写流程</h3><blockquote>
+<h2 id="Cache-Aside-写流程"><a href="#Cache-Aside-写流程" class="headerlink" title="Cache-Aside 写流程"></a>Cache-Aside 写流程</h2><blockquote>
 <p>更新的时候，先更新数据库，然后再删除缓存</p>
 </blockquote>
 <img src="/images/Cache-Aside-write.png" width = "200" height = "300" alt="" align=center />
 
-<h3 id="Read-Through"><a href="#Read-Through" class="headerlink" title="Read-Through"></a>Read-Through</h3><blockquote>
+<h2 id="Read-Through"><a href="#Read-Through" class="headerlink" title="Read-Through"></a>Read-Through</h2><blockquote>
 <p>Read/Write Through 模式中，服务端把<code>缓存</code>作为<code>主要数据存储</code>。应用程序跟数据库缓存交互，都是通过<code>抽象缓存层</code>完成的</p>
 </blockquote>
 <img src="/images/Cache-Aside-whole-process.png" width = "600" height = "400" alt="" align=center />
 
 <p>Read-Through 的思想是采用的将缓存作为主要的存储结构，是从性能的角度出发。</p>
-<h3 id="Write-Through"><a href="#Write-Through" class="headerlink" title="Write-Through"></a>Write-Through</h3><blockquote>
+<h2 id="Write-Through"><a href="#Write-Through" class="headerlink" title="Write-Through"></a>Write-Through</h2><blockquote>
 <p>这种模式下，当发生请求时，是由缓存抽象层完成数据源和缓存数据的更新<br><img src="/images/Cache-Aside-write-process.png" width = "600" height = "400" alt="" align=center /></p>
 </blockquote>
-<h3 id="Write-behind-（异步缓存写入）"><a href="#Write-behind-（异步缓存写入）" class="headerlink" title="Write behind （异步缓存写入）"></a>Write behind （异步缓存写入）</h3><blockquote>
+<h2 id="Write-behind-（异步缓存写入）"><a href="#Write-behind-（异步缓存写入）" class="headerlink" title="Write behind （异步缓存写入）"></a>Write behind （异步缓存写入）</h2><blockquote>
 <p>Write behind 和 Read-Through/Write-Through 相似，都是由 <code>Cache Provider</code>来负责缓存和数据库看的读写。<br>但是 前者是同步更新缓存和数据的，Write Behind 则只是更新缓存，不直接更新数据库，通过<code>批量异步</code>的方式来更新数据库。<br><img src="/images/Cache-Aside-write-behind-process.png" width = "600" height = "400" alt="" align=center /></p>
 </blockquote>
-<h3 id="三种模式的比较"><a href="#三种模式的比较" class="headerlink" title="三种模式的比较"></a>三种模式的比较</h3><p>Cache Aside 更新模式实现起来比较简单，但是需要维护两个数据存储:</p>
+<h2 id="三种模式的比较"><a href="#三种模式的比较" class="headerlink" title="三种模式的比较"></a>三种模式的比较</h2><p>Cache Aside 更新模式实现起来比较简单，但是需要维护两个数据存储:</p>
 <ul>
 <li>缓存（Cache）</li>
 <li>一个是数据库（Repository）</li>
@@ -131,7 +131,7 @@
 <p>Read/Write Through 的写模式需要维护一个数据存储（Cache Provider），实现起来较为复杂一些。</p>
 <p>Write Behind Caching 更新模式和 Read/Write Through 更新模式类似，区别是 Write Behind Caching 更新模式的数据持久化操作是<code>异步</code>的，但是`Read/Write Through 更新模式的数据持久化操作是<strong>同步的</strong></p>
 <p>Write Behind Caching 的优点是直接<code>操作内存速度快</code>,多次操作可以合并持久化到数据库。缺点是数据可能会丢失，例如系统断电等等。</p>
-<h4 id="Cache-Aside-问题"><a href="#Cache-Aside-问题" class="headerlink" title="Cache-Aside 问题"></a>Cache-Aside 问题</h4><p><strong>我们在更新数据的时候，Cache-Aside 是删除缓存呢，还是应该更新缓存？</strong></p>
+<h2 id="Cache-Aside-问题"><a href="#Cache-Aside-问题" class="headerlink" title="Cache-Aside 问题"></a>Cache-Aside 问题</h2><p><strong>我们在更新数据的时候，Cache-Aside 是删除缓存呢，还是应该更新缓存？</strong></p>
 <img src="/images/Cache-Aside-write.png" width = "200" height = "300" alt="" align=center />
 
 <p>我们在操作缓存的时候，到底是应该删除缓存还是说更新缓存呢？我们先来看个例子：<br>多线程情况：<br><img src="/images/多线程-Cache-DB.png" width = "600" height = "400" alt="" align=center /></p>
@@ -147,7 +147,7 @@
 <li>在写多读少的情况下，也会十分浪费性能。</li>
 </ol>
 </blockquote>
-<h4 id="双写的情况下，先操作数据库还是先操作缓存？"><a href="#双写的情况下，先操作数据库还是先操作缓存？" class="headerlink" title="双写的情况下，先操作数据库还是先操作缓存？"></a>双写的情况下，先操作数据库还是先操作缓存？</h4><p>如果遇到多线程情况，也会有类似情况，出现缓存中存储的是脏数据。因此 Cache-Aside 缓存模式，选择了先操作数据库而不是先操作缓存</p>
+<h2 id="双写的情况下，先操作数据库还是先操作缓存？"><a href="#双写的情况下，先操作数据库还是先操作缓存？" class="headerlink" title="双写的情况下，先操作数据库还是先操作缓存？"></a>双写的情况下，先操作数据库还是先操作缓存？</h2><p>如果遇到多线程情况，也会有类似情况，出现缓存中存储的是脏数据。因此 Cache-Aside 缓存模式，选择了先操作数据库而不是先操作缓存</p>
 <h2 id="两种方案保证数据库与缓存的一致性"><a href="#两种方案保证数据库与缓存的一致性" class="headerlink" title="两种方案保证数据库与缓存的一致性"></a>两种方案保证数据库与缓存的一致性</h2><ul>
 <li>删除缓存重试机制</li>
 <li>读取 binlog 异步删除缓存</li>
