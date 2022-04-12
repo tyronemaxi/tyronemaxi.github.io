@@ -1,6 +1,289 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Python 内存管理，垃圾回收，缓存重用机制</title>
+    <url>/posts/bd0fa4a9/</url>
+    <content><![CDATA[<h1 id="一文搞定Python-的-内存管理-垃圾回收-缓存重用机制"><a href="#一文搞定Python-的-内存管理-垃圾回收-缓存重用机制" class="headerlink" title="一文搞定Python 的 内存管理, 垃圾回收, 缓存重用机制"></a>一文搞定Python 的 <code>内存管理</code>, <code>垃圾回收</code>, <code>缓存重用机制</code></h1><blockquote>
+<p>鉴于 Python 的语言特性，详细的梳理记录下这三方面的知识</p>
+</blockquote>
+<h2 id="详谈-python-的内存管理"><a href="#详谈-python-的内存管理" class="headerlink" title="详谈 python 的内存管理"></a>详谈 python 的内存管理</h2><blockquote>
+<p>python 作为一门高级语言，调用相关变量时，无需实现声明，变量无需指定类型，python 解释器会自动帮你回收，这一切都由<br><code>python 内存管理器</code>承担了复杂的内存管理工作。<br>这里主要介绍基于 Cpython 实现的内存管理</p>
+</blockquote>
+<blockquote>
+<p>python 内存管理机制 —— Pymalloc</p>
+</blockquote>
+<h3 id="主要实现方式"><a href="#主要实现方式" class="headerlink" title="主要实现方式"></a>主要实现方式</h3><ul>
+<li>针对<code>小对象</code>, 就是对象大小小于<code>256kb</code>时，pymalloc 会在<code>内存池中申请内存空间</code></li>
+<li>针对<code>大对象</code>, 对象大小<code>大于 256kb</code>时，会执行<code>new/malloc 行为</code>来申请新的内存空间</li>
+</ul>
+<h3 id="python-内存池（memory-pool）"><a href="#python-内存池（memory-pool）" class="headerlink" title="python 内存池（memory pool）"></a>python 内存池（memory pool）</h3><blockquote>
+<p>为什么要引入内存池？<br>当创建大量消耗小内存的对象时，频繁调用<code>new/malloc</code>会导致大量的内存碎片，导致效率降低</p>
+</blockquote>
+<ul>
+<li><code>内存池的作用就是预先在内存中申请一定数量的，大小相等的内存块（256kb）留作备用</code>，当有新的内存需求时，就优先从内存池中分配给这个需求。</li>
+<li>减少内存碎片化，提升效率</li>
+</ul>
+<img src="/images/python 内存池.png" width = "600" height = "700" alt="" align=center />
+
+<ul>
+<li><p>python 的对象管理主要位于 Level + 1 ~ Level +3 层</p>
+</li>
+<li><p>Level 3: 该层特定对象内存分配器，主要是 <code>python 内置的对象（int, dict, arr）</code>都有独立的私有内存池，对象<br>之间的内存池不共享，例如 <code>int</code> 释放的内存，不会被分配给 <code>float</code>使用。</p>
+</li>
+<li><p>Level 2: python 对象分配器：当申请的<code>内存大小小于256KB</code>时，内存对象的分配主要由<code>Python 对象</code> 分配器（python’s object allocator）实施</p>
+</li>
+<li><p>Level 1: python 内存分配器：当申请的<code>内存大小大于256KB</code>时，由 Python 原生的内存分配器进行分配，本质上是调用 C 标准库中的 malloc/readlloc 等函数</p>
+</li>
+</ul>
+<h3 id="内存池的内存释放"><a href="#内存池的内存释放" class="headerlink" title="内存池的内存释放"></a>内存池的内存释放</h3><blockquote>
+<p>内存释放，当一个对象的引用计算变为 0 时，Python 就会调用它的析构函数（__del__）。调用析构函数并不意味着最终一定会调用<br>free 来释放内存空间，会导致频繁申请、释放内存空间使得 Python 的执行效率大打折扣。因此在析构时也采用了内存池机制，内存池申请到的内存会被归还到内存池中，<br>以免频繁地申请和释放动作</p>
+</blockquote>
+<p>接下来就会讲到 Python 的垃圾回收机制。</p>
+<h1 id="垃圾回收机制"><a href="#垃圾回收机制" class="headerlink" title="垃圾回收机制"></a>垃圾回收机制</h1><blockquote>
+<p>如果别人问你，什么是 Python 的垃圾回收机制，你可以用一句话概括<br><strong>Python 的垃圾回收机制采用`引用计数为主，标记-清除和分代回收为辅的策略</strong></p>
+</blockquote>
+<p>Python 一切皆为对象，包括 int、str 等等基本的对象。Cpython 的实现中，有一个结构体为 PyObject, Cpython 中的每个其他对象都在使用它</p>
+<p>PyObject 是 Python 中所有对象的祖父，它只包含两件事：</p>
+<ul>
+<li>ob_refcnt: 引用计数器</li>
+<li>ob_type: 指向另一种类型的指针</li>
+</ul>
+<p>对于对象来说，无非是对象的创建和删除</p>
+<h2 id="引用计数"><a href="#引用计数" class="headerlink" title="引用计数"></a>引用计数</h2><blockquote>
+<p>每个对象都会维护一个 <code>ob_refcnt</code> 来记录当前对象被引用的次数</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">a = [<span class="number">2</span>]</span><br><span class="line"><span class="built_in">print</span>(sys.getrefcount(a))</span><br><span class="line"><span class="comment"># OUTPUT getrefcount 会增加一次引用</span></span><br><span class="line"><span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>对象引用计数 +1</p>
+<ul>
+<li><ol>
+<li>对象被创建 <code>a=1</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对象被引用 <code>a=b</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>对象被作为参数，传入函数中 def count(a, b)</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>对象作为一个元素被存储 <code>li = [1,2, a]</code></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>对象的引用计数 -1</p>
+<ul>
+<li><ol>
+<li>对象的引用被显示销毁时，<code>del a</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对象的引用别名被赋予新的对象, <code>a=26</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>一个对象离开它的作用域, 例如一个函数执行完成后，内部的<code>局部变量的引用计数器就会减一</code>(全局变量不变)</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>将该元素从容器中删除时，或者容器被销毁</li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>当指向对象的内存的引用计数为 0 时，该内存就会被 Python 虚拟机销毁</strong></p>
+<p>特性：</p>
+<blockquote>
+<p>优点：1. 高效。2。 实时性，一旦没有引用，内存就直接释放了。3. 对象有确定的生命周期 4. 易于实现<br>缺点：1. 维护引用计数消耗资源。2. 无法解决循环引用问题</p>
+</blockquote>
+<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><blockquote>
+<p>对于一个对象来说，当出现循环引用的时候，例如<code>a=1, b=a, a=b</code>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
+</blockquote>
+<h3 id="什么是标记清除？"><a href="#什么是标记清除？" class="headerlink" title="什么是标记清除？"></a>什么是标记清除？</h3><blockquote>
+<p>[标记清除（Mark-Sweep）] 算法是一种基于追踪回收（tracing GC）技术实现的垃圾回收算法。主要针对一些容器对象，例如<code>list</code>、<code>dict</code>、<code>tuple</code><br>对于字符串和数值对象是不可能造成循环引用的问题的（不可变对象，当出现引用时，会另外开辟空间存储，这个在缓存机制中会详细解释）。</p>
+</blockquote>
+<p>那么<code>标记清除</code>算法是如何运行的？<br>分为两个阶段：</p>
+<ul>
+<li><ol>
+<li>第一阶段是标记阶段，GC 会把所有的[活动对象]打上标记。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>第二阶段是把那些没有标记的[非活动对象]进行回收。</li>
+</ol>
+</li>
+</ul>
+<p>活动对象和非活动对象的标记：<br>对象之间通过引用（指针）连在一起，构成一个有相图，对象构成这个有向图的节点，而引用关系构成这个有向图的边。<br>从根对象（root object）出发，沿着有向边遍历对象，可达的（reachable）对象标记为活动对象，不可达的对象就是要被清除的非活动对象。<br>根对象就是全局变量、调用栈、寄存器。</p>
+<img src="/images/有向图.png" width = "400" height = "200" alt="" align=center />
+
+<p>从以上的有向图中：</p>
+<ul>
+<li>活动对象：A, B, C</li>
+<li>非活动对象：D, E</li>
+</ul>
+<h2 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h2><blockquote>
+<p>在标记清除对象的回收中，整个应用程序会被暂停，为了减少应用程序暂停的时间，Python 通过<strong>分代回收（Generational Conlletion）</strong>以空间换时间的方法提高垃圾回收效率</p>
+</blockquote>
+<p>Python 将所有对象分为：</p>
+<ul>
+<li>年轻代（第 0 代）</li>
+<li>中年代（第 1 代）</li>
+<li>老年代（第 2 代）</li>
+</ul>
+<p>所有新建的对象默认是第 0 代对象，经过 GC 扫描存活下来的对象将被移至第一代，在第一代的 GC 扫描中存活下来的对象将被移至第二代。</p>
+<blockquote>
+<p>GC 扫描次数 (第 0 代 &gt; 第 1 代 &gt; 第 2 代)</p>
+</blockquote>
+<h3 id="GC-分代回收是如何触发的？"><a href="#GC-分代回收是如何触发的？" class="headerlink" title="GC 分代回收是如何触发的？"></a>GC 分代回收是如何触发的？</h3><blockquote>
+<p>当某个世代中被分配的对象与被释放的对象数量之差到达某一个阈值时，就会触发当前一代的 GC 扫描。<br>当某一世代被扫描时，比它年轻的一代也会被扫描<br>当第 2 代的 GC 扫描发生时，第 0，1 代的 GC 扫描也会发生，即为全代扫描。</p>
+</blockquote>
+<p>那么这个阈值是如何确定的?</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> gc </span><br><span class="line">gc.get_threshold() <span class="comment">## 分代回收机制的参数阈值设置</span></span><br><span class="line"><span class="comment"># (700, 10, 10)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>700=新分配的对象数量-释放的对象数量，第 0 代 gc 扫描被触发</li>
+<li>第一个10：第 0 代 gc 扫描发生 10 次，则第 1 代的 gc 扫描被触发</li>
+<li>第二个10：第 1 代的 gc 扫描发生 10 次，则第 2 代的 gc 扫描被触发</li>
+</ul>
+<h1 id="Python-的缓存重用机制"><a href="#Python-的缓存重用机制" class="headerlink" title="Python 的缓存重用机制"></a>Python 的缓存重用机制</h1><blockquote>
+<p>Python 缓存重用机制是为了提高程序执行的效率。Python 解释器启动时从内存空间中开辟出一小部分，用来存储高频使用的数据，这样可以大大减少高频使用的<br>数据创建时申请内存和销毁的开销</p>
+</blockquote>
+<img src="/images/缓存重用机制.png" width = "600" height = "300" alt="" align=center />
+
+<p>这里基本演示，更加详细的演示，读者可以自行尝试</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#范围在 [-5, 256] 之间的小整数</span></span><br><span class="line">int1 = -<span class="number">5</span></span><br><span class="line">int2 = -<span class="number">5</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;[-5, 256] 情况下的两个变量：&quot;</span>, <span class="built_in">id</span>(int1), <span class="built_in">id</span>(int2))</span><br><span class="line"><span class="comment"># output</span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment">#bool类型</span></span><br><span class="line">bool1 = <span class="literal">True</span></span><br><span class="line">bool2 = <span class="literal">True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bool类型情况下的两个变量：&quot;</span>,<span class="built_in">id</span>(bool1),<span class="built_in">id</span>(bool2))</span><br><span class="line"><span class="comment">#对于字符串</span></span><br><span class="line">s1 = <span class="string">&quot;3344&quot;</span></span><br><span class="line">s2 = <span class="string">&quot;3344&quot;</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;字符串情况下的两个交量&quot;</span>, <span class="built_in">id</span>(s1), <span class="built_in">id</span>(s2))</span><br><span class="line"><span class="comment">#大于 256 的整数</span></span><br><span class="line">int3 = <span class="number">257</span></span><br><span class="line">int4 = <span class="number">257</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 256 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(int3), <span class="built_in">id</span>(int4))</span><br><span class="line"><span class="comment">#大于 0 的浮点数</span></span><br><span class="line">f1 = <span class="number">256.4</span></span><br><span class="line">f2 = <span class="number">256.4</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f1), <span class="built_in">id</span>(f2))</span><br><span class="line"><span class="comment">#小于 0 的浮点数</span></span><br><span class="line">f3 = -<span class="number">2.45</span></span><br><span class="line">f4 = -<span class="number">2.45</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f3), <span class="built_in">id</span>(f4))</span><br><span class="line"><span class="comment">#小于 -5 的整数</span></span><br><span class="line">n1 = -<span class="number">6</span></span><br><span class="line">n2 = -<span class="number">6</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 -5 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(n1), <span class="built_in">id</span>(n2))</span><br></pre></td></tr></table></figure>
+<p>OUTPUT:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[-5, 256] 情况下的两个变量： 4479762592 4479762592</span><br><span class="line">bool类型情况下的两个变量： 4479360112 4479360112</span><br><span class="line">字符串情况下的两个交量 140680232254768 140680232254768</span><br><span class="line">大于 256 的整数情况下的两个变量 140680231657872 140680231657872</span><br><span class="line">大于 0 的浮点数情况下的两个变量 140680231658256 140680231658256</span><br><span class="line">小于 0 的浮点数情况下的两个变量 140680191914768 140680191914768</span><br><span class="line">小于 -5 的整数情况下的两个变量 140680232617328 140680232617328</span><br></pre></td></tr></table></figure>
+
+<p>总结：</p>
+<ul>
+<li>对于<code>int</code>, <code>str</code>,<code>bool</code> 类型而言：<ol>
+<li>对于同一个对象，都是缓存同一个内容来使用</li>
+</ol>
+</li>
+<li>对于<code>大于 256 的整数</code>, 浮点数<ol>
+<li>如果位于同一代码块，则使用相同的缓存内容；反之，则不使用</li>
+</ol>
+</li>
+<li>对于 <code>小于 0 的整数</code><ol>
+<li>Python 没有对其进行缓存操作</li>
+</ol>
+</li>
+</ul>
+<h1 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h1><p>在 Python 中，主要通过 <code>引用计数</code>来进行垃圾回收；通过<code>标记-清除</code>来解决一些容器对象的循环引用问题；<br>通过<code>分代回收</code>以空间换时间的方式提高垃圾回收效率。</p>
+<p>缓存重用机制，作用类似于内存池，提高 Python 的执行效率</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p>「 python 垃圾回收机制 」- <a href="https://andrewpqc.github.io/2018/10/08/python-memory-management/">https://andrewpqc.github.io/2018/10/08/python-memory-management/</a><br>「 python GC 源代码 」- <a href="https://docs.python.org/2/library/gc.html">https://docs.python.org/2/library/gc.html</a><br>「 python 垃圾回收需要知道事 」- <a href="https://rushter.com/blog/python-garbage-collector/">https://rushter.com/blog/python-garbage-collector/</a> </p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python 如何实现装饰器？</title>
+    <url>/posts/e67a2035/</url>
+    <content><![CDATA[<h1 id="Python-如何实现一个装饰器"><a href="#Python-如何实现一个装饰器" class="headerlink" title="Python 如何实现一个装饰器"></a>Python 如何实现一个装饰器</h1><blockquote>
+<p>首先，装饰器为调用高阶函数提供了一种简单的语法<br>根据定义，装饰器是一个函数，它接受另外一个函数并在其基础功能上做统一的扩展</p>
+</blockquote>
+<h2 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h2><blockquote>
+<p>对于 Python 来说，一切皆对象，对象也是可以作为参数传递，这就是装饰器实现的基础</p>
+</blockquote>
+<p>例如，我想实现一个<code>日志打印</code>功能，调用对应方法或者对象时，可以显示其运行的信息。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">    func()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    printer(task)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>在这里我们实现了<code>task</code> 方法，在调用这个方法的时候，会显示调用的相关信息。</p>
+<p>可以看到我们使用<code>printer</code> 这个功能的时候，都是采用<code>printer(func)</code>的方式，如果在多处使用的话，<br>那么有没有比较简单的方式，例如在执行<code>task</code>方法的时候，自动去触发<code>printer</code>呢，还能像调用原方法一样？</p>
+<p>于是, 我们可以将该方法当成一个参数传递后，返回一个新的对象调用的方式：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line">task = printer(task)</span><br><span class="line">task()</span><br></pre></td></tr></table></figure>
+
+<p>Python 中<code>允许在一个方法中嵌套另外一个方法</code>，这种特殊的机制就是<strong>闭包</strong>。<br>这个内部方法可以保留外部方法的作用域，内部方法也可以访问到外部方法的参数和变量。</p>
+<h2 id="装饰器"><a href="#装饰器" class="headerlink" title="装饰器"></a>装饰器</h2><blockquote>
+<p>python 支持一种装饰器语法糖「@」，使用这个语法糖，我们也可以实现与上面完全相同的功能</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="functools-wraps"><a href="#functools-wraps" class="headerlink" title="functools.wraps"></a>functools.wraps</h2><blockquote>
+<p>现在我们已经知道，装饰器其实就是先定义好一个闭包，然后使用语法糖<code>@</code>来装饰方法，最后达到重新定义方法的作用<br>但是这样使用的方法其实最终执行的是 <code>inner</code> 方法</p>
+</blockquote>
+<p>like: </p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Output: inner</span></span><br></pre></td></tr></table></figure>
+<p>如何解决这个问题？</p>
+<p>python 其实有内置的 functools 模块，提供了一个 <code>wraps</code> 方法，专门来解决这个问题。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">logger</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@logger</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># output:</span></span><br><span class="line"><span class="comment"># hello</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="带参数的装饰器"><a href="#带参数的装饰器" class="headerlink" title="带参数的装饰器"></a>带参数的装饰器</h2><p>装饰器当然也可以传入参数，例如：<code>*args</code>、<code>**kwargs</code><br>例如使用装饰器来计算程序的运行时间：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># coding: utf8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">timeit</span>(<span class="params">prefix</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            start = time.time()</span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">            end = time.time()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&#x27;%s: duration time: %ds&#x27;</span> % (prefix, <span class="built_in">int</span>(end - start)))</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line">    <span class="keyword">return</span> decorator</span><br><span class="line"></span><br><span class="line"><span class="meta">@timeit(<span class="params"><span class="string">&#x27;prefix1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>(<span class="params">name</span>):</span></span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;hello %s&#x27;</span> % name)</span><br></pre></td></tr></table></figure>
+<h2 id="装饰器模版"><a href="#装饰器模版" class="headerlink" title="装饰器模版"></a>装饰器模版</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">        <span class="comment"># do something</span></span><br><span class="line">        value = func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> value</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure>
+
+<h2 id="类实现装饰器"><a href="#类实现装饰器" class="headerlink" title="类实现装饰器"></a>类实现装饰器</h2><p><code>__call__</code> 魔法方法结合类也可以实现装饰器</p>
+<p>这里也给出一个通用模版</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> functools</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Decorator</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self, params</span>):</span></span><br><span class="line">        self.params = params</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @functools.wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># do something</span></span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@Decorator(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">hello()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="装饰器的使用场景"><a href="#装饰器的使用场景" class="headerlink" title="装饰器的使用场景"></a>装饰器的使用场景</h2><h3 id="记录调用日志"><a href="#记录调用日志" class="headerlink" title="记录调用日志"></a>记录调用日志</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Logger</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        self.name = name</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># 记录调用日志</span></span><br><span class="line">            logging.getLogger().setLevel(logging.INFO)</span><br><span class="line">            logging.info(<span class="string">&#x27;call method: %s %s %s&#x27;</span>, func.__name__, args, kwargs)</span><br><span class="line">            <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Logger(<span class="params"><span class="string">&#x27;airflow&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>(<span class="params">name</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;run <span class="subst">&#123;name&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    task(name=<span class="string">&quot;task&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="路由映射"><a href="#路由映射" class="headerlink" title="路由映射"></a>路由映射</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> flask</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Router</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.url_map = &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">register</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">func</span>):</span></span><br><span class="line">            self.url_map[url] = func</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">call</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        func = self.url_map.get(url)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> func:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&#x27;No url function: %s&#x27;</span>, url)</span><br><span class="line">        <span class="keyword">return</span> func()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">router = Router()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@router.register(<span class="params"><span class="string">&#x27;/page1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">page1</span>():</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;page1&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(router.call(<span class="string">&#x27;page1&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>乐观锁与悲观锁-Python 实现</title>
+    <url>/posts/102bc233/</url>
+    <content><![CDATA[<h1 id="Python-乐观锁与悲观锁"><a href="#Python-乐观锁与悲观锁" class="headerlink" title="Python 乐观锁与悲观锁"></a>Python 乐观锁与悲观锁</h1><p>参考：<a href="https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6">https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6</a></p>
+<blockquote>
+<p>乐观锁和悲观锁是两种思想，用于解决并发场景下的数据竞争问题</p>
+</blockquote>
+<h2 id="什么是乐观锁-？"><a href="#什么是乐观锁-？" class="headerlink" title="什么是乐观锁 ？"></a>什么是乐观锁 ？</h2><blockquote>
+<p>乐观锁在操作数据时采用乐观的态度，认为不会出现多个操作数据的事件。因此乐观锁不糊上锁，只是在进行更新操作的时候<br>判断该期间是否同时存在修改了数据的情况：若在修改时数据已被修改则放弃操作，否则继续执行操作。</p>
+</blockquote>
+<h2 id="乐观锁的实现"><a href="#乐观锁的实现" class="headerlink" title="乐观锁的实现"></a>乐观锁的实现</h2><blockquote>
+<ol>
+<li>CAS 机制。2.版本号机制。这里将采用 python + orm 的实现方式</li>
+</ol>
+</blockquote>
+<h3 id="CSA-Compare-and-Swap"><a href="#CSA-Compare-and-Swap" class="headerlink" title="CSA (Compare and Swap)"></a>CSA (Compare and Swap)</h3><p>CSA 的操作主要包括了 3 个操作数：</p>
+<ul>
+<li>需要读写的内存位置(V)</li>
+<li>进行比较的预期值(A)</li>
+<li>拟写入的新值(B)<br>具体的操作逻辑为：若内存位置的值等于预期的 A 值，则将该位置更新为新值 B, 否则不进行任何操作。<br>直到重试次数消耗完毕。<h3 id="CSA-实现"><a href="#CSA-实现" class="headerlink" title="CSA 实现"></a>CSA 实现</h3><blockquote>
+<p>乐观锁（Optimistic Lock）,适用于多读</p>
+</blockquote>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> django.shortcuts <span class="keyword">import</span> render</span><br><span class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> JsonResponse</span><br><span class="line"><span class="keyword">from</span> django.views.generic <span class="keyword">import</span> View</span><br><span class="line"><span class="keyword">from</span> django.db <span class="keyword">import</span> transaction</span><br><span class="line"><span class="keyword">from</span> 应用名.models <span class="keyword">import</span> GoodsSKU</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 类视图 (并发，乐观锁)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Order</span>(<span class="params">View</span>):</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @transaction.atomic</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span>(<span class="params">self, request</span>):</span></span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;订单创建&#x27;&#x27;&#x27;</span></span><br><span class="line">        count = <span class="number">3</span>  <span class="comment"># 订购3件商品</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置事务保存点</span></span><br><span class="line">        s1 = transaction.savepoint()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 乐观锁，最多尝试5次</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">5</span>):</span><br><span class="line">            <span class="comment"># 查询商品的信息(库存)</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                sku = GoodsSKU.objects.get(<span class="built_in">id</span>=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment"># 商品不存在</span></span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">1</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品不存在&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 判断商品的库存</span></span><br><span class="line">            <span class="keyword">if</span> count &gt; sku.stock:</span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">2</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品库存不足&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新商品的库存和销量</span></span><br><span class="line">            orgin_stock = sku.stock  <span class="comment"># 原库存 (数据库隔离级别必须是Read Committed；如果是Repeatable Read,那么多次尝试读取的原库存都是一样的,读不到其他线程提交更新后的数据。)</span></span><br><span class="line">            new_stock = orgin_stock - count  <span class="comment"># 更新后的库存</span></span><br><span class="line">            new_sales = sku.sales + count  <span class="comment"># 更新后的销量</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># update 商品表 set stock=new_stock, sales=new_sales where id=1 and stock = orgin_stock</span></span><br><span class="line">            <span class="comment"># 通过where子句中的条件判断库存是否进行了修改。(并发，乐观锁)</span></span><br><span class="line">            <span class="comment"># 返回受影响的行数</span></span><br><span class="line">            res = GoodsSKU.objects.<span class="built_in">filter</span>(<span class="built_in">id</span>=<span class="number">1</span>, stock=orgin_stock).update(stock=new_stock, sales=new_sales)</span><br><span class="line">            <span class="keyword">if</span> res == <span class="number">0</span>:  <span class="comment"># 如果修改失败</span></span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">4</span>:</span><br><span class="line">                    <span class="comment"># 如果尝试5次都失败</span></span><br><span class="line">                    transaction.savepoint_rollback(s1)</span><br><span class="line">                    <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">3</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;下单失败&#x27;</span>&#125;)</span><br><span class="line">                <span class="keyword">continue</span>  <span class="comment"># 再次尝试</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 否则更新成功</span></span><br><span class="line">            <span class="comment"># 跳出尝试循环</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 提交事务</span></span><br><span class="line">        transaction.savepoint_commit(s1)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 返回应答</span></span><br><span class="line">        <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">4</span>, <span class="string">&#x27;message&#x27;</span>: <span class="string">&#x27;创建成功&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+<h2 id="什么是悲观锁"><a href="#什么是悲观锁" class="headerlink" title="什么是悲观锁 ?"></a>什么是悲观锁 ?</h2><p>悲观锁在操作数据的时候，比较悲观，认为别人会同时修改数据。<br>因此操作数据时会直接把数据锁住，直到操作完成后才会释放锁；上锁期间其他人不能修改数据</p>
+<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><p>例如，有用户 A 和用户 B，在同一家店铺去购买同一个商品，但是商品的可购买数量只有一个<br><img src="/images/img.png" alt="direct"></p>
+<p>若，用户 A 和用户 B 同时下单，就会报错。<br>悲观锁的实现，往往依靠数据库提供的锁机制，在数据库中，我们如何用悲观锁去结局这个事情呢？</p>
+<ol>
+<li>用户 A 在执行购买商品的时候，先尝试对该商品加上悲观锁。</li>
+<li>若加锁失败，说明商品正在被其他事务进行修改，当前查询需要等待或者抛出异常，具体返回的方式需要开发者根据具体情况去定义</li>
+<li>加锁成功：对商品进行修改</li>
+<li>在此期间如果有其他用户对数据做修改或加锁的操作，都会等待我们解锁后或直接抛出异常<br><img src="/images/img_1.png" alt="direct"></li>
+</ol>
+<h2 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h2><p>那么如何加上悲观锁呢，1. 首先关闭 MySQL 数据库的自动提交属性。因为 MySQL 默认使用 autocommit 模式（默认提交）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set autocommit = 0;</span><br></pre></td></tr></table></figure>
+<p>悲观锁加锁 sql 语句： </p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select num form t_goods where id = 2 for update</span><br></pre></td></tr></table></figure>
+<p>此时，其他事务都不能获取到此行的数据去进行操作。</p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -124,103 +407,6 @@
       <tags>
         <tag>Redis</tag>
         <tag>MySQL</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Python 如何实现装饰器？</title>
-    <url>/posts/e67a2035/</url>
-    <content><![CDATA[<h1 id="Python-如何实现一个装饰器"><a href="#Python-如何实现一个装饰器" class="headerlink" title="Python 如何实现一个装饰器"></a>Python 如何实现一个装饰器</h1><blockquote>
-<p>首先，装饰器为调用高阶函数提供了一种简单的语法<br>根据定义，装饰器是一个函数，它接受另外一个函数并在其基础功能上做统一的扩展</p>
-</blockquote>
-<h2 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h2><blockquote>
-<p>对于 Python 来说，一切皆对象，对象也是可以作为参数传递，这就是装饰器实现的基础</p>
-</blockquote>
-<p>例如，我想实现一个<code>日志打印</code>功能，调用对应方法或者对象时，可以显示其运行的信息。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">    func()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    printer(task)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>在这里我们实现了<code>task</code> 方法，在调用这个方法的时候，会显示调用的相关信息。</p>
-<p>可以看到我们使用<code>printer</code> 这个功能的时候，都是采用<code>printer(func)</code>的方式，如果在多处使用的话，<br>那么有没有比较简单的方式，例如在执行<code>task</code>方法的时候，自动去触发<code>printer</code>呢，还能像调用原方法一样？</p>
-<p>于是, 我们可以将该方法当成一个参数传递后，返回一个新的对象调用的方式：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line">task = printer(task)</span><br><span class="line">task()</span><br></pre></td></tr></table></figure>
-
-<p>Python 中<code>允许在一个方法中嵌套另外一个方法</code>，这种特殊的机制就是<strong>闭包</strong>。<br>这个内部方法可以保留外部方法的作用域，内部方法也可以访问到外部方法的参数和变量。</p>
-<h2 id="装饰器"><a href="#装饰器" class="headerlink" title="装饰器"></a>装饰器</h2><blockquote>
-<p>python 支持一种装饰器语法糖「@」，使用这个语法糖，我们也可以实现与上面完全相同的功能</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h2 id="functools-wraps"><a href="#functools-wraps" class="headerlink" title="functools.wraps"></a>functools.wraps</h2><blockquote>
-<p>现在我们已经知道，装饰器其实就是先定义好一个闭包，然后使用语法糖<code>@</code>来装饰方法，最后达到重新定义方法的作用<br>但是这样使用的方法其实最终执行的是 <code>inner</code> 方法</p>
-</blockquote>
-<p>like: </p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Output: inner</span></span><br></pre></td></tr></table></figure>
-<p>如何解决这个问题？</p>
-<p>python 其实有内置的 functools 模块，提供了一个 <code>wraps</code> 方法，专门来解决这个问题。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">logger</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@logger</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># output:</span></span><br><span class="line"><span class="comment"># hello</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="带参数的装饰器"><a href="#带参数的装饰器" class="headerlink" title="带参数的装饰器"></a>带参数的装饰器</h2><p>装饰器当然也可以传入参数，例如：<code>*args</code>、<code>**kwargs</code><br>例如使用装饰器来计算程序的运行时间：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># coding: utf8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">timeit</span>(<span class="params">prefix</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            start = time.time()</span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">            end = time.time()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&#x27;%s: duration time: %ds&#x27;</span> % (prefix, <span class="built_in">int</span>(end - start)))</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line">    <span class="keyword">return</span> decorator</span><br><span class="line"></span><br><span class="line"><span class="meta">@timeit(<span class="params"><span class="string">&#x27;prefix1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>(<span class="params">name</span>):</span></span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;hello %s&#x27;</span> % name)</span><br></pre></td></tr></table></figure>
-<h2 id="装饰器模版"><a href="#装饰器模版" class="headerlink" title="装饰器模版"></a>装饰器模版</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">        <span class="comment"># do something</span></span><br><span class="line">        value = func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> value</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure>
-
-<h2 id="类实现装饰器"><a href="#类实现装饰器" class="headerlink" title="类实现装饰器"></a>类实现装饰器</h2><p><code>__call__</code> 魔法方法结合类也可以实现装饰器</p>
-<p>这里也给出一个通用模版</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> functools</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Decorator</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self, params</span>):</span></span><br><span class="line">        self.params = params</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @functools.wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># do something</span></span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@Decorator(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">hello()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="装饰器的使用场景"><a href="#装饰器的使用场景" class="headerlink" title="装饰器的使用场景"></a>装饰器的使用场景</h2><h3 id="记录调用日志"><a href="#记录调用日志" class="headerlink" title="记录调用日志"></a>记录调用日志</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Logger</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        self.name = name</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># 记录调用日志</span></span><br><span class="line">            logging.getLogger().setLevel(logging.INFO)</span><br><span class="line">            logging.info(<span class="string">&#x27;call method: %s %s %s&#x27;</span>, func.__name__, args, kwargs)</span><br><span class="line">            <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Logger(<span class="params"><span class="string">&#x27;airflow&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>(<span class="params">name</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;run <span class="subst">&#123;name&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    task(name=<span class="string">&quot;task&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h3 id="路由映射"><a href="#路由映射" class="headerlink" title="路由映射"></a>路由映射</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> flask</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Router</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.url_map = &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">register</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">func</span>):</span></span><br><span class="line">            self.url_map[url] = func</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">call</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        func = self.url_map.get(url)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> func:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&#x27;No url function: %s&#x27;</span>, url)</span><br><span class="line">        <span class="keyword">return</span> func()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">router = Router()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@router.register(<span class="params"><span class="string">&#x27;/page1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">page1</span>():</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;page1&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(router.call(<span class="string">&#x27;page1&#x27;</span>))</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>乐观锁与悲观锁-Python 实现</title>
-    <url>/posts/102bc233/</url>
-    <content><![CDATA[<h1 id="Python-乐观锁与悲观锁"><a href="#Python-乐观锁与悲观锁" class="headerlink" title="Python 乐观锁与悲观锁"></a>Python 乐观锁与悲观锁</h1><p>参考：<a href="https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6">https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6</a></p>
-<blockquote>
-<p>乐观锁和悲观锁是两种思想，用于解决并发场景下的数据竞争问题</p>
-</blockquote>
-<h2 id="什么是乐观锁-？"><a href="#什么是乐观锁-？" class="headerlink" title="什么是乐观锁 ？"></a>什么是乐观锁 ？</h2><blockquote>
-<p>乐观锁在操作数据时采用乐观的态度，认为不会出现多个操作数据的事件。因此乐观锁不糊上锁，只是在进行更新操作的时候<br>判断该期间是否同时存在修改了数据的情况：若在修改时数据已被修改则放弃操作，否则继续执行操作。</p>
-</blockquote>
-<h2 id="乐观锁的实现"><a href="#乐观锁的实现" class="headerlink" title="乐观锁的实现"></a>乐观锁的实现</h2><blockquote>
-<ol>
-<li>CAS 机制。2.版本号机制。这里将采用 python + orm 的实现方式</li>
-</ol>
-</blockquote>
-<h3 id="CSA-Compare-and-Swap"><a href="#CSA-Compare-and-Swap" class="headerlink" title="CSA (Compare and Swap)"></a>CSA (Compare and Swap)</h3><p>CSA 的操作主要包括了 3 个操作数：</p>
-<ul>
-<li>需要读写的内存位置(V)</li>
-<li>进行比较的预期值(A)</li>
-<li>拟写入的新值(B)<br>具体的操作逻辑为：若内存位置的值等于预期的 A 值，则将该位置更新为新值 B, 否则不进行任何操作。<br>直到重试次数消耗完毕。<h3 id="CSA-实现"><a href="#CSA-实现" class="headerlink" title="CSA 实现"></a>CSA 实现</h3><blockquote>
-<p>乐观锁（Optimistic Lock）,适用于多读</p>
-</blockquote>
-</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> django.shortcuts <span class="keyword">import</span> render</span><br><span class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> JsonResponse</span><br><span class="line"><span class="keyword">from</span> django.views.generic <span class="keyword">import</span> View</span><br><span class="line"><span class="keyword">from</span> django.db <span class="keyword">import</span> transaction</span><br><span class="line"><span class="keyword">from</span> 应用名.models <span class="keyword">import</span> GoodsSKU</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 类视图 (并发，乐观锁)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Order</span>(<span class="params">View</span>):</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @transaction.atomic</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span>(<span class="params">self, request</span>):</span></span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;订单创建&#x27;&#x27;&#x27;</span></span><br><span class="line">        count = <span class="number">3</span>  <span class="comment"># 订购3件商品</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置事务保存点</span></span><br><span class="line">        s1 = transaction.savepoint()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 乐观锁，最多尝试5次</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">5</span>):</span><br><span class="line">            <span class="comment"># 查询商品的信息(库存)</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                sku = GoodsSKU.objects.get(<span class="built_in">id</span>=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment"># 商品不存在</span></span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">1</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品不存在&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 判断商品的库存</span></span><br><span class="line">            <span class="keyword">if</span> count &gt; sku.stock:</span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">2</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品库存不足&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新商品的库存和销量</span></span><br><span class="line">            orgin_stock = sku.stock  <span class="comment"># 原库存 (数据库隔离级别必须是Read Committed；如果是Repeatable Read,那么多次尝试读取的原库存都是一样的,读不到其他线程提交更新后的数据。)</span></span><br><span class="line">            new_stock = orgin_stock - count  <span class="comment"># 更新后的库存</span></span><br><span class="line">            new_sales = sku.sales + count  <span class="comment"># 更新后的销量</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># update 商品表 set stock=new_stock, sales=new_sales where id=1 and stock = orgin_stock</span></span><br><span class="line">            <span class="comment"># 通过where子句中的条件判断库存是否进行了修改。(并发，乐观锁)</span></span><br><span class="line">            <span class="comment"># 返回受影响的行数</span></span><br><span class="line">            res = GoodsSKU.objects.<span class="built_in">filter</span>(<span class="built_in">id</span>=<span class="number">1</span>, stock=orgin_stock).update(stock=new_stock, sales=new_sales)</span><br><span class="line">            <span class="keyword">if</span> res == <span class="number">0</span>:  <span class="comment"># 如果修改失败</span></span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">4</span>:</span><br><span class="line">                    <span class="comment"># 如果尝试5次都失败</span></span><br><span class="line">                    transaction.savepoint_rollback(s1)</span><br><span class="line">                    <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">3</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;下单失败&#x27;</span>&#125;)</span><br><span class="line">                <span class="keyword">continue</span>  <span class="comment"># 再次尝试</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 否则更新成功</span></span><br><span class="line">            <span class="comment"># 跳出尝试循环</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 提交事务</span></span><br><span class="line">        transaction.savepoint_commit(s1)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 返回应答</span></span><br><span class="line">        <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">4</span>, <span class="string">&#x27;message&#x27;</span>: <span class="string">&#x27;创建成功&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
-<h2 id="什么是悲观锁"><a href="#什么是悲观锁" class="headerlink" title="什么是悲观锁 ?"></a>什么是悲观锁 ?</h2><p>悲观锁在操作数据的时候，比较悲观，认为别人会同时修改数据。<br>因此操作数据时会直接把数据锁住，直到操作完成后才会释放锁；上锁期间其他人不能修改数据</p>
-<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><p>例如，有用户 A 和用户 B，在同一家店铺去购买同一个商品，但是商品的可购买数量只有一个<br><img src="/images/img.png" alt="direct"></p>
-<p>若，用户 A 和用户 B 同时下单，就会报错。<br>悲观锁的实现，往往依靠数据库提供的锁机制，在数据库中，我们如何用悲观锁去结局这个事情呢？</p>
-<ol>
-<li>用户 A 在执行购买商品的时候，先尝试对该商品加上悲观锁。</li>
-<li>若加锁失败，说明商品正在被其他事务进行修改，当前查询需要等待或者抛出异常，具体返回的方式需要开发者根据具体情况去定义</li>
-<li>加锁成功：对商品进行修改</li>
-<li>在此期间如果有其他用户对数据做修改或加锁的操作，都会等待我们解锁后或直接抛出异常<br><img src="/images/img_1.png" alt="direct"></li>
-</ol>
-<h2 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h2><p>那么如何加上悲观锁呢，1. 首先关闭 MySQL 数据库的自动提交属性。因为 MySQL 默认使用 autocommit 模式（默认提交）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set autocommit = 0;</span><br></pre></td></tr></table></figure>
-<p>悲观锁加锁 sql 语句： </p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select num form t_goods where id = 2 for update</span><br></pre></td></tr></table></figure>
-<p>此时，其他事务都不能获取到此行的数据去进行操作。</p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
       </tags>
   </entry>
   <entry>
