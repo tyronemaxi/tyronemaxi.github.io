@@ -187,6 +187,60 @@
       </tags>
   </entry>
   <entry>
+    <title>深入理解 docker 镜像.md</title>
+    <url>/posts/c5abce98/</url>
+    <content><![CDATA[<h1 id="docker-image-是什么？"><a href="#docker-image-是什么？" class="headerlink" title="docker image 是什么？"></a>docker image 是什么？</h1><blockquote>
+<p>镜像（Image）就是一堆只读层（read-only layer）的统一视角。</p>
+</blockquote>
+<h2 id="容器和镜像的关系"><a href="#容器和镜像的关系" class="headerlink" title="容器和镜像的关系"></a>容器和镜像的关系</h2><p>一张图可以带你理解:<br><img src="../images/image_and_container.png" alt="direct"></p>
+<p>container = image + 读写层</p>
+<h2 id="Docker-项目的核心原理"><a href="#Docker-项目的核心原理" class="headerlink" title="Docker 项目的核心原理"></a>Docker 项目的核心原理</h2><blockquote>
+<p>对于 Dcoker 项目来说，它最核心的原理实际上就是为待创建的用户进程：</p>
+</blockquote>
+<ul>
+<li><ol>
+<li>启动 Linux Namespace 配置</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>设置指定的 Cgroups 参数</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>切换进程的根目录（Change Root）</li>
+</ol>
+</li>
+</ul>
+<p>对于该进程的根目录而言，对应的技术就是<code>rootfs</code></p>
+<p><strong>rootfs 只是一个操作系统所包含的文件、配置和目录，并不包括操作系统内核。在 Linux 操作系统中，这两部分是分开存放的，操作系统只有在开机启动才会加载指定版本的内核镜像</strong></p>
+<p>这就意味着，如果你的应用程序需要配置内核参数、加载额外的内核模块，以及跟内核进行直接的交互，你就需要注意了：这些操作和依赖的对象，都是宿主机操作系统的内核。</p>
+<h2 id="image-一致性"><a href="#image-一致性" class="headerlink" title="image 一致性"></a>image 一致性</h2><p>所谓 镜像的一致性指的就是 <strong>rootfs 里打包的不只是应用，而是整个操作系统的文件和目录，服务所需要的所有依赖，都被封装在了一起</strong>。</p>
+<h2 id="image-设计"><a href="#image-设计" class="headerlink" title="image 设计"></a>image 设计</h2><blockquote>
+<p>Docker 在镜像的设计中，引入了层（layer）的概念。用户制作镜像的每一步操作，都会生成一个层，也就是一个增量 rootfs。</p>
+</blockquote>
+<p>这个设计的技术主要是用到了一种叫做<code>联合文件系统(Union File System)</code> 的能力<br>主要的功能就是将多个不同位置的目录联合挂载（union mount）到同一目录下。</p>
+<h2 id="docker-image-中的-layer"><a href="#docker-image-中的-layer" class="headerlink" title="docker image 中的 layer"></a>docker image 中的 layer</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker image inspect ubuntu:latest</span></span><br><span class="line">...</span><br><span class="line">     &quot;RootFS&quot;: &#123;</span><br><span class="line">      &quot;Type&quot;: &quot;layers&quot;,</span><br><span class="line">      &quot;Layers&quot;: [</span><br><span class="line">        &quot;sha256:f49017d4d5ce9c0f544c...&quot;,</span><br><span class="line">        &quot;sha256:8f2b771487e9d6354080...&quot;,</span><br><span class="line">        &quot;sha256:ccd4d61916aaa2159429...&quot;,</span><br><span class="line">        &quot;sha256:c01d74f99de40e097c73...&quot;,</span><br><span class="line">        &quot;sha256:268a067217b5fe78e000...&quot;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="../images/image_layer.png" alt="direct"></p>
+<ul>
+<li><p>只读层<br>它是容器的 rootfs 最下面的五层，对应正是 image 镜像的 5 层。他们的挂载方式只能是只读的（ro+wh, 即 readonly+whiteout）</p>
+</li>
+<li><p>Init 层<br>它是一个以”-init”结尾的层，夹在只读层和读写层之间。Init 层是 Docker 项目单独生成的一个内部层，专门用来存放 /etc/hosts、/etc/resolv.conf 等信息</p>
+</li>
+</ul>
+<p>这部分主要是 docker run 命令启动时，用户自定义的一些参数</p>
+<ul>
+<li>可读写层<br>这一层是容器的 rootfs 最上面的一层，它的挂载方式为：rw, 在没有写入文件之前，这个目录是空的。而一旦在容器中进行了写操作，你修改产生的内容就会以增量的方式出现在这个层中。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -576,10 +630,10 @@
     <title>docker 与容器技术畅谈.md</title>
     <url>/posts/bc91ee72/</url>
     <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
-<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 docker 会这么火，以及 docker 技术内涵是什么，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
+<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
 </blockquote>
-<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，AWS 以及 OpenStack 可谓盛极一时，与此同时还有以 Cloud Foundry 为代表的开源 PaaS 项目。</p>
-<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：Cloud Foundry 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 代理<br>将应用压缩包下载下来启动。</p>
+<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
+<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
 <p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
 <p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
 <p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
