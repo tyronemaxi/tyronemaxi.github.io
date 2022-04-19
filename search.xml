@@ -187,532 +187,6 @@
       </tags>
   </entry>
   <entry>
-    <title>docker 与容器技术畅谈.md</title>
-    <url>/posts/bc91ee72/</url>
-    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
-<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
-</blockquote>
-<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
-<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
-<p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
-<p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
-<p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
-<p>那么为什么 docker 技术为何在短短几个月就风靡全世界了？</p>
-<ul>
-<li><strong>实则正是 <code>docker image</code></strong></li>
-</ul>
-<p>对于 Paas 项目而言，将项目运行的文件打包是一件极其麻烦的事情，对于每种语言，每种框架，每个版本都需要维护一个打好的包。</p>
-<p><strong>docker image 可以基于你所需要的系统文件，构建一个可以基于云端环境运行的压缩包。</strong></p>
-<h2 id="容器化技术的发展"><a href="#容器化技术的发展" class="headerlink" title="容器化技术的发展"></a>容器化技术的发展</h2><p>在以上的文章中，介绍了 docker 技术为何火热的原因。<br>对于一个大型的业务应用来说，从前端，后端，到数据库系统，文件系统等，往往是需要多个容器的，那么就存在着，如何能够优雅的在云端环境有序地运行。<br>于是，docker 公司便开发出了一个<code>容器编排化的工具</code>, <strong>docker Swarm</strong> 项目</p>
-<p>与此同时，Mesos 社区也开发出了一个类似的工具<code>Marathon</code>, 它虽然不能像 Swarm 那样提供原生的 Docker API, 但是其却拥有一个独特的核心竞争力：</p>
-<ul>
-<li><strong>超大规模集群的管理经验</strong></li>
-</ul>
-<p>也就在这个时候，google 公司根据公司多年的发展经验和借助成熟的内部项目<code>Borg</code>系统，宣布了 <code>Kubernetes</code> 项目的诞生。<br>而也是仅仅在两年之前，各个国内外的互联网厂商开始将自己的项目接入 k8s，宣布了 k8s 时代的到来。</p>
-<p>本文仅仅讨论 <code>docker 容器化技术</code>，对于<code>容器化编排</code>不做过多的介绍。</p>
-<h1 id="容器到底是怎么一回事？"><a href="#容器到底是怎么一回事？" class="headerlink" title="容器到底是怎么一回事？"></a>容器到底是怎么一回事？</h1><p>在上述的文章中，已经简单介绍了几个概念:</p>
-<ul>
-<li><code>虚拟器</code></li>
-<li><code>容器</code></li>
-<li><code>容器化技术</code></li>
-<li><code>镜像</code></li>
-</ul>
-<p>我们可以总结一下：<strong>容器其实就是一种沙盒技术，使用 <code>Cgroups</code>和<code>Namespace</code> 技术，将你的应用通过限制和隔离的技术在指定的环境中，良好的运行起来</strong></p>
-<p>先说结论，容器其实就是一种<code>特殊的进程</code>而已</p>
-<h2 id="隔离技术-Namespace"><a href="#隔离技术-Namespace" class="headerlink" title="隔离技术 - Namespace"></a>隔离技术 - Namespace</h2><blockquote>
-<p>那么隔离技术是如何实现的？</p>
-</blockquote>
-<p>首先创建一个容器：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker run -it --name=ubuntu-test ubuntu:18.04 /bin/sh</span><br></pre></td></tr></table></figure>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ps</span></span><br><span class="line">  PID TTY          TIME CMD</span><br><span class="line">    1 pts/0    00:00:00 sh</span><br><span class="line">    7 pts/0    00:00:00 ps</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
-<p>我们可以看到这个容器中，一共有两个进程，通过 ps 可以看到 sh ,就是这个容器内部的第 1 号进程（PID=1）。</p>
-<p>这是为什么呢？</p>
-<p>本来，当我们在宿主机上运行了一个 /bin/sh 程序的时候，我们的操作系统都会给其分配一个进程编号，例如 PID=100。但是通过 <code>docker run</code> 命令时，docker<br>就会在当前的进程时，调整其 namespace 相关参数，将其变为在这个 docker 中的 1 号进程。</p>
-<p>这种技术就是<strong>Linux 里面的 Namespace 机制</strong>。</p>
-<p>我们知道，在 Linux 系统中创建进程的系统调用是 clone():</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, SIGCHID, NUll);</span><br></pre></td></tr></table></figure>
-
-<p>通过指定 <code>CLONE_NEWPID</code> 参数，而每个 <code>Namespace</code>里的应用进程，都会认为自己是当前容器里的第一号进程。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, CLONE_NEWPID | SIGCHLD, NULL)</span><br></pre></td></tr></table></figure>
-
-<p>在 Linux 操作系统中，还提供了 <code>Mount</code>、<code>UTS</code>、<code>IPC</code>、<code>Network</code>、<code>User</code> 这些 Namespace，用来对<code>各种不同的进程</code>上下文进行”障眼法”操作。</p>
-<h2 id="限制技术-Cgroups"><a href="#限制技术-Cgroups" class="headerlink" title="限制技术 - Cgroups"></a>限制技术 - Cgroups</h2><blockquote>
-<p>Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等<br>在 Linux 中，Cgroups 给用户暴露出来的操作接口是<strong>文件系统</strong>，即它以文件和目录的方式组织在操作系统的 /sys/fs/cgroup 路径下。</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># mount -t cgroup</span></span></span><br><span class="line">cpuset on /sys/fs/cgroup/cpuset type cgroup (ro,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cpu on /sys/fs/cgroup/cpu type cgroup (ro,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cpuacct on /sys/fs/cgroup/cpuacct type cgroup (ro,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">blkio on /sys/fs/cgroup/blkio type cgroup (ro,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">memory on /sys/fs/cgroup/memory type cgroup (ro,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">devices on /sys/fs/cgroup/devices type cgroup (ro,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">freezer on /sys/fs/cgroup/freezer type cgroup (ro,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">net_cls on /sys/fs/cgroup/net_cls type cgroup (ro,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">perf_event on /sys/fs/cgroup/perf_event type cgroup (ro,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">net_prio on /sys/fs/cgroup/net_prio type cgroup (ro,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">hugetlb on /sys/fs/cgroup/hugetlb type cgroup (ro,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">pids on /sys/fs/cgroup/pids type cgroup (ro,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">rdma on /sys/fs/cgroup/rdma type cgroup (ro,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (ro,nosuid,nodev,noexec,relatime,name=systemd)</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
-<p>其中，例如 <code>cpuset</code>、<code>cpu</code>、<code>memory</code> 这样的子目录，也叫子系统。这些都是可以被 <code>Cgroups</code> 进行限制的资源种类。</p>
-<p>现在我们看一下子系统中关于 CPU 的相关配置文件</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ls /sys/fs/cgroup/cpu</span></span><br><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release</span><br><span class="line">cgroup.procs	       cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat	 tasks</span><br></pre></td></tr></table></figure>
-<p>这些输出配置中，可以看到 <code>cpu.cfs_period_us</code> 和 <code>cpu.cfs_quota_us</code>，这两个参数需要组合使用，可以用来限制进程在长度<code>cfs_period</code>的一段时间内，<br>只能被分配到总量为 <code>cfs_quota</code> 的 CPU 时间。</p>
-<p>另开一个终端，输入:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">while : ; do : ; done &amp;</span><br><span class="line"></span><br><span class="line">23223</span><br></pre></td></tr></table></figure>
-<p>键入：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top</span><br><span class="line"><span class="meta">%</span><span class="bash">Cpu0 :100.0 us, 0.0 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
-<p>可以看到 CPU 的使用率已经 100% 了， quota 还没有任何限制（-1）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span> </span><br><span class="line">-1</span><br><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_period_us</span> </span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
-<p>在现在的默认配置中，在 100 ms 中的 cpu 时间中，使用 100ms 的 CPU 时间，也就是 100 %。<br>现在调整为 20%:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span></span><br></pre></td></tr></table></figure>
-<p>然后将限制的进程 PID 写入 container 组里的 tasks 文件:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 23223 &gt; /sys/fs/cgroup/cpu/container/tasks</span> </span><br></pre></td></tr></table></figure>
-<p>然后使用 <code>top</code> 指令查看:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash">Cpu0 : 20.3 us, 0.0 sy, 0.0 ni, 79.7 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
-<p>现在可以看到已经为 <code>20%</code> 左右了<br>其他关于 <code>blkio</code>，<code>cpuset</code>，<code>memory</code> 可以自行尝试</p>
-<h3 id="docker-运行时的限制参数"><a href="#docker-运行时的限制参数" class="headerlink" title="docker 运行时的限制参数"></a>docker 运行时的限制参数</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -it --cpu-period=100000 --cpu-quota=20000 ubuntu:18.04 /bin/bash</span></span><br></pre></td></tr></table></figure>
-
-<p>这个配置就会将对应的值写入到 docker-container 的配置文件中，这个 Docker 容器，只能使用到 20% 的 CPU 带宽。</p>
-<h3 id="虚拟机和容器对比"><a href="#虚拟机和容器对比" class="headerlink" title="虚拟机和容器对比"></a>虚拟机和容器对比</h3><img src="/images/虚拟机和容器对比图.png" width = "500" height = "300" alt="" align=center />
-
-<p>虚拟机的工作原理，通过硬件虚拟化功能，模拟出了运行一个操作系统需要的各种硬件，例如 CPU、内存、I/O 设备等等。<br>docker 项目帮助用户启动的，还是原来的应用进程，但是 Docker 会为它们加上了各种各样的 Namespace 参数。</p>
-<p>所以，”敏捷” 和 “高性能” 是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。</p>
-]]></content>
-      <categories>
-        <category>docker</category>
-      </categories>
-      <tags>
-        <tag>docker</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Python 如何实现装饰器？</title>
-    <url>/posts/e67a2035/</url>
-    <content><![CDATA[<h1 id="Python-如何实现一个装饰器"><a href="#Python-如何实现一个装饰器" class="headerlink" title="Python 如何实现一个装饰器"></a>Python 如何实现一个装饰器</h1><blockquote>
-<p>首先，装饰器为调用高阶函数提供了一种简单的语法<br>根据定义，装饰器是一个函数，它接受另外一个函数并在其基础功能上做统一的扩展</p>
-</blockquote>
-<h2 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h2><blockquote>
-<p>对于 Python 来说，一切皆对象，对象也是可以作为参数传递，这就是装饰器实现的基础</p>
-</blockquote>
-<p>例如，我想实现一个<code>日志打印</code>功能，调用对应方法或者对象时，可以显示其运行的信息。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">    func()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    printer(task)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>在这里我们实现了<code>task</code> 方法，在调用这个方法的时候，会显示调用的相关信息。</p>
-<p>可以看到我们使用<code>printer</code> 这个功能的时候，都是采用<code>printer(func)</code>的方式，如果在多处使用的话，<br>那么有没有比较简单的方式，例如在执行<code>task</code>方法的时候，自动去触发<code>printer</code>呢，还能像调用原方法一样？</p>
-<p>于是, 我们可以将该方法当成一个参数传递后，返回一个新的对象调用的方式：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line">task = printer(task)</span><br><span class="line">task()</span><br></pre></td></tr></table></figure>
-
-<p>Python 中<code>允许在一个方法中嵌套另外一个方法</code>，这种特殊的机制就是<strong>闭包</strong>。<br>这个内部方法可以保留外部方法的作用域，内部方法也可以访问到外部方法的参数和变量。</p>
-<h2 id="装饰器"><a href="#装饰器" class="headerlink" title="装饰器"></a>装饰器</h2><blockquote>
-<p>python 支持一种装饰器语法糖「@」，使用这个语法糖，我们也可以实现与上面完全相同的功能</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h2 id="functools-wraps"><a href="#functools-wraps" class="headerlink" title="functools.wraps"></a>functools.wraps</h2><blockquote>
-<p>现在我们已经知道，装饰器其实就是先定义好一个闭包，然后使用语法糖<code>@</code>来装饰方法，最后达到重新定义方法的作用<br>但是这样使用的方法其实最终执行的是 <code>inner</code> 方法</p>
-</blockquote>
-<p>like: </p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Output: inner</span></span><br></pre></td></tr></table></figure>
-<p>如何解决这个问题？</p>
-<p>python 其实有内置的 functools 模块，提供了一个 <code>wraps</code> 方法，专门来解决这个问题。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">logger</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@logger</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># output:</span></span><br><span class="line"><span class="comment"># hello</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="带参数的装饰器"><a href="#带参数的装饰器" class="headerlink" title="带参数的装饰器"></a>带参数的装饰器</h2><p>装饰器当然也可以传入参数，例如：<code>*args</code>、<code>**kwargs</code><br>例如使用装饰器来计算程序的运行时间：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># coding: utf8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">timeit</span>(<span class="params">prefix</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            start = time.time()</span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">            end = time.time()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&#x27;%s: duration time: %ds&#x27;</span> % (prefix, <span class="built_in">int</span>(end - start)))</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line">    <span class="keyword">return</span> decorator</span><br><span class="line"></span><br><span class="line"><span class="meta">@timeit(<span class="params"><span class="string">&#x27;prefix1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>(<span class="params">name</span>):</span></span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;hello %s&#x27;</span> % name)</span><br></pre></td></tr></table></figure>
-<h2 id="装饰器模版"><a href="#装饰器模版" class="headerlink" title="装饰器模版"></a>装饰器模版</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">        <span class="comment"># do something</span></span><br><span class="line">        value = func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> value</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure>
-
-<h2 id="类实现装饰器"><a href="#类实现装饰器" class="headerlink" title="类实现装饰器"></a>类实现装饰器</h2><p><code>__call__</code> 魔法方法结合类也可以实现装饰器</p>
-<p>这里也给出一个通用模版</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> functools</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Decorator</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self, params</span>):</span></span><br><span class="line">        self.params = params</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @functools.wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># do something</span></span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@Decorator(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">hello()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="装饰器的使用场景"><a href="#装饰器的使用场景" class="headerlink" title="装饰器的使用场景"></a>装饰器的使用场景</h2><h3 id="记录调用日志"><a href="#记录调用日志" class="headerlink" title="记录调用日志"></a>记录调用日志</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Logger</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        self.name = name</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># 记录调用日志</span></span><br><span class="line">            logging.getLogger().setLevel(logging.INFO)</span><br><span class="line">            logging.info(<span class="string">&#x27;call method: %s %s %s&#x27;</span>, func.__name__, args, kwargs)</span><br><span class="line">            <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Logger(<span class="params"><span class="string">&#x27;airflow&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>(<span class="params">name</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;run <span class="subst">&#123;name&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    task(name=<span class="string">&quot;task&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h3 id="路由映射"><a href="#路由映射" class="headerlink" title="路由映射"></a>路由映射</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> flask</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Router</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.url_map = &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">register</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">func</span>):</span></span><br><span class="line">            self.url_map[url] = func</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">call</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        func = self.url_map.get(url)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> func:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&#x27;No url function: %s&#x27;</span>, url)</span><br><span class="line">        <span class="keyword">return</span> func()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">router = Router()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@router.register(<span class="params"><span class="string">&#x27;/page1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">page1</span>():</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;page1&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(router.call(<span class="string">&#x27;page1&#x27;</span>))</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Cache &amp;&amp; DB 数据一致性</title>
-    <url>/posts/c4a988da/</url>
-    <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
-<p>一般情况下，Redis 是用来实现应用和数据库之间的一个读操作的缓存层。主要目的是去减少数据库的 IO ,还可以提升数据库的 IO 性能。</p>
-</blockquote>
-<p>整体架构：<br><img src="/images/Redis-MySQL架构.png" width = "500" height = "300" alt="" align=center /></p>
-<p>当应用程序需要去读取某个数据的时候，首先会尝试 Redis 里面去加载，如果命中了就直接去加载，直接返回数据，如果没有命中，就查询数据库，然后再将查询到的数据写入到 redis 缓存中。</p>
-<p>在这个架构里面呢，会出现<code>数据一致性的问题</code>。</p>
-<p>一份数据同时被保存在 redis 和 mysql 里面，当某个数据需要被更新的时候，由于更新数据是具有前后顺序的，它并不像 mysql 中的多表事务操作，可以满足 ACID 的特性。</p>
-<p>常规解决办法只有两种：</p>
-<ol>
-<li><p>先更新数据库，再更新缓存。</p>
-<p>该种方案，若出现缓存失败的话，会出现数据不一致的问题。</p>
-</li>
-<li><p>先删除缓存，再更新数据库。</p>
-<p>该种方案，是借助再次访问该数据的时候，发现 redis 里的数据为空，然后查询数据库再次加载。但是这两个操作并不是原子操作，所以在这个过程中，如果出现其他线程来访问，还是会存在数据不一致的问题。</p>
-</li>
-</ol>
-<p>那么，需要在极端情况下仍要保证 redis 和 mysql 数据一致性，就需要采用 <code>最终一致性</code>的方案。</p>
-<p>例如 <code>基于 MQ 的可靠性消息通信</code>来实现数据最终的一致性。</p>
-<p>或者，直接通过 Canel 组件，监控 mysql 中的 bingo 的日志，将更新后的数据同步到 Redis 里面。</p>
-<p>接下来，就聊一下各种缓存方案…</p>
-<h2 id="一致性-consistency"><a href="#一致性-consistency" class="headerlink" title="一致性(consistency)"></a>一致性(consistency)</h2><blockquote>
-<p>一致性就是缓存和数据库存储数据的两份数据保持一致性</p>
-</blockquote>
-<ul>
-<li>强一致性要求：<blockquote>
-<p>所谓强一致性，就是对于 app 来说，缓存和数据库存储的数据读写是符合原子性的，要求读写的一致性，实现起来时对系统的影响大。</p>
-</blockquote>
-</li>
-<li>弱一致性：<blockquote>
-<p>这部分对于缓存层和数据库层数据一致性要求较低，不要求在更新数据时，缓存和数据库立即同步更新的情况，也不会要求缓存和数据库多久达到一致性，但是会尽可能保证<br>到某个时间级别后，数据能够达到一致性状态。</p>
-</blockquote>
-</li>
-<li>最终一致性：<blockquote>
-<p>最终一致性是弱一致性的一个特例，系统会保证在一定时间内，能够达到一个数据一致的状态。</p>
-</blockquote>
-</li>
-</ul>
-<h1 id="三种经典的缓存模式"><a href="#三种经典的缓存模式" class="headerlink" title="三种经典的缓存模式"></a>三种经典的缓存模式</h1><ul>
-<li>Cache-Aside Pattern</li>
-<li>Read-Through/Write through</li>
-<li> Write behind</li>
-</ul>
-<h2 id="Cache-Aside-读流程"><a href="#Cache-Aside-读流程" class="headerlink" title="Cache-Aside 读流程"></a>Cache-Aside 读流程</h2><blockquote>
-<p>旁路缓存模式，它的提出是为了尽可能地解决缓存与数据库的数据不一致问题</p>
-</blockquote>
-<p>Cache-Aside 读流程</p>
-<img src="/images/Cache-Aside.png" width = "300" height = "400" alt="" align=center />
-
-
-<ol>
-<li>读取数据的时候，先读缓存，缓存命中时，直接返回数据。</li>
-<li>缓存未命中时，读取数据库，取数据的时候同时更新数据到缓存中，返回响应</li>
-</ol>
-<h2 id="Cache-Aside-写流程"><a href="#Cache-Aside-写流程" class="headerlink" title="Cache-Aside 写流程"></a>Cache-Aside 写流程</h2><blockquote>
-<p>更新的时候，先更新数据库，然后再删除缓存</p>
-</blockquote>
-<img src="/images/Cache-Aside-write.png" width = "200" height = "300" alt="" align=center />
-
-<h2 id="Read-Through"><a href="#Read-Through" class="headerlink" title="Read-Through"></a>Read-Through</h2><blockquote>
-<p>Read/Write Through 模式中，服务端把<code>缓存</code>作为<code>主要数据存储</code>。应用程序跟数据库缓存交互，都是通过<code>抽象缓存层</code>完成的</p>
-</blockquote>
-<img src="/images/Cache-Aside-whole-process.png" width = "600" height = "400" alt="" align=center />
-
-<p>Read-Through 的思想是采用的将缓存作为主要的存储结构，是从性能的角度出发。</p>
-<h2 id="Write-Through"><a href="#Write-Through" class="headerlink" title="Write-Through"></a>Write-Through</h2><blockquote>
-<p>这种模式下，当发生请求时，是由缓存抽象层完成数据源和缓存数据的更新<br><img src="/images/Cache-Aside-write-process.png" width = "600" height = "400" alt="" align=center /></p>
-</blockquote>
-<h2 id="Write-behind-（异步缓存写入）"><a href="#Write-behind-（异步缓存写入）" class="headerlink" title="Write behind （异步缓存写入）"></a>Write behind （异步缓存写入）</h2><blockquote>
-<p>Write behind 和 Read-Through/Write-Through 相似，都是由 <code>Cache Provider</code>来负责缓存和数据库看的读写。<br>但是 前者是同步更新缓存和数据的，Write Behind 则只是更新缓存，不直接更新数据库，通过<code>批量异步</code>的方式来更新数据库。<br><img src="/images/Cache-Aside-write-behind-process.png" width = "600" height = "400" alt="" align=center /></p>
-</blockquote>
-<h2 id="三种模式的比较"><a href="#三种模式的比较" class="headerlink" title="三种模式的比较"></a>三种模式的比较</h2><p>Cache Aside 更新模式实现起来比较简单，但是需要维护两个数据存储:</p>
-<ul>
-<li>缓存（Cache）</li>
-<li>一个是数据库（Repository）</li>
-</ul>
-<p>Read/Write Through 的写模式需要维护一个数据存储（Cache Provider），实现起来较为复杂一些。</p>
-<p>Write Behind Caching 更新模式和 Read/Write Through 更新模式类似，区别是 Write Behind Caching 更新模式的数据持久化操作是<code>异步</code>的，但是`Read/Write Through 更新模式的数据持久化操作是<strong>同步的</strong></p>
-<p>Write Behind Caching 的优点是直接<code>操作内存速度快</code>,多次操作可以合并持久化到数据库。缺点是数据可能会丢失，例如系统断电等等。</p>
-<h2 id="Cache-Aside-问题"><a href="#Cache-Aside-问题" class="headerlink" title="Cache-Aside 问题"></a>Cache-Aside 问题</h2><p><strong>我们在更新数据的时候，Cache-Aside 是删除缓存呢，还是应该更新缓存？</strong></p>
-<img src="/images/Cache-Aside-write.png" width = "200" height = "300" alt="" align=center />
-
-<p>我们在操作缓存的时候，到底是应该删除缓存还是说更新缓存呢？我们先来看个例子：<br>多线程情况：<br><img src="/images/多线程-Cache-DB.png" width = "600" height = "400" alt="" align=center /></p>
-<p>以上情况就可以看出来问题：</p>
-<blockquote>
-<p>线程 A 先发起一个写操作，先更新数据库。<br>线程 B 再发起写操作，更新数据库。</p>
-</blockquote>
-<p>现在由于网络原因，线程 B 的更新缓存的操作却在 A 之后发生。<br>此时缓存中的数据就是与数据库中不一致了。</p>
-<p><strong>更新缓存相对于删除缓存还有两点劣势</strong>：</p>
-<blockquote>
-<ol>
-<li>若写入缓存的值，是经过复杂计算才得到，更新频率较高的情况下，十分浪费性能。</li>
-<li>在写多读少的情况下，也会十分浪费性能。</li>
-</ol>
-</blockquote>
-<h2 id="双写的情况下，先操作数据库还是先操作缓存？"><a href="#双写的情况下，先操作数据库还是先操作缓存？" class="headerlink" title="双写的情况下，先操作数据库还是先操作缓存？"></a>双写的情况下，先操作数据库还是先操作缓存？</h2><p>如果遇到多线程情况，也会有类似情况，出现缓存中存储的是脏数据。因此 Cache-Aside 缓存模式，选择了先操作数据库而不是先操作缓存</p>
-<h1 id="两种方案保证数据库与缓存的一致性"><a href="#两种方案保证数据库与缓存的一致性" class="headerlink" title="两种方案保证数据库与缓存的一致性"></a>两种方案保证数据库与缓存的一致性</h1><ul>
-<li>删除缓存重试机制</li>
-<li>读取 binlog 异步删除缓存</li>
-</ul>
-<h2 id="删除缓存重试机制"><a href="#删除缓存重试机制" class="headerlink" title="删除缓存重试机制"></a>删除缓存重试机制</h2><p>多次删除确保 cache 中存储的是正确的数据<br><img src="/images/del_cache_retry.png" width = "600" height = "400" alt="" align=center /></p>
-<p>删除缓存重试机制的大致步骤：</p>
-<ul>
-<li>写请求更新数据库</li>
-<li>缓存因为某些原因，删除失败</li>
-<li>把删除失败的 key 放到消息队列</li>
-<li>消费消息队列的消息，获取要删除的 key</li>
-<li>重试删除缓存操作</li>
-</ul>
-<h2 id="同步-binlog-异步删除缓存"><a href="#同步-binlog-异步删除缓存" class="headerlink" title="同步 binlog 异步删除缓存"></a>同步 binlog 异步删除缓存</h2><p>重试删除缓存机制还可以，就是会造成好多业务代码入侵。<br>其实，还可以通过数据库的 binlog 来异步淘汰 key</p>
-<img src="/images/binlog.png" width = "600" height = "400" alt="" align=center />
-
-<p>以 mysql 为例，可以使用阿里的 canal 将 binlog 日志采集发送到 MQ 队列里面，然后编写一个简单的缓存删除<br>消息者订阅 binlog 日志，根据更新 log 删除缓存，并且通过 ACK 机制确认处理这条更新 log,保证数据缓存一致性。</p>
-<p>总结：<br>综上所述，在分布式系统中，缓存和数据库同时存在时，如果有写操作的时候，「 先操作数据库，再操作缓存 」</p>
-<p>参考：「 <a href="https://www.cnblogs.com/crazymakercircle/p/14853622.html">https://www.cnblogs.com/crazymakercircle/p/14853622.html</a> 」</p>
-]]></content>
-      <categories>
-        <category>redis</category>
-      </categories>
-      <tags>
-        <tag>Redis</tag>
-        <tag>MySQL</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>乐观锁与悲观锁-Python 实现</title>
-    <url>/posts/102bc233/</url>
-    <content><![CDATA[<h1 id="Python-乐观锁与悲观锁"><a href="#Python-乐观锁与悲观锁" class="headerlink" title="Python 乐观锁与悲观锁"></a>Python 乐观锁与悲观锁</h1><p>参考：<a href="https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6">https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6</a></p>
-<blockquote>
-<p>乐观锁和悲观锁是两种思想，用于解决并发场景下的数据竞争问题</p>
-</blockquote>
-<h2 id="什么是乐观锁-？"><a href="#什么是乐观锁-？" class="headerlink" title="什么是乐观锁 ？"></a>什么是乐观锁 ？</h2><blockquote>
-<p>乐观锁在操作数据时采用乐观的态度，认为不会出现多个操作数据的事件。因此乐观锁不糊上锁，只是在进行更新操作的时候<br>判断该期间是否同时存在修改了数据的情况：若在修改时数据已被修改则放弃操作，否则继续执行操作。</p>
-</blockquote>
-<h2 id="乐观锁的实现"><a href="#乐观锁的实现" class="headerlink" title="乐观锁的实现"></a>乐观锁的实现</h2><blockquote>
-<ol>
-<li>CAS 机制。2.版本号机制。这里将采用 python + orm 的实现方式</li>
-</ol>
-</blockquote>
-<h3 id="CSA-Compare-and-Swap"><a href="#CSA-Compare-and-Swap" class="headerlink" title="CSA (Compare and Swap)"></a>CSA (Compare and Swap)</h3><p>CSA 的操作主要包括了 3 个操作数：</p>
-<ul>
-<li>需要读写的内存位置(V)</li>
-<li>进行比较的预期值(A)</li>
-<li>拟写入的新值(B)<br>具体的操作逻辑为：若内存位置的值等于预期的 A 值，则将该位置更新为新值 B, 否则不进行任何操作。<br>直到重试次数消耗完毕。<h3 id="CSA-实现"><a href="#CSA-实现" class="headerlink" title="CSA 实现"></a>CSA 实现</h3><blockquote>
-<p>乐观锁（Optimistic Lock）,适用于多读</p>
-</blockquote>
-</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> django.shortcuts <span class="keyword">import</span> render</span><br><span class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> JsonResponse</span><br><span class="line"><span class="keyword">from</span> django.views.generic <span class="keyword">import</span> View</span><br><span class="line"><span class="keyword">from</span> django.db <span class="keyword">import</span> transaction</span><br><span class="line"><span class="keyword">from</span> 应用名.models <span class="keyword">import</span> GoodsSKU</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 类视图 (并发，乐观锁)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Order</span>(<span class="params">View</span>):</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @transaction.atomic</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span>(<span class="params">self, request</span>):</span></span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;订单创建&#x27;&#x27;&#x27;</span></span><br><span class="line">        count = <span class="number">3</span>  <span class="comment"># 订购3件商品</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置事务保存点</span></span><br><span class="line">        s1 = transaction.savepoint()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 乐观锁，最多尝试5次</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">5</span>):</span><br><span class="line">            <span class="comment"># 查询商品的信息(库存)</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                sku = GoodsSKU.objects.get(<span class="built_in">id</span>=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment"># 商品不存在</span></span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">1</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品不存在&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 判断商品的库存</span></span><br><span class="line">            <span class="keyword">if</span> count &gt; sku.stock:</span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">2</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品库存不足&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新商品的库存和销量</span></span><br><span class="line">            orgin_stock = sku.stock  <span class="comment"># 原库存 (数据库隔离级别必须是Read Committed；如果是Repeatable Read,那么多次尝试读取的原库存都是一样的,读不到其他线程提交更新后的数据。)</span></span><br><span class="line">            new_stock = orgin_stock - count  <span class="comment"># 更新后的库存</span></span><br><span class="line">            new_sales = sku.sales + count  <span class="comment"># 更新后的销量</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># update 商品表 set stock=new_stock, sales=new_sales where id=1 and stock = orgin_stock</span></span><br><span class="line">            <span class="comment"># 通过where子句中的条件判断库存是否进行了修改。(并发，乐观锁)</span></span><br><span class="line">            <span class="comment"># 返回受影响的行数</span></span><br><span class="line">            res = GoodsSKU.objects.<span class="built_in">filter</span>(<span class="built_in">id</span>=<span class="number">1</span>, stock=orgin_stock).update(stock=new_stock, sales=new_sales)</span><br><span class="line">            <span class="keyword">if</span> res == <span class="number">0</span>:  <span class="comment"># 如果修改失败</span></span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">4</span>:</span><br><span class="line">                    <span class="comment"># 如果尝试5次都失败</span></span><br><span class="line">                    transaction.savepoint_rollback(s1)</span><br><span class="line">                    <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">3</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;下单失败&#x27;</span>&#125;)</span><br><span class="line">                <span class="keyword">continue</span>  <span class="comment"># 再次尝试</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 否则更新成功</span></span><br><span class="line">            <span class="comment"># 跳出尝试循环</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 提交事务</span></span><br><span class="line">        transaction.savepoint_commit(s1)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 返回应答</span></span><br><span class="line">        <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">4</span>, <span class="string">&#x27;message&#x27;</span>: <span class="string">&#x27;创建成功&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
-<h2 id="什么是悲观锁"><a href="#什么是悲观锁" class="headerlink" title="什么是悲观锁 ?"></a>什么是悲观锁 ?</h2><p>悲观锁在操作数据的时候，比较悲观，认为别人会同时修改数据。<br>因此操作数据时会直接把数据锁住，直到操作完成后才会释放锁；上锁期间其他人不能修改数据</p>
-<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><p>例如，有用户 A 和用户 B，在同一家店铺去购买同一个商品，但是商品的可购买数量只有一个<br><img src="/images/img.png" alt="direct"></p>
-<p>若，用户 A 和用户 B 同时下单，就会报错。<br>悲观锁的实现，往往依靠数据库提供的锁机制，在数据库中，我们如何用悲观锁去结局这个事情呢？</p>
-<ol>
-<li>用户 A 在执行购买商品的时候，先尝试对该商品加上悲观锁。</li>
-<li>若加锁失败，说明商品正在被其他事务进行修改，当前查询需要等待或者抛出异常，具体返回的方式需要开发者根据具体情况去定义</li>
-<li>加锁成功：对商品进行修改</li>
-<li>在此期间如果有其他用户对数据做修改或加锁的操作，都会等待我们解锁后或直接抛出异常<br><img src="/images/img_1.png" alt="direct"></li>
-</ol>
-<h2 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h2><p>那么如何加上悲观锁呢，1. 首先关闭 MySQL 数据库的自动提交属性。因为 MySQL 默认使用 autocommit 模式（默认提交）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set autocommit = 0;</span><br></pre></td></tr></table></figure>
-<p>悲观锁加锁 sql 语句： </p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select num form t_goods where id = 2 for update</span><br></pre></td></tr></table></figure>
-<p>此时，其他事务都不能获取到此行的数据去进行操作。</p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>深入理解 docker 镜像.md</title>
-    <url>/posts/c5abce98/</url>
-    <content><![CDATA[<h1 id="docker-image-是什么？"><a href="#docker-image-是什么？" class="headerlink" title="docker image 是什么？"></a>docker image 是什么？</h1><blockquote>
-<p>镜像（Image）就是一堆只读层（read-only layer）的统一视角。</p>
-</blockquote>
-<h2 id="容器和镜像的关系"><a href="#容器和镜像的关系" class="headerlink" title="容器和镜像的关系"></a>容器和镜像的关系</h2><p>一张图可以带你理解:<br><img src="/images/image_and_container.png" width = "350" height = "200" alt="" align=center /></p>
-<p>container = image + 读写层</p>
-<h2 id="Docker-项目的核心原理"><a href="#Docker-项目的核心原理" class="headerlink" title="Docker 项目的核心原理"></a>Docker 项目的核心原理</h2><blockquote>
-<p>对于 Dcoker 项目来说，它最核心的原理实际上就是为待创建的用户进程：</p>
-</blockquote>
-<ul>
-<li><ol>
-<li>启动 Linux Namespace 配置</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>设置指定的 Cgroups 参数</li>
-</ol>
-</li>
-<li><ol start="3">
-<li>切换进程的根目录（Change Root）</li>
-</ol>
-</li>
-</ul>
-<p>对于该进程的根目录而言，对应的技术就是<code>rootfs</code></p>
-<p><strong>rootfs 只是一个操作系统所包含的文件、配置和目录，并不包括操作系统内核。在 Linux 操作系统中，这两部分是分开存放的，操作系统只有在开机启动才会加载指定版本的内核镜像</strong></p>
-<p>这就意味着，如果你的应用程序需要配置内核参数、加载额外的内核模块，以及跟内核进行直接的交互，你就需要注意了：这些操作和依赖的对象，都是宿主机操作系统的内核。</p>
-<h2 id="image-一致性"><a href="#image-一致性" class="headerlink" title="image 一致性"></a>image 一致性</h2><p>所谓 镜像的一致性指的就是 <strong>rootfs 里打包的不只是应用，而是整个操作系统的文件和目录，服务所需要的所有依赖，都被封装在了一起</strong>。</p>
-<h2 id="image-设计"><a href="#image-设计" class="headerlink" title="image 设计"></a>image 设计</h2><blockquote>
-<p>Docker 在镜像的设计中，引入了层（layer）的概念。用户制作镜像的每一步操作，都会生成一个层，也就是一个增量 rootfs。</p>
-</blockquote>
-<p>这个设计的技术主要是用到了一种叫做<code>联合文件系统(Union File System)</code> 的能力<br>主要的功能就是将多个不同位置的目录联合挂载（union mount）到同一目录下。</p>
-<h2 id="docker-image-中的-layer"><a href="#docker-image-中的-layer" class="headerlink" title="docker image 中的 layer"></a>docker image 中的 layer</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker image inspect ubuntu:latest</span></span><br><span class="line">...</span><br><span class="line">     &quot;RootFS&quot;: &#123;</span><br><span class="line">      &quot;Type&quot;: &quot;layers&quot;,</span><br><span class="line">      &quot;Layers&quot;: [</span><br><span class="line">        &quot;sha256:f49017d4d5ce9c0f544c...&quot;,</span><br><span class="line">        &quot;sha256:8f2b771487e9d6354080...&quot;,</span><br><span class="line">        &quot;sha256:ccd4d61916aaa2159429...&quot;,</span><br><span class="line">        &quot;sha256:c01d74f99de40e097c73...&quot;,</span><br><span class="line">        &quot;sha256:268a067217b5fe78e000...&quot;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<img src="/images/image_layer.png" width = "600" height = "400" alt="" align=center />
-
-<ul>
-<li><p>只读层<br>它是容器的 rootfs 最下面的五层，对应正是 image 镜像的 5 层。他们的挂载方式只能是只读的（ro+wh, 即 readonly+whiteout）</p>
-</li>
-<li><p>Init 层<br>它是一个以”-init”结尾的层，夹在只读层和读写层之间。Init 层是 Docker 项目单独生成的一个内部层，专门用来存放 /etc/hosts、/etc/resolv.conf 等信息</p>
-</li>
-</ul>
-<p>这部分主要是 docker run 命令启动时，用户自定义的一些参数</p>
-<ul>
-<li>可读写层<br>这一层是容器的 rootfs 最上面的一层，它的挂载方式为：rw, 在没有写入文件之前，这个目录是空的。而一旦在容器中进行了写操作，你修改产生的内容就会以增量的方式出现在这个层中。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>docker</category>
-      </categories>
-      <tags>
-        <tag>docker</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>单例模式-Python 实现</title>
-    <url>/posts/26a37a49/</url>
-    <content><![CDATA[<h1 id="什么是单例模式"><a href="#什么是单例模式" class="headerlink" title="什么是单例模式 ?"></a>什么是单例模式 ?</h1><blockquote>
-<p>单例模式（Singleton Pattern）是软件设计中的一种常用设计模式，其目的是在一个进程中，确保某一个类(class)只有一个实例(instance)存在。<br>例如，当我们在操作数据库时，多个服务都要调用数据库的 connection ，其配置信息都是相同的，这种情况就可以使用单例模式。在该系统中，只使用一个用于连接数据库的 connection 实例</p>
-</blockquote>
-<h2 id="单例模式的实现方式"><a href="#单例模式的实现方式" class="headerlink" title="单例模式的实现方式"></a>单例模式的实现方式</h2><h3 id="1-模块构建"><a href="#1-模块构建" class="headerlink" title="1. 模块构建"></a>1. 模块构建</h3><blockquote>
-<p><strong>Python 的模块就是天然的单例模式</strong>，模块在第一次导入的时候，会生成 <code>.pyc</code> 文件，就会直接加载<code>.pyc</code>文件，而不会再次执行模块<br>因此，我们只需要把相关的函数和数据定义在一个模块中，就可以获得一个单例对象了。</p>
-</blockquote>
-<p><strong>Singleton.py</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">singleton = Singleton()</span><br></pre></td></tr></table></figure>
-<p>当我们需要使用这个 instance 的时候，直接使用即可：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> Singleton <span class="keyword">import</span> singleton</span><br></pre></td></tr></table></figure>
-<h3 id="装饰器"><a href="#装饰器" class="headerlink" title="装饰器"></a>装饰器</h3><blockquote>
-<p>使用 dict 类型，以 key-value 方式存储类的实例和运行的函数</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">singleton</span>(<span class="params">cls</span>):</span></span><br><span class="line">    _instance = &#123;&#125;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_singleton</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> cls <span class="keyword">not</span> <span class="keyword">in</span> _instance:</span><br><span class="line">            _instance[cls] = cls(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> _instance[cls]</span><br><span class="line">    <span class="keyword">return</span> _singleton</span><br><span class="line"></span><br><span class="line"><span class="meta">@singleton</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, x</span>):</span></span><br><span class="line">        self.x = x</span><br><span class="line"></span><br><span class="line">a1 = A(<span class="number">1</span>)</span><br><span class="line">a2 = A(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(a1 <span class="keyword">is</span> a2)</span><br></pre></td></tr></table></figure>
-<h3 id="类方法实现"><a href="#类方法实现" class="headerlink" title="类方法实现"></a>类方法实现</h3><blockquote>
-<p>使用方法 <code>hasattr</code> 方法判断类中是否已实现了对应的实例方法，实现了就直接返回，未返回就添加单例属性</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">instance</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(Singleton, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">            Singleton._instance = Singleton(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> Singleton._instance</span><br><span class="line"></span><br><span class="line">obj = Singleton.instance()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h3 id="多线程场景"><a href="#多线程场景" class="headerlink" title="多线程场景"></a>多线程场景</h3><p>但是在<code>多线程</code>的使用中，由于每个线程有自己的数据资源，所以会<code>存在问题</code>。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>(<span class="params">arg</span>):</span></span><br><span class="line">    obj = Singleton.instance()</span><br><span class="line">    <span class="built_in">print</span>(obj) <span class="comment"># 显示 instance 的详情信息</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">    t = threading.Thread(target=task,args=[i,])</span><br><span class="line">    t.start()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>以上的实例显示出的详情可以看到 obj 的 id 并不一致，解决办法就是加 <code>锁</code>(mutex)</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    lock = threading.Lock()</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">instance</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">with</span> Singleton.lock:</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(Singleton, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">                Singleton._instance = Singleton(*args, **kwargs)</span><br><span class="line">            <span class="keyword">return</span> Singleton._instance</span><br></pre></td></tr></table></figure>
-<p>以上实现方式对整个实例的创建过程都进行了加锁，可以进行优化：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    lock = threading.Lock()</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">instance</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(Singleton, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">                <span class="keyword">with</span> Singleton.lock:</span><br><span class="line">                    Singleton._instance = Singleton(*args, **kwargs)</span><br><span class="line">            <span class="keyword">return</span> Singleton._instance</span><br></pre></td></tr></table></figure>
-<p>但是这样的实现方式，需要借助 <code>instance 方法</code></p>
-<h3 id="new-方法实现"><a href="#new-方法实现" class="headerlink" title="__new__ 方法实现"></a><code>__new__</code> 方法实现</h3><blockquote>
-<p>一个类在被实例化的过程中，先是执行默认的<code>__new__</code> 方法，然后再执行<code>__init__</code>方法初始化对象</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    _instance_lock = threading.Lock()</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__new__</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(cls, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">            <span class="keyword">with</span> cls._instance_lock:</span><br><span class="line">                cls._instance = <span class="built_in">super</span>.__new__(cls)</span><br><span class="line">            <span class="keyword">return</span> cls._instance</span><br></pre></td></tr></table></figure>
-
-<h3 id="metaclass-方式实现"><a href="#metaclass-方式实现" class="headerlink" title="metaclass 方式实现"></a><code>metaclass</code> 方式实现</h3><blockquote>
-<ol>
-<li>类由 <code>type</code>创建，创建类时，type 的 <code>__init__</code> 方法自动执行，类() 的方式执行<code>type</code> 的<code>__call__</code>方法（类的 <strong>new__、__init</strong> 方法）</li>
-<li>对象由类创建，创建对象时，类的 <code>__init__</code> 方法自动执行，对象()执行类的<code>__call__</code> 方法</li>
-</ol>
-</blockquote>
-<p>其实，我们就是要保证在创建类的时候，保证这个类只有一个实例</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SingletonType</span>(<span class="params"><span class="built_in">type</span></span>):</span></span><br><span class="line">    _instance_lock = threading.Lock</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(cls, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">            <span class="keyword">with</span> SingletonType._instance_lock:</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(cls, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">                    cls._instance = <span class="built_in">super</span>.__call__(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> cls._instance</span><br><span class="line">                </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Foo</span>(<span class="params">metaclass=SingletonType</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        self.name = name</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>基本的数据结构和算法.md</title>
-    <url>/posts/d92d1b7b/</url>
-    <content><![CDATA[<h1 id="算法"><a href="#算法" class="headerlink" title="算法"></a>算法</h1><h1 id="常用的数据结构"><a href="#常用的数据结构" class="headerlink" title="常用的数据结构"></a>常用的数据结构</h1><h2 id="队列"><a href="#队列" class="headerlink" title="队列"></a>队列</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Queue</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.queue = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, item</span>):</span></span><br><span class="line">        self.queue.append(item)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.queue.pop(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.queue)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">first</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.queue[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">end</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.queue[<span class="number">0</span>]</span><br></pre></td></tr></table></figure>
-<h2 id="栈"><a href="#栈" class="headerlink" title="栈"></a>栈</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stack</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.stack = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, item</span>):</span></span><br><span class="line">        self.stack.append(item)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;出栈&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">return</span> self.stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.stack)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    s = Stack()</span><br><span class="line">    s.push(<span class="number">1</span>)</span><br><span class="line">    s.push(<span class="number">2</span>)</span><br><span class="line">    s.push(<span class="number">3</span>)</span><br><span class="line">    <span class="built_in">print</span>(s.stack)</span><br><span class="line"></span><br><span class="line">    s.pull()</span><br><span class="line">    <span class="built_in">print</span>(s.stack)</span><br></pre></td></tr></table></figure>
-<h2 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self,data</span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">chain</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">not</span> self.head</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">length</span>(<span class="params">self</span>):</span></span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> count</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self,data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        node.<span class="built_in">next</span> = self.head</span><br><span class="line">        self.head = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self,data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != <span class="literal">None</span>:</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">self</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">insert</span>(<span class="params">self,index,data</span>):</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span>:</span><br><span class="line">            self.add(data)</span><br><span class="line">        <span class="keyword">elif</span> index &gt; self.length() -<span class="number">1</span>:</span><br><span class="line">            self.append(data)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self.head</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(index - <span class="number">1</span>):</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            node = Node(data)</span><br><span class="line">            node.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        pre = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="keyword">if</span> cur == self.head:</span><br><span class="line">                    self.head = self.head.<span class="built_in">next</span></span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line">                pre.<span class="built_in">next</span> = cur.<span class="built_in">next</span> <span class="comment">#前节点等于后节点</span></span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            pre = cur</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">search</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">&quot;数据%f存在于链表中&quot;</span> % cur.data)</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;数据不存在于链表中&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
-<h2 id="递归"><a href="#递归" class="headerlink" title="递归"></a>递归</h2><blockquote>
-<p>递归就是不断调用函数本身</p>
-</blockquote>
-<h3 id="阶乘-1-2-3-N"><a href="#阶乘-1-2-3-N" class="headerlink" title="阶乘 1 * 2 * 3....*N"></a>阶乘 <code>1 * 2 * 3....*N</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rescuvie</span>(<span class="params">n</span>):</span></span><br><span class="line">    <span class="keyword">if</span> n == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> n * rescuvie(n-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
-<p>递归使用了运算符，每次重复的调用都使得运算的链条不断加长，系统不得不使用栈进行数据保存和恢复<br>如果每次递归都要对越来越长的链条进行运算，那速度极慢，并且可能栈溢出，导致程序崩溃</p>
-<h2 id="尾递归"><a href="#尾递归" class="headerlink" title="尾递归"></a>尾递归</h2><blockquote>
-<p>尾部递归是指递归函数在调用自身后直接传回其值，而不对其再加运算，效率将会极大的提高。</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rescurieTail</span>(<span class="params">n, a</span>):</span></span><br><span class="line">    <span class="keyword">if</span> n == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> a</span><br><span class="line">    <span class="keyword">return</span> rescurieTail(n-<span class="number">1</span>, a*n)</span><br></pre></td></tr></table></figure>
-
-
-<h2 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h2><p><a href="https://blog.csdn.net/weixin_42702038/article/details/106744386">https://blog.csdn.net/weixin_42702038/article/details/106744386</a></p>
-<h3 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h3><blockquote>
-<p>首先在未排序的序列中找到最小（大）元素，存放在排序序列的起始位置，然后在剩余的列表中查找，依次放入到新列表中。</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 找出最小元素</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_smallest_item</span>(<span class="params">arr</span>):</span></span><br><span class="line">    smallest = arr[<span class="number">0</span>]</span><br><span class="line">    smallest_index = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="built_in">len</span>(arr)):</span><br><span class="line">        <span class="keyword">if</span> arr[i] &lt; smallest:</span><br><span class="line">            smallest = arr[i]</span><br><span class="line">            smallest_index = i</span><br><span class="line">    <span class="keyword">return</span> smallest_index</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 选择排序</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">select_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    new_arr = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(arr)):</span><br><span class="line">        smallest_index = find_smallest_item(arr)</span><br><span class="line">        new_arr.append(arr.pop(smallest_index))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new_arr</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(select_sort([<span class="number">4</span>, <span class="number">324</span>, <span class="number">42</span>, <span class="number">45</span>, <span class="number">2435</span>, <span class="number">2</span>, <span class="number">2</span>]))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h3 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h3><p>分而治之的思想</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 快速排序</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="comment"># 基准的选择</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        pivot = arr[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">        less_arr = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= pivot]</span><br><span class="line">        greater_arr = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; pivot]</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> quick_sort(less_arr) + [pivot] + quick_sort(greater_arr)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(quick_sort([<span class="number">2</span>, <span class="number">3</span>, <span class="number">49</span>, <span class="number">10</span>, <span class="number">24</span>, <span class="number">3</span>]))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="冒泡排序"><a href="#冒泡排序" class="headerlink" title="冒泡排序"></a>冒泡排序</h3><blockquote>
-<p>冒泡排序思想：遍历整个数据列表，在一组数据中，每遍历比较一次数据，最大的数便会”冒泡”到数据列表右端</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(arr)):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(arr)-i-<span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-<h2 id="二分查找"><a href="#二分查找" class="headerlink" title="二分查找"></a>二分查找</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">binaray_search</span>(<span class="params">li, item</span>):</span></span><br><span class="line">    low = <span class="number">0</span></span><br><span class="line">    high = <span class="built_in">len</span>(li) - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> low &lt;= high:  <span class="comment"># 确定范围</span></span><br><span class="line">        mid = (low + high) // <span class="number">2</span></span><br><span class="line">        guess = li[mid]</span><br><span class="line">        <span class="keyword">if</span> guess == item:</span><br><span class="line">            <span class="keyword">return</span> mid</span><br><span class="line">        <span class="keyword">elif</span> guess &gt; item:</span><br><span class="line">            high = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            low = mid + <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(binaray_search([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>], <span class="number">6</span>))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>聊一聊传输层协议- TCP 协议</title>
-    <url>/posts/ac41cac4/</url>
-    <content><![CDATA[<h1 id="什么是-TCP-协议？"><a href="#什么是-TCP-协议？" class="headerlink" title="什么是 TCP 协议？"></a>什么是 TCP 协议？</h1><blockquote>
-<p>首先，TCP 协议是位于 <code>传输层</code>的协议，是<code>面向连接的</code>、<code>可靠的</code>流协议<br>TCP 为了提高可靠性传输，实行<code>顺序控制</code>或<code>重发控制</code>。此外还有<code>流量控制</code>、<code>拥塞控制</code>、<code>提高网络利用路</code>等众多功能</p>
-</blockquote>
-<p>下面，就从 TCP 协议的这些特点说开去：</p>
-<h2 id="可靠性"><a href="#可靠性" class="headerlink" title="可靠性"></a>可靠性</h2><blockquote>
-<p>TCP 协议是如何实现传输过程中的可靠性，又是怎么实现的？<br>一句话概括：TCP 通过 校验和、序列号、确认应答、重发控制、连接管理以及窗口控制等机制实现可靠性传输。<br>接下来，将引入包的传递过程，来带入这些概念：</p>
-</blockquote>
-<p>ack - 校验和</p>
-<blockquote>
-<p>客户端和服务端之间通过校验随机数+1，来确认连接</p>
-</blockquote>
-<p>ACK - 确认应答</p>
-<blockquote>
-<p>客户端和服务端使用确认应答 ACK 来知道二者的连接请求。</p>
-</blockquote>
-<h3 id="三次握手"><a href="#三次握手" class="headerlink" title="三次握手"></a>三次握手</h3><blockquote>
-<p>TCP 是提供面向连接的通信传输。面向连接指的就是在数据通信开始之前先建立连接，确保传输通道的连通性。<br>而所谓三次握手就是建立一个 TCP 连接时需要 客户端和服务端总共发送三个包以确认连接的建立</p>
-</blockquote>
-<p>这里引入三次握手来解释相关概念：校验和（ack）&amp;&amp; 确认应答（ACK）</p>
-<p>流程图：<br><img src="/images/%E4%B8%89%E6%AC%A1%E6%8F%A1%E6%89%8B.png" alt="direct"></p>
-<p>第一次握手：客户端将标志位 <code>SYN = 1</code>，随机生成一个值 <code>seq = j</code>，并将该数据包发送给服务端，客户端进入 <code>SUN_SENT</code> 状态，等待客户端的确认。<br>第二次握手：服务端接收到 <code>SYN = 1</code>的数据包后，明确客户端请求建立连接，服务端将标志位<code>SYN = 1、ACK=1</code>，随机生成一个随机数 <code>seq=k</code>，<strong>校验和 ack=j+1</strong>，并将该数据包发送给客户端以确认连接请求，服务器进入<code>SYN_RCVD</code>状态。<br>第三次握手：客户端收到确认后，检查<code>检验和 ack = j+1</code>,ACK=1。如果正确将标志位 ACK = 1 。<strong>校验和 ack = k+1</strong>,并将该数据包发送给服务器端，服务器端检查 <strong>检验和 ack = k+1,ACK=1</strong>,如果正确则连接建立成功，客户端和服务器端进入<code>ESTABLISHED</code>状态，完成三次握手，随后便可以开始通信了。</p>
-<h3 id="序列号"><a href="#序列号" class="headerlink" title="序列号"></a>序列号</h3><blockquote>
-<p>在数据的传输中，可能存在<code>数据包丢失</code>或者<code>未收到确认应答</code>的情况，此时为了实现<code>可靠传输</code>,就会触发<strong>重发机制</strong>。<br>但是，也会有部分原因导致确认应答延迟到达，数据包实际上已经到达来服务端，那么服务端就会反复的接收到相同的数据包，为了避免这种情况，就会有<strong>重复控制</strong>功能。</p>
-</blockquote>
-<p>上述<strong>确认应答机制</strong>、<strong>重发控制</strong>以及<strong>重复控制</strong>等功能都可以借助序列号来实现。</p>
-<blockquote>
-<p>序列号是按顺序给发送数据的每一个字节（8位字节）都标上号码的编号。将自己下一步应该接收的序列号作为确认应答返送回去。<br><img src="/images/%E5%BA%8F%E5%88%97%E5%8F%B7.png" alt="direct"></p>
-</blockquote>
-<p>通过序列号和确认应答号，TCP 就可以实现顺序传输和可靠传输</p>
-<h2 id="重发超时如何确定"><a href="#重发超时如何确定" class="headerlink" title="重发超时如何确定"></a>重发超时如何确定</h2><blockquote>
-<p>当发送端发送数据后，会有一个等待确认应答到来的特定时间间隔。若超过了这个时间仍未收到确认应答，发送端将数据进行数据重发。</p>
-</blockquote>
-<p>然而这个重发超时时间的确定是根据当前的网络环境确认的，随着网络环境的不同而有所变化。</p>
-<p>TCP 要求不论处在何种网络环境下都要提供高性能通信，并且无论网络拥堵情况发生何种变化，都必须保持这一特性。<br>它在每次发包时都会计算<code>往返时间</code>及其<code>偏差</code>。</p>
-<p>重发超时的值就是比<code>往返时间</code>和<code>偏差</code>相加大一点的值，由于数据包的分段是经过不同路线到达的，所以网络环境的往返时间可能会产生大幅度的摇摆。</p>
-<p>TCP/IP 的目的就是即使在这种环境下也要进行控制，避免流量的浪费。</p>
-<p><img src="/images/%E9%87%8D%E5%8F%91%E8%B6%85%E6%97%B6.png" alt="direct"></p>
-<h2 id="连接管理"><a href="#连接管理" class="headerlink" title="连接管理"></a>连接管理</h2><blockquote>
-<p>TCP 提供面向有连接的通信传输。面向有连接的是指在数据通信开始之前先做好通信两端之间的准备工作。<br>这里通常是指<code>三次握手和四次挥手</code><br><img src="/images/%E8%BF%9E%E6%8E%A5%E7%AE%A1%E7%90%86.png" alt="direct"></p>
-</blockquote>
-<h2 id="TCP-发送数据的单位：段"><a href="#TCP-发送数据的单位：段" class="headerlink" title="TCP 发送数据的单位：段"></a>TCP 发送数据的单位：段</h2><blockquote>
-<p>在建立 TCP 连接的同时，也可以确定发送数据包的单位，我们称为<strong>最大消息长度</strong>（MSS: Maximum Segment Size）。<br>最理想的情况是，最大消息长度正好是 IP 中不会被分片处理的最大数据长度。</p>
-</blockquote>
-<h4 id="MSS-的计算方式"><a href="#MSS-的计算方式" class="headerlink" title="MSS 的计算方式"></a>MSS 的计算方式</h4><p>MSS 是在三次握手的时候，在两端主机之间被计算出。两端主机在建立连接的请求时，会在 TCP 首部中写入 MSS 选项，告诉对方自己的接口能够适应的 MSS 大小。<br>MSS 的大小就会在两者之间选择一个较小的值。</p>
-<p><img src="/images/MSS%E8%AE%A1%E7%AE%97%E6%96%B9%E5%BC%8F.png" alt="direct"></p>
-<h2 id="窗口控制提高速度"><a href="#窗口控制提高速度" class="headerlink" title="窗口控制提高速度"></a>窗口控制提高速度</h2><blockquote>
-<p>TCP 以 1 个段为单位，每发送一个段就进行一次确认应答的处理。但是这样传输的话，包的往返时间越长性能也就越低。<br>为了解决这个问题，TCP 就引入了窗口这个概念。即使在往返时间较长的情况下，它也能控制网络性能的下降。</p>
-</blockquote>
-<p><strong>确认应答不再是以每个分段，而是以更大的单位进行确认，转发时间将会被大幅度的缩短</strong><br><img src="/images/%E7%AA%97%E5%8F%A3%E6%8E%A7%E5%88%B6.png" alt="direct"></p>
-<h3 id="重发控制"><a href="#重发控制" class="headerlink" title="重发控制"></a>重发控制</h3><blockquote>
-<p>窗口控制中的重发控制，是以序列号进行管理的，当数据包丢失后，发送端会根据接收端序列号来进行重发<br><img src="/images/%E7%AA%97%E5%8F%A3%E7%AE%A1%E7%90%86%E7%9A%84%E9%87%8D%E5%8F%91.png" alt="direct"></p>
-</blockquote>
-<h2 id="流控制"><a href="#流控制" class="headerlink" title="流控制"></a>流控制</h2><blockquote>
-<p>为了防止网络流量的无端浪费（接收端数据的处理）,TCP 提供一种机制可以让发送端根据接收端的实际接收能力控制发送的数据量。</p>
-</blockquote>
-<p>接收端告诉发送端自己接收的数据大小，实际上就是该窗口大小。<br><img src="/images/%E6%B5%81%E6%8E%A7%E5%88%B6.png" alt="direct"></p>
-<h2 id="拥塞控制"><a href="#拥塞控制" class="headerlink" title="拥塞控制"></a>拥塞控制</h2><blockquote>
-<p>一般来说，计算机网络都处在一个共享的环境，因此也有坑因为其他主机之间的通信使得网络拥堵。<br>所以，如果一开始发送端就发送一个特大的数据包，可能会导致整个网络的瘫痪。<br>为了防止这个问题，TCP 在通信一开始时，就会通过一个叫做慢启动的算法得出的数值，对发送数据量进行控制。</p>
-</blockquote>
-<p>首先，为了在发送端调节所要发送的数据的量，定义了一个叫做<code>拥塞窗口</code>的概念。在慢启动的时候，将这个拥塞窗口的大小设置为一个数据段（1 MSS）发送数据，<br>之后每收到一次确认应答（ACK）,拥塞窗口的值就加一。<br>不过，随着包的每次往返，拥塞窗口也会以 1、2、4 等指数函数的增长，拥堵状况激增甚至导致网络拥塞的发生。为了防止这些，又引入了慢启动阈值的概念。<br>只允许按照特定比例放大拥塞窗口：</p>
-<p>1 个数据段的字节数/拥塞窗口（字节）* 1 个数据段字节数</p>
-<p><img src="/images/%E6%8B%A5%E5%A1%9E%E7%AA%97%E5%8F%A3.png" alt="direct"></p>
-<p>于是，当 TCP 通信开始以后，网络的吞吐量会 逐步上升，但是随着网络拥堵的发生吞吐量也会极速下降。<br>接着，会再次进入吞吐量慢慢上升的过程。因此所谓 TCP 的吞吐量的特点就像是在逐步占领网络带宽的感觉。</p>
-<p>参考：1.「 图解 TCP/IP 」2. 「 TCP/IP 卷一 」</p>
-]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>聊一聊 MySQL 事务</title>
     <url>/posts/26a608fc/</url>
     <content><![CDATA[<h1 id="InnoDB-Architecture"><a href="#InnoDB-Architecture" class="headerlink" title="InnoDB Architecture"></a>InnoDB Architecture</h1><blockquote>
@@ -883,6 +357,532 @@
       </categories>
       <tags>
         <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>深入理解 docker 镜像.md</title>
+    <url>/posts/c5abce98/</url>
+    <content><![CDATA[<h1 id="docker-image-是什么？"><a href="#docker-image-是什么？" class="headerlink" title="docker image 是什么？"></a>docker image 是什么？</h1><blockquote>
+<p>镜像（Image）就是一堆只读层（read-only layer）的统一视角。</p>
+</blockquote>
+<h2 id="容器和镜像的关系"><a href="#容器和镜像的关系" class="headerlink" title="容器和镜像的关系"></a>容器和镜像的关系</h2><p>一张图可以带你理解:<br><img src="/images/image_and_container.png" width = "350" height = "200" alt="" align=center /></p>
+<p>container = image + 读写层</p>
+<h2 id="Docker-项目的核心原理"><a href="#Docker-项目的核心原理" class="headerlink" title="Docker 项目的核心原理"></a>Docker 项目的核心原理</h2><blockquote>
+<p>对于 Dcoker 项目来说，它最核心的原理实际上就是为待创建的用户进程：</p>
+</blockquote>
+<ul>
+<li><ol>
+<li>启动 Linux Namespace 配置</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>设置指定的 Cgroups 参数</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>切换进程的根目录（Change Root）</li>
+</ol>
+</li>
+</ul>
+<p>对于该进程的根目录而言，对应的技术就是<code>rootfs</code></p>
+<p><strong>rootfs 只是一个操作系统所包含的文件、配置和目录，并不包括操作系统内核。在 Linux 操作系统中，这两部分是分开存放的，操作系统只有在开机启动才会加载指定版本的内核镜像</strong></p>
+<p>这就意味着，如果你的应用程序需要配置内核参数、加载额外的内核模块，以及跟内核进行直接的交互，你就需要注意了：这些操作和依赖的对象，都是宿主机操作系统的内核。</p>
+<h2 id="image-一致性"><a href="#image-一致性" class="headerlink" title="image 一致性"></a>image 一致性</h2><p>所谓 镜像的一致性指的就是 <strong>rootfs 里打包的不只是应用，而是整个操作系统的文件和目录，服务所需要的所有依赖，都被封装在了一起</strong>。</p>
+<h2 id="image-设计"><a href="#image-设计" class="headerlink" title="image 设计"></a>image 设计</h2><blockquote>
+<p>Docker 在镜像的设计中，引入了层（layer）的概念。用户制作镜像的每一步操作，都会生成一个层，也就是一个增量 rootfs。</p>
+</blockquote>
+<p>这个设计的技术主要是用到了一种叫做<code>联合文件系统(Union File System)</code> 的能力<br>主要的功能就是将多个不同位置的目录联合挂载（union mount）到同一目录下。</p>
+<h2 id="docker-image-中的-layer"><a href="#docker-image-中的-layer" class="headerlink" title="docker image 中的 layer"></a>docker image 中的 layer</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> docker image inspect ubuntu:latest</span></span><br><span class="line">...</span><br><span class="line">     &quot;RootFS&quot;: &#123;</span><br><span class="line">      &quot;Type&quot;: &quot;layers&quot;,</span><br><span class="line">      &quot;Layers&quot;: [</span><br><span class="line">        &quot;sha256:f49017d4d5ce9c0f544c...&quot;,</span><br><span class="line">        &quot;sha256:8f2b771487e9d6354080...&quot;,</span><br><span class="line">        &quot;sha256:ccd4d61916aaa2159429...&quot;,</span><br><span class="line">        &quot;sha256:c01d74f99de40e097c73...&quot;,</span><br><span class="line">        &quot;sha256:268a067217b5fe78e000...&quot;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<img src="/images/image_layer.png" width = "600" height = "400" alt="" align=center />
+
+<ul>
+<li><p>只读层<br>它是容器的 rootfs 最下面的五层，对应正是 image 镜像的 5 层。他们的挂载方式只能是只读的（ro+wh, 即 readonly+whiteout）</p>
+</li>
+<li><p>Init 层<br>它是一个以”-init”结尾的层，夹在只读层和读写层之间。Init 层是 Docker 项目单独生成的一个内部层，专门用来存放 /etc/hosts、/etc/resolv.conf 等信息</p>
+</li>
+</ul>
+<p>这部分主要是 docker run 命令启动时，用户自定义的一些参数</p>
+<ul>
+<li>可读写层<br>这一层是容器的 rootfs 最上面的一层，它的挂载方式为：rw, 在没有写入文件之前，这个目录是空的。而一旦在容器中进行了写操作，你修改产生的内容就会以增量的方式出现在这个层中。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Cache &amp;&amp; DB 数据一致性</title>
+    <url>/posts/c4a988da/</url>
+    <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
+<p>一般情况下，Redis 是用来实现应用和数据库之间的一个读操作的缓存层。主要目的是去减少数据库的 IO ,还可以提升数据库的 IO 性能。</p>
+</blockquote>
+<p>整体架构：<br><img src="/images/Redis-MySQL架构.png" width = "500" height = "300" alt="" align=center /></p>
+<p>当应用程序需要去读取某个数据的时候，首先会尝试 Redis 里面去加载，如果命中了就直接去加载，直接返回数据，如果没有命中，就查询数据库，然后再将查询到的数据写入到 redis 缓存中。</p>
+<p>在这个架构里面呢，会出现<code>数据一致性的问题</code>。</p>
+<p>一份数据同时被保存在 redis 和 mysql 里面，当某个数据需要被更新的时候，由于更新数据是具有前后顺序的，它并不像 mysql 中的多表事务操作，可以满足 ACID 的特性。</p>
+<p>常规解决办法只有两种：</p>
+<ol>
+<li><p>先更新数据库，再更新缓存。</p>
+<p>该种方案，若出现缓存失败的话，会出现数据不一致的问题。</p>
+</li>
+<li><p>先删除缓存，再更新数据库。</p>
+<p>该种方案，是借助再次访问该数据的时候，发现 redis 里的数据为空，然后查询数据库再次加载。但是这两个操作并不是原子操作，所以在这个过程中，如果出现其他线程来访问，还是会存在数据不一致的问题。</p>
+</li>
+</ol>
+<p>那么，需要在极端情况下仍要保证 redis 和 mysql 数据一致性，就需要采用 <code>最终一致性</code>的方案。</p>
+<p>例如 <code>基于 MQ 的可靠性消息通信</code>来实现数据最终的一致性。</p>
+<p>或者，直接通过 Canel 组件，监控 mysql 中的 bingo 的日志，将更新后的数据同步到 Redis 里面。</p>
+<p>接下来，就聊一下各种缓存方案…</p>
+<h2 id="一致性-consistency"><a href="#一致性-consistency" class="headerlink" title="一致性(consistency)"></a>一致性(consistency)</h2><blockquote>
+<p>一致性就是缓存和数据库存储数据的两份数据保持一致性</p>
+</blockquote>
+<ul>
+<li>强一致性要求：<blockquote>
+<p>所谓强一致性，就是对于 app 来说，缓存和数据库存储的数据读写是符合原子性的，要求读写的一致性，实现起来时对系统的影响大。</p>
+</blockquote>
+</li>
+<li>弱一致性：<blockquote>
+<p>这部分对于缓存层和数据库层数据一致性要求较低，不要求在更新数据时，缓存和数据库立即同步更新的情况，也不会要求缓存和数据库多久达到一致性，但是会尽可能保证<br>到某个时间级别后，数据能够达到一致性状态。</p>
+</blockquote>
+</li>
+<li>最终一致性：<blockquote>
+<p>最终一致性是弱一致性的一个特例，系统会保证在一定时间内，能够达到一个数据一致的状态。</p>
+</blockquote>
+</li>
+</ul>
+<h1 id="三种经典的缓存模式"><a href="#三种经典的缓存模式" class="headerlink" title="三种经典的缓存模式"></a>三种经典的缓存模式</h1><ul>
+<li>Cache-Aside Pattern</li>
+<li>Read-Through/Write through</li>
+<li> Write behind</li>
+</ul>
+<h2 id="Cache-Aside-读流程"><a href="#Cache-Aside-读流程" class="headerlink" title="Cache-Aside 读流程"></a>Cache-Aside 读流程</h2><blockquote>
+<p>旁路缓存模式，它的提出是为了尽可能地解决缓存与数据库的数据不一致问题</p>
+</blockquote>
+<p>Cache-Aside 读流程</p>
+<img src="/images/Cache-Aside.png" width = "300" height = "400" alt="" align=center />
+
+
+<ol>
+<li>读取数据的时候，先读缓存，缓存命中时，直接返回数据。</li>
+<li>缓存未命中时，读取数据库，取数据的时候同时更新数据到缓存中，返回响应</li>
+</ol>
+<h2 id="Cache-Aside-写流程"><a href="#Cache-Aside-写流程" class="headerlink" title="Cache-Aside 写流程"></a>Cache-Aside 写流程</h2><blockquote>
+<p>更新的时候，先更新数据库，然后再删除缓存</p>
+</blockquote>
+<img src="/images/Cache-Aside-write.png" width = "200" height = "300" alt="" align=center />
+
+<h2 id="Read-Through"><a href="#Read-Through" class="headerlink" title="Read-Through"></a>Read-Through</h2><blockquote>
+<p>Read/Write Through 模式中，服务端把<code>缓存</code>作为<code>主要数据存储</code>。应用程序跟数据库缓存交互，都是通过<code>抽象缓存层</code>完成的</p>
+</blockquote>
+<img src="/images/Cache-Aside-whole-process.png" width = "600" height = "400" alt="" align=center />
+
+<p>Read-Through 的思想是采用的将缓存作为主要的存储结构，是从性能的角度出发。</p>
+<h2 id="Write-Through"><a href="#Write-Through" class="headerlink" title="Write-Through"></a>Write-Through</h2><blockquote>
+<p>这种模式下，当发生请求时，是由缓存抽象层完成数据源和缓存数据的更新<br><img src="/images/Cache-Aside-write-process.png" width = "600" height = "400" alt="" align=center /></p>
+</blockquote>
+<h2 id="Write-behind-（异步缓存写入）"><a href="#Write-behind-（异步缓存写入）" class="headerlink" title="Write behind （异步缓存写入）"></a>Write behind （异步缓存写入）</h2><blockquote>
+<p>Write behind 和 Read-Through/Write-Through 相似，都是由 <code>Cache Provider</code>来负责缓存和数据库看的读写。<br>但是 前者是同步更新缓存和数据的，Write Behind 则只是更新缓存，不直接更新数据库，通过<code>批量异步</code>的方式来更新数据库。<br><img src="/images/Cache-Aside-write-behind-process.png" width = "600" height = "400" alt="" align=center /></p>
+</blockquote>
+<h2 id="三种模式的比较"><a href="#三种模式的比较" class="headerlink" title="三种模式的比较"></a>三种模式的比较</h2><p>Cache Aside 更新模式实现起来比较简单，但是需要维护两个数据存储:</p>
+<ul>
+<li>缓存（Cache）</li>
+<li>一个是数据库（Repository）</li>
+</ul>
+<p>Read/Write Through 的写模式需要维护一个数据存储（Cache Provider），实现起来较为复杂一些。</p>
+<p>Write Behind Caching 更新模式和 Read/Write Through 更新模式类似，区别是 Write Behind Caching 更新模式的数据持久化操作是<code>异步</code>的，但是`Read/Write Through 更新模式的数据持久化操作是<strong>同步的</strong></p>
+<p>Write Behind Caching 的优点是直接<code>操作内存速度快</code>,多次操作可以合并持久化到数据库。缺点是数据可能会丢失，例如系统断电等等。</p>
+<h2 id="Cache-Aside-问题"><a href="#Cache-Aside-问题" class="headerlink" title="Cache-Aside 问题"></a>Cache-Aside 问题</h2><p><strong>我们在更新数据的时候，Cache-Aside 是删除缓存呢，还是应该更新缓存？</strong></p>
+<img src="/images/Cache-Aside-write.png" width = "200" height = "300" alt="" align=center />
+
+<p>我们在操作缓存的时候，到底是应该删除缓存还是说更新缓存呢？我们先来看个例子：<br>多线程情况：<br><img src="/images/多线程-Cache-DB.png" width = "600" height = "400" alt="" align=center /></p>
+<p>以上情况就可以看出来问题：</p>
+<blockquote>
+<p>线程 A 先发起一个写操作，先更新数据库。<br>线程 B 再发起写操作，更新数据库。</p>
+</blockquote>
+<p>现在由于网络原因，线程 B 的更新缓存的操作却在 A 之后发生。<br>此时缓存中的数据就是与数据库中不一致了。</p>
+<p><strong>更新缓存相对于删除缓存还有两点劣势</strong>：</p>
+<blockquote>
+<ol>
+<li>若写入缓存的值，是经过复杂计算才得到，更新频率较高的情况下，十分浪费性能。</li>
+<li>在写多读少的情况下，也会十分浪费性能。</li>
+</ol>
+</blockquote>
+<h2 id="双写的情况下，先操作数据库还是先操作缓存？"><a href="#双写的情况下，先操作数据库还是先操作缓存？" class="headerlink" title="双写的情况下，先操作数据库还是先操作缓存？"></a>双写的情况下，先操作数据库还是先操作缓存？</h2><p>如果遇到多线程情况，也会有类似情况，出现缓存中存储的是脏数据。因此 Cache-Aside 缓存模式，选择了先操作数据库而不是先操作缓存</p>
+<h1 id="两种方案保证数据库与缓存的一致性"><a href="#两种方案保证数据库与缓存的一致性" class="headerlink" title="两种方案保证数据库与缓存的一致性"></a>两种方案保证数据库与缓存的一致性</h1><ul>
+<li>删除缓存重试机制</li>
+<li>读取 binlog 异步删除缓存</li>
+</ul>
+<h2 id="删除缓存重试机制"><a href="#删除缓存重试机制" class="headerlink" title="删除缓存重试机制"></a>删除缓存重试机制</h2><p>多次删除确保 cache 中存储的是正确的数据<br><img src="/images/del_cache_retry.png" width = "600" height = "400" alt="" align=center /></p>
+<p>删除缓存重试机制的大致步骤：</p>
+<ul>
+<li>写请求更新数据库</li>
+<li>缓存因为某些原因，删除失败</li>
+<li>把删除失败的 key 放到消息队列</li>
+<li>消费消息队列的消息，获取要删除的 key</li>
+<li>重试删除缓存操作</li>
+</ul>
+<h2 id="同步-binlog-异步删除缓存"><a href="#同步-binlog-异步删除缓存" class="headerlink" title="同步 binlog 异步删除缓存"></a>同步 binlog 异步删除缓存</h2><p>重试删除缓存机制还可以，就是会造成好多业务代码入侵。<br>其实，还可以通过数据库的 binlog 来异步淘汰 key</p>
+<img src="/images/binlog.png" width = "600" height = "400" alt="" align=center />
+
+<p>以 mysql 为例，可以使用阿里的 canal 将 binlog 日志采集发送到 MQ 队列里面，然后编写一个简单的缓存删除<br>消息者订阅 binlog 日志，根据更新 log 删除缓存，并且通过 ACK 机制确认处理这条更新 log,保证数据缓存一致性。</p>
+<p>总结：<br>综上所述，在分布式系统中，缓存和数据库同时存在时，如果有写操作的时候，「 先操作数据库，再操作缓存 」</p>
+<p>参考：「 <a href="https://www.cnblogs.com/crazymakercircle/p/14853622.html">https://www.cnblogs.com/crazymakercircle/p/14853622.html</a> 」</p>
+]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>Redis</tag>
+        <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基本的数据结构和算法.md</title>
+    <url>/posts/d92d1b7b/</url>
+    <content><![CDATA[<h1 id="算法"><a href="#算法" class="headerlink" title="算法"></a>算法</h1><h1 id="常用的数据结构"><a href="#常用的数据结构" class="headerlink" title="常用的数据结构"></a>常用的数据结构</h1><h2 id="队列"><a href="#队列" class="headerlink" title="队列"></a>队列</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Queue</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.queue = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, item</span>):</span></span><br><span class="line">        self.queue.append(item)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.queue.pop(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.queue)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">first</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.queue[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">end</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.queue[<span class="number">0</span>]</span><br></pre></td></tr></table></figure>
+<h2 id="栈"><a href="#栈" class="headerlink" title="栈"></a>栈</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stack</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.stack = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, item</span>):</span></span><br><span class="line">        self.stack.append(item)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;出栈&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">return</span> self.stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.stack)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    s = Stack()</span><br><span class="line">    s.push(<span class="number">1</span>)</span><br><span class="line">    s.push(<span class="number">2</span>)</span><br><span class="line">    s.push(<span class="number">3</span>)</span><br><span class="line">    <span class="built_in">print</span>(s.stack)</span><br><span class="line"></span><br><span class="line">    s.pull()</span><br><span class="line">    <span class="built_in">print</span>(s.stack)</span><br></pre></td></tr></table></figure>
+<h2 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self,data</span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">chain</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">not</span> self.head</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">length</span>(<span class="params">self</span>):</span></span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> count</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self,data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        node.<span class="built_in">next</span> = self.head</span><br><span class="line">        self.head = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self,data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != <span class="literal">None</span>:</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">self</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">insert</span>(<span class="params">self,index,data</span>):</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span>:</span><br><span class="line">            self.add(data)</span><br><span class="line">        <span class="keyword">elif</span> index &gt; self.length() -<span class="number">1</span>:</span><br><span class="line">            self.append(data)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self.head</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(index - <span class="number">1</span>):</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            node = Node(data)</span><br><span class="line">            node.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        pre = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="keyword">if</span> cur == self.head:</span><br><span class="line">                    self.head = self.head.<span class="built_in">next</span></span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line">                pre.<span class="built_in">next</span> = cur.<span class="built_in">next</span> <span class="comment">#前节点等于后节点</span></span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            pre = cur</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">search</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">&quot;数据%f存在于链表中&quot;</span> % cur.data)</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;数据不存在于链表中&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
+<h2 id="递归"><a href="#递归" class="headerlink" title="递归"></a>递归</h2><blockquote>
+<p>递归就是不断调用函数本身</p>
+</blockquote>
+<h3 id="阶乘-1-2-3-N"><a href="#阶乘-1-2-3-N" class="headerlink" title="阶乘 1 * 2 * 3....*N"></a>阶乘 <code>1 * 2 * 3....*N</code></h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rescuvie</span>(<span class="params">n</span>):</span></span><br><span class="line">    <span class="keyword">if</span> n == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> n * rescuvie(n-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>递归使用了运算符，每次重复的调用都使得运算的链条不断加长，系统不得不使用栈进行数据保存和恢复<br>如果每次递归都要对越来越长的链条进行运算，那速度极慢，并且可能栈溢出，导致程序崩溃</p>
+<h2 id="尾递归"><a href="#尾递归" class="headerlink" title="尾递归"></a>尾递归</h2><blockquote>
+<p>尾部递归是指递归函数在调用自身后直接传回其值，而不对其再加运算，效率将会极大的提高。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rescurieTail</span>(<span class="params">n, a</span>):</span></span><br><span class="line">    <span class="keyword">if</span> n == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> a</span><br><span class="line">    <span class="keyword">return</span> rescurieTail(n-<span class="number">1</span>, a*n)</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h2><p><a href="https://blog.csdn.net/weixin_42702038/article/details/106744386">https://blog.csdn.net/weixin_42702038/article/details/106744386</a></p>
+<h3 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h3><blockquote>
+<p>首先在未排序的序列中找到最小（大）元素，存放在排序序列的起始位置，然后在剩余的列表中查找，依次放入到新列表中。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 找出最小元素</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_smallest_item</span>(<span class="params">arr</span>):</span></span><br><span class="line">    smallest = arr[<span class="number">0</span>]</span><br><span class="line">    smallest_index = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="built_in">len</span>(arr)):</span><br><span class="line">        <span class="keyword">if</span> arr[i] &lt; smallest:</span><br><span class="line">            smallest = arr[i]</span><br><span class="line">            smallest_index = i</span><br><span class="line">    <span class="keyword">return</span> smallest_index</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 选择排序</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">select_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    new_arr = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(arr)):</span><br><span class="line">        smallest_index = find_smallest_item(arr)</span><br><span class="line">        new_arr.append(arr.pop(smallest_index))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new_arr</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(select_sort([<span class="number">4</span>, <span class="number">324</span>, <span class="number">42</span>, <span class="number">45</span>, <span class="number">2435</span>, <span class="number">2</span>, <span class="number">2</span>]))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h3><p>分而治之的思想</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 快速排序</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="comment"># 基准的选择</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        pivot = arr[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">        less_arr = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= pivot]</span><br><span class="line">        greater_arr = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; pivot]</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> quick_sort(less_arr) + [pivot] + quick_sort(greater_arr)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(quick_sort([<span class="number">2</span>, <span class="number">3</span>, <span class="number">49</span>, <span class="number">10</span>, <span class="number">24</span>, <span class="number">3</span>]))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="冒泡排序"><a href="#冒泡排序" class="headerlink" title="冒泡排序"></a>冒泡排序</h3><blockquote>
+<p>冒泡排序思想：遍历整个数据列表，在一组数据中，每遍历比较一次数据，最大的数便会”冒泡”到数据列表右端</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(arr)):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(arr)-i-<span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<h2 id="二分查找"><a href="#二分查找" class="headerlink" title="二分查找"></a>二分查找</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">binaray_search</span>(<span class="params">li, item</span>):</span></span><br><span class="line">    low = <span class="number">0</span></span><br><span class="line">    high = <span class="built_in">len</span>(li) - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> low &lt;= high:  <span class="comment"># 确定范围</span></span><br><span class="line">        mid = (low + high) // <span class="number">2</span></span><br><span class="line">        guess = li[mid]</span><br><span class="line">        <span class="keyword">if</span> guess == item:</span><br><span class="line">            <span class="keyword">return</span> mid</span><br><span class="line">        <span class="keyword">elif</span> guess &gt; item:</span><br><span class="line">            high = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            low = mid + <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(binaray_search([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>], <span class="number">6</span>))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>聊一聊传输层协议- TCP 协议</title>
+    <url>/posts/ac41cac4/</url>
+    <content><![CDATA[<h1 id="什么是-TCP-协议？"><a href="#什么是-TCP-协议？" class="headerlink" title="什么是 TCP 协议？"></a>什么是 TCP 协议？</h1><blockquote>
+<p>首先，TCP 协议是位于 <code>传输层</code>的协议，是<code>面向连接的</code>、<code>可靠的</code>流协议<br>TCP 为了提高可靠性传输，实行<code>顺序控制</code>或<code>重发控制</code>。此外还有<code>流量控制</code>、<code>拥塞控制</code>、<code>提高网络利用率</code>等众多功能</p>
+</blockquote>
+<p>下面，就从 TCP 协议的这些特点说开去：</p>
+<h2 id="可靠性"><a href="#可靠性" class="headerlink" title="可靠性"></a>可靠性</h2><blockquote>
+<p>TCP 协议是如何实现传输过程中的可靠性，又是怎么实现的？<br>一句话概括：<strong>TCP 通过 校验和、序列号、确认应答、重发控制、连接管理以及窗口控制等机制实现可靠性传输</strong>。<br>接下来，将引入包的传递过程，来带入这些概念：</p>
+</blockquote>
+<p>ack - 校验和</p>
+<blockquote>
+<p>客户端和服务端之间通过校验随机数+1，来确认连接</p>
+</blockquote>
+<p>ACK - 确认应答</p>
+<blockquote>
+<p>客户端和服务端使用确认应答 ACK 来知道二者的连接请求。</p>
+</blockquote>
+<h3 id="三次握手"><a href="#三次握手" class="headerlink" title="三次握手"></a>三次握手</h3><blockquote>
+<p>TCP 是提供面向连接的通信传输。面向连接指的就是在数据通信开始之前先建立连接，确保传输通道的连通性。<br>而所谓三次握手就是建立一个 TCP 连接时需要 客户端和服务端总共发送三个包以确认连接的建立</p>
+</blockquote>
+<p>这里引入三次握手来解释相关概念：<strong>校验和（ack）&amp;&amp; 确认应答（ACK）</strong></p>
+<p>流程图：<br><img src="/images/%E4%B8%89%E6%AC%A1%E6%8F%A1%E6%89%8B.png" alt="direct"></p>
+<p>第一次握手：客户端将标志位 <code>SYN = 1</code>，随机生成一个值 <code>seq = j</code>，并将该数据包发送给服务端，客户端进入 <code>SUN_SENT</code> 状态，等待客户端的确认。<br>第二次握手：服务端接收到 <code>SYN = 1</code>的数据包后，明确客户端请求建立连接，服务端将标志位<code>SYN = 1、ACK=1</code>，随机生成一个随机数 <code>seq=k</code>，<strong>校验和 ack=j+1</strong>，并将该数据包发送给客户端以确认连接请求，服务器进入<code>SYN_RCVD</code>状态。<br>第三次握手：客户端收到确认后，检查<code>检验和 ack = j+1</code>,ACK=1。如果正确将标志位 ACK = 1 。<strong>校验和 ack = k+1</strong>,并将该数据包发送给服务器端，服务器端检查 <strong>检验和 ack = k+1,ACK=1</strong>,如果正确则连接建立成功，客户端和服务器端进入<code>ESTABLISHED</code>状态，完成三次握手，随后便可以开始通信了。</p>
+<h3 id="序列号"><a href="#序列号" class="headerlink" title="序列号"></a>序列号</h3><blockquote>
+<p>在数据的传输中，可能存在<code>数据包丢失</code>或者<code>未收到确认应答</code>的情况，此时为了实现<code>可靠传输</code>,就会触发<strong>重发机制</strong>。<br>但是，也会有部分原因导致确认应答延迟到达，数据包实际上已经到达来服务端，那么服务端就会反复的接收到相同的数据包，为了避免这种情况，就会有<strong>重复控制</strong>功能。</p>
+</blockquote>
+<p>上述<strong>确认应答机制</strong>、<strong>重发控制</strong>以及<strong>重复控制</strong>等功能都可以借助<strong>序列号</strong>来实现。</p>
+<blockquote>
+<p>序列号是按顺序给发送数据的每一个字节（8位字节）都标上号码的编号。将自己下一步应该接收的序列号作为确认应答返送回去。<br><img src="/images/%E5%BA%8F%E5%88%97%E5%8F%B7.png" alt="direct"></p>
+</blockquote>
+<p>通过序列号和确认应答号，TCP 就可以实现顺序传输和可靠传输</p>
+<h2 id="重发超时如何确定"><a href="#重发超时如何确定" class="headerlink" title="重发超时如何确定"></a>重发超时如何确定</h2><blockquote>
+<p>当发送端发送数据后，会有一个等待确认应答到来的<strong>特定时间间隔</strong>。若超过了这个时间仍未收到确认应答，发送端将数据进行数据重发。</p>
+</blockquote>
+<p>然而这个重发超时时间的确定是根据当前的网络环境确认的，随着网络环境的不同而有所变化。</p>
+<p>TCP 要求不论处在何种网络环境下都要提供高性能通信，并且无论网络拥堵情况发生何种变化，都必须保持这一特性。<br>它在每次发包时都会计算<code>往返时间</code>及其<code>偏差</code>。</p>
+<p>重发超时的值就是比<code>往返时间</code>和<code>偏差</code>相加大一点的值，由于数据包的分段是经过不同路线到达的，所以网络环境的往返时间可能会产生大幅度的摇摆。</p>
+<p>TCP/IP 的目的就是即使在这种环境下也要进行控制，避免流量的浪费。</p>
+<p><img src="/images/%E9%87%8D%E5%8F%91%E8%B6%85%E6%97%B6.png" alt="direct"></p>
+<h2 id="连接管理"><a href="#连接管理" class="headerlink" title="连接管理"></a>连接管理</h2><blockquote>
+<p>TCP 提供面向有连接的通信传输。面向有连接的是指在数据通信开始之前先做好通信两端之间的准备工作。<br>这里通常是指<code>三次握手和四次挥手</code><br><img src="/images/%E8%BF%9E%E6%8E%A5%E7%AE%A1%E7%90%86.png" alt="direct"></p>
+</blockquote>
+<h2 id="TCP-发送数据的单位：段"><a href="#TCP-发送数据的单位：段" class="headerlink" title="TCP 发送数据的单位：段"></a>TCP 发送数据的单位：段</h2><blockquote>
+<p>在建立 TCP 连接的同时，也可以确定发送数据包的单位，我们称为<strong>最大消息长度</strong>（MSS: Maximum Segment Size）。<br>最理想的情况是，最大消息长度正好是 IP 中不会被分片处理的最大数据长度。</p>
+</blockquote>
+<h4 id="MSS-的计算方式"><a href="#MSS-的计算方式" class="headerlink" title="MSS 的计算方式"></a>MSS 的计算方式</h4><p>MSS 是在三次握手的时候，在两端主机之间被计算出。两端主机在建立连接的请求时，会在 TCP 首部中写入 MSS 选项，告诉对方自己的接口能够适应的 MSS 大小。<br>MSS 的大小就会在两者之间选择一个较小的值。</p>
+<p><img src="/images/MSS%E8%AE%A1%E7%AE%97%E6%96%B9%E5%BC%8F.png" alt="direct"></p>
+<h2 id="窗口控制提高速度"><a href="#窗口控制提高速度" class="headerlink" title="窗口控制提高速度"></a>窗口控制提高速度</h2><blockquote>
+<p>TCP 以 1 个段为单位，每发送一个段就进行一次确认应答的处理。但是这样传输的话，包的往返时间越长性能也就越低。<br>为了解决这个问题，TCP 就引入了窗口这个概念。即使在往返时间较长的情况下，它也能控制网络性能的下降。</p>
+</blockquote>
+<p><strong>确认应答不再是以每个分段，而是以更大的单位进行确认，转发时间将会被大幅度的缩短</strong><br><img src="/images/%E7%AA%97%E5%8F%A3%E6%8E%A7%E5%88%B6.png" alt="direct"></p>
+<h2 id="重发控制"><a href="#重发控制" class="headerlink" title="重发控制"></a>重发控制</h2><blockquote>
+<p>窗口控制中的重发控制，是以序列号进行管理的，当数据包丢失后，发送端会根据接收端序列号来进行重发<br><img src="/images/%E7%AA%97%E5%8F%A3%E7%AE%A1%E7%90%86%E7%9A%84%E9%87%8D%E5%8F%91.png" alt="direct"></p>
+</blockquote>
+<h2 id="流控制"><a href="#流控制" class="headerlink" title="流控制"></a>流控制</h2><blockquote>
+<p>为了防止网络流量的无端浪费（接收端数据的处理）,TCP 提供一种机制可以让发送端根据接收端的实际接收能力控制发送的数据量。</p>
+</blockquote>
+<p>接收端告诉发送端自己接收的数据大小，实际上就是该窗口大小。<br><img src="/images/%E6%B5%81%E6%8E%A7%E5%88%B6.png" alt="direct"></p>
+<h2 id="拥塞控制"><a href="#拥塞控制" class="headerlink" title="拥塞控制"></a>拥塞控制</h2><blockquote>
+<p>一般来说，计算机网络都处在一个共享的环境，因此也有坑因为其他主机之间的通信使得网络拥堵。<br>所以，如果一开始发送端就发送一个特大的数据包，可能会导致整个网络的瘫痪。<br>为了防止这个问题，TCP 在通信一开始时，就会通过一个叫做慢启动的算法得出的数值，对发送数据量进行控制。</p>
+</blockquote>
+<p>首先，为了在发送端调节所要发送的数据的量，定义了一个叫做<code>拥塞窗口</code>的概念。在慢启动的时候，将这个拥塞窗口的大小设置为一个数据段（1 MSS）发送数据，<br>之后每收到一次确认应答（ACK）,拥塞窗口的值就加一。<br>不过，随着包的每次往返，拥塞窗口也会以 1、2、4 等指数函数的增长，拥堵状况激增甚至导致网络拥塞的发生。为了防止这些，又引入了慢启动阈值的概念。<br>只允许按照特定比例放大拥塞窗口：</p>
+<p>1 个数据段的字节数/拥塞窗口（字节）* 1 个数据段字节数</p>
+<p><img src="/images/%E6%8B%A5%E5%A1%9E%E7%AA%97%E5%8F%A3.png" alt="direct"></p>
+<p>于是，当 TCP 通信开始以后，网络的吞吐量会 逐步上升，但是随着网络拥堵的发生吞吐量也会极速下降。<br>接着，会再次进入吞吐量慢慢上升的过程。因此所谓 TCP 的吞吐量的特点就像是在逐步占领网络带宽的感觉。</p>
+<p>参考：1.「 图解 TCP/IP 」2. 「 TCP/IP 卷一 」</p>
+]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>单例模式-Python 实现</title>
+    <url>/posts/26a37a49/</url>
+    <content><![CDATA[<h1 id="什么是单例模式"><a href="#什么是单例模式" class="headerlink" title="什么是单例模式 ?"></a>什么是单例模式 ?</h1><blockquote>
+<p>单例模式（Singleton Pattern）是软件设计中的一种常用设计模式，其目的是在一个进程中，确保某一个类(class)只有一个实例(instance)存在。<br>例如，当我们在操作数据库时，多个服务都要调用数据库的 connection ，其配置信息都是相同的，这种情况就可以使用单例模式。在该系统中，只使用一个用于连接数据库的 connection 实例</p>
+</blockquote>
+<h2 id="单例模式的实现方式"><a href="#单例模式的实现方式" class="headerlink" title="单例模式的实现方式"></a>单例模式的实现方式</h2><h3 id="1-模块构建"><a href="#1-模块构建" class="headerlink" title="1. 模块构建"></a>1. 模块构建</h3><blockquote>
+<p><strong>Python 的模块就是天然的单例模式</strong>，模块在第一次导入的时候，会生成 <code>.pyc</code> 文件，就会直接加载<code>.pyc</code>文件，而不会再次执行模块<br>因此，我们只需要把相关的函数和数据定义在一个模块中，就可以获得一个单例对象了。</p>
+</blockquote>
+<p><strong>Singleton.py</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">singleton = Singleton()</span><br></pre></td></tr></table></figure>
+<p>当我们需要使用这个 instance 的时候，直接使用即可：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> Singleton <span class="keyword">import</span> singleton</span><br></pre></td></tr></table></figure>
+<h3 id="装饰器"><a href="#装饰器" class="headerlink" title="装饰器"></a>装饰器</h3><blockquote>
+<p>使用 dict 类型，以 key-value 方式存储类的实例和运行的函数</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">singleton</span>(<span class="params">cls</span>):</span></span><br><span class="line">    _instance = &#123;&#125;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_singleton</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> cls <span class="keyword">not</span> <span class="keyword">in</span> _instance:</span><br><span class="line">            _instance[cls] = cls(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> _instance[cls]</span><br><span class="line">    <span class="keyword">return</span> _singleton</span><br><span class="line"></span><br><span class="line"><span class="meta">@singleton</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, x</span>):</span></span><br><span class="line">        self.x = x</span><br><span class="line"></span><br><span class="line">a1 = A(<span class="number">1</span>)</span><br><span class="line">a2 = A(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(a1 <span class="keyword">is</span> a2)</span><br></pre></td></tr></table></figure>
+<h3 id="类方法实现"><a href="#类方法实现" class="headerlink" title="类方法实现"></a>类方法实现</h3><blockquote>
+<p>使用方法 <code>hasattr</code> 方法判断类中是否已实现了对应的实例方法，实现了就直接返回，未返回就添加单例属性</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">instance</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(Singleton, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">            Singleton._instance = Singleton(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> Singleton._instance</span><br><span class="line"></span><br><span class="line">obj = Singleton.instance()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="多线程场景"><a href="#多线程场景" class="headerlink" title="多线程场景"></a>多线程场景</h3><p>但是在<code>多线程</code>的使用中，由于每个线程有自己的数据资源，所以会<code>存在问题</code>。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>(<span class="params">arg</span>):</span></span><br><span class="line">    obj = Singleton.instance()</span><br><span class="line">    <span class="built_in">print</span>(obj) <span class="comment"># 显示 instance 的详情信息</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">    t = threading.Thread(target=task,args=[i,])</span><br><span class="line">    t.start()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>以上的实例显示出的详情可以看到 obj 的 id 并不一致，解决办法就是加 <code>锁</code>(mutex)</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    lock = threading.Lock()</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">instance</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">with</span> Singleton.lock:</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(Singleton, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">                Singleton._instance = Singleton(*args, **kwargs)</span><br><span class="line">            <span class="keyword">return</span> Singleton._instance</span><br></pre></td></tr></table></figure>
+<p>以上实现方式对整个实例的创建过程都进行了加锁，可以进行优化：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    lock = threading.Lock()</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">instance</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(Singleton, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">                <span class="keyword">with</span> Singleton.lock:</span><br><span class="line">                    Singleton._instance = Singleton(*args, **kwargs)</span><br><span class="line">            <span class="keyword">return</span> Singleton._instance</span><br></pre></td></tr></table></figure>
+<p>但是这样的实现方式，需要借助 <code>instance 方法</code></p>
+<h3 id="new-方法实现"><a href="#new-方法实现" class="headerlink" title="__new__ 方法实现"></a><code>__new__</code> 方法实现</h3><blockquote>
+<p>一个类在被实例化的过程中，先是执行默认的<code>__new__</code> 方法，然后再执行<code>__init__</code>方法初始化对象</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Singleton</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    _instance_lock = threading.Lock()</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__new__</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(cls, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">            <span class="keyword">with</span> cls._instance_lock:</span><br><span class="line">                cls._instance = <span class="built_in">super</span>.__new__(cls)</span><br><span class="line">            <span class="keyword">return</span> cls._instance</span><br></pre></td></tr></table></figure>
+
+<h3 id="metaclass-方式实现"><a href="#metaclass-方式实现" class="headerlink" title="metaclass 方式实现"></a><code>metaclass</code> 方式实现</h3><blockquote>
+<ol>
+<li>类由 <code>type</code>创建，创建类时，type 的 <code>__init__</code> 方法自动执行，类() 的方式执行<code>type</code> 的<code>__call__</code>方法（类的 <strong>new__、__init</strong> 方法）</li>
+<li>对象由类创建，创建对象时，类的 <code>__init__</code> 方法自动执行，对象()执行类的<code>__call__</code> 方法</li>
+</ol>
+</blockquote>
+<p>其实，我们就是要保证在创建类的时候，保证这个类只有一个实例</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SingletonType</span>(<span class="params"><span class="built_in">type</span></span>):</span></span><br><span class="line">    _instance_lock = threading.Lock</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">cls, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(cls, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">            <span class="keyword">with</span> SingletonType._instance_lock:</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(cls, <span class="string">&quot;_instance&quot;</span>):</span><br><span class="line">                    cls._instance = <span class="built_in">super</span>.__call__(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> cls._instance</span><br><span class="line">                </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Foo</span>(<span class="params">metaclass=SingletonType</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        self.name = name</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>乐观锁与悲观锁-Python 实现</title>
+    <url>/posts/102bc233/</url>
+    <content><![CDATA[<h1 id="Python-乐观锁与悲观锁"><a href="#Python-乐观锁与悲观锁" class="headerlink" title="Python 乐观锁与悲观锁"></a>Python 乐观锁与悲观锁</h1><p>参考：<a href="https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6">https://xie.infoq.cn/article/2085a95ad6b486d3905adc7d6</a></p>
+<blockquote>
+<p>乐观锁和悲观锁是两种思想，用于解决并发场景下的数据竞争问题</p>
+</blockquote>
+<h2 id="什么是乐观锁-？"><a href="#什么是乐观锁-？" class="headerlink" title="什么是乐观锁 ？"></a>什么是乐观锁 ？</h2><blockquote>
+<p>乐观锁在操作数据时采用乐观的态度，认为不会出现多个操作数据的事件。因此乐观锁不糊上锁，只是在进行更新操作的时候<br>判断该期间是否同时存在修改了数据的情况：若在修改时数据已被修改则放弃操作，否则继续执行操作。</p>
+</blockquote>
+<h2 id="乐观锁的实现"><a href="#乐观锁的实现" class="headerlink" title="乐观锁的实现"></a>乐观锁的实现</h2><blockquote>
+<ol>
+<li>CAS 机制。2.版本号机制。这里将采用 python + orm 的实现方式</li>
+</ol>
+</blockquote>
+<h3 id="CSA-Compare-and-Swap"><a href="#CSA-Compare-and-Swap" class="headerlink" title="CSA (Compare and Swap)"></a>CSA (Compare and Swap)</h3><p>CSA 的操作主要包括了 3 个操作数：</p>
+<ul>
+<li>需要读写的内存位置(V)</li>
+<li>进行比较的预期值(A)</li>
+<li>拟写入的新值(B)<br>具体的操作逻辑为：若内存位置的值等于预期的 A 值，则将该位置更新为新值 B, 否则不进行任何操作。<br>直到重试次数消耗完毕。<h3 id="CSA-实现"><a href="#CSA-实现" class="headerlink" title="CSA 实现"></a>CSA 实现</h3><blockquote>
+<p>乐观锁（Optimistic Lock）,适用于多读</p>
+</blockquote>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> django.shortcuts <span class="keyword">import</span> render</span><br><span class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> JsonResponse</span><br><span class="line"><span class="keyword">from</span> django.views.generic <span class="keyword">import</span> View</span><br><span class="line"><span class="keyword">from</span> django.db <span class="keyword">import</span> transaction</span><br><span class="line"><span class="keyword">from</span> 应用名.models <span class="keyword">import</span> GoodsSKU</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 类视图 (并发，乐观锁)</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Order</span>(<span class="params">View</span>):</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @transaction.atomic</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span>(<span class="params">self, request</span>):</span></span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;订单创建&#x27;&#x27;&#x27;</span></span><br><span class="line">        count = <span class="number">3</span>  <span class="comment"># 订购3件商品</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置事务保存点</span></span><br><span class="line">        s1 = transaction.savepoint()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 乐观锁，最多尝试5次</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">5</span>):</span><br><span class="line">            <span class="comment"># 查询商品的信息(库存)</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                sku = GoodsSKU.objects.get(<span class="built_in">id</span>=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">except</span>:</span><br><span class="line">                <span class="comment"># 商品不存在</span></span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">1</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品不存在&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 判断商品的库存</span></span><br><span class="line">            <span class="keyword">if</span> count &gt; sku.stock:</span><br><span class="line">                transaction.savepoint_rollback(s1)</span><br><span class="line">                <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">2</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;商品库存不足&#x27;</span>&#125;)</span><br><span class="line"></span><br><span class="line">            <span class="comment"># 更新商品的库存和销量</span></span><br><span class="line">            orgin_stock = sku.stock  <span class="comment"># 原库存 (数据库隔离级别必须是Read Committed；如果是Repeatable Read,那么多次尝试读取的原库存都是一样的,读不到其他线程提交更新后的数据。)</span></span><br><span class="line">            new_stock = orgin_stock - count  <span class="comment"># 更新后的库存</span></span><br><span class="line">            new_sales = sku.sales + count  <span class="comment"># 更新后的销量</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># update 商品表 set stock=new_stock, sales=new_sales where id=1 and stock = orgin_stock</span></span><br><span class="line">            <span class="comment"># 通过where子句中的条件判断库存是否进行了修改。(并发，乐观锁)</span></span><br><span class="line">            <span class="comment"># 返回受影响的行数</span></span><br><span class="line">            res = GoodsSKU.objects.<span class="built_in">filter</span>(<span class="built_in">id</span>=<span class="number">1</span>, stock=orgin_stock).update(stock=new_stock, sales=new_sales)</span><br><span class="line">            <span class="keyword">if</span> res == <span class="number">0</span>:  <span class="comment"># 如果修改失败</span></span><br><span class="line">                <span class="keyword">if</span> i == <span class="number">4</span>:</span><br><span class="line">                    <span class="comment"># 如果尝试5次都失败</span></span><br><span class="line">                    transaction.savepoint_rollback(s1)</span><br><span class="line">                    <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">3</span>, <span class="string">&#x27;errmsg&#x27;</span>: <span class="string">&#x27;下单失败&#x27;</span>&#125;)</span><br><span class="line">                <span class="keyword">continue</span>  <span class="comment"># 再次尝试</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># 否则更新成功</span></span><br><span class="line">            <span class="comment"># 跳出尝试循环</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 提交事务</span></span><br><span class="line">        transaction.savepoint_commit(s1)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 返回应答</span></span><br><span class="line">        <span class="keyword">return</span> JsonResponse(&#123;<span class="string">&#x27;res&#x27;</span>: <span class="number">4</span>, <span class="string">&#x27;message&#x27;</span>: <span class="string">&#x27;创建成功&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+<h2 id="什么是悲观锁"><a href="#什么是悲观锁" class="headerlink" title="什么是悲观锁 ?"></a>什么是悲观锁 ?</h2><p>悲观锁在操作数据的时候，比较悲观，认为别人会同时修改数据。<br>因此操作数据时会直接把数据锁住，直到操作完成后才会释放锁；上锁期间其他人不能修改数据</p>
+<h2 id="简单实现"><a href="#简单实现" class="headerlink" title="简单实现"></a>简单实现</h2><p>例如，有用户 A 和用户 B，在同一家店铺去购买同一个商品，但是商品的可购买数量只有一个<br><img src="/images/img.png" alt="direct"></p>
+<p>若，用户 A 和用户 B 同时下单，就会报错。<br>悲观锁的实现，往往依靠数据库提供的锁机制，在数据库中，我们如何用悲观锁去结局这个事情呢？</p>
+<ol>
+<li>用户 A 在执行购买商品的时候，先尝试对该商品加上悲观锁。</li>
+<li>若加锁失败，说明商品正在被其他事务进行修改，当前查询需要等待或者抛出异常，具体返回的方式需要开发者根据具体情况去定义</li>
+<li>加锁成功：对商品进行修改</li>
+<li>在此期间如果有其他用户对数据做修改或加锁的操作，都会等待我们解锁后或直接抛出异常<br><img src="/images/img_1.png" alt="direct"></li>
+</ol>
+<h2 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h2><p>那么如何加上悲观锁呢，1. 首先关闭 MySQL 数据库的自动提交属性。因为 MySQL 默认使用 autocommit 模式（默认提交）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set autocommit = 0;</span><br></pre></td></tr></table></figure>
+<p>悲观锁加锁 sql 语句： </p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select num form t_goods where id = 2 for update</span><br></pre></td></tr></table></figure>
+<p>此时，其他事务都不能获取到此行的数据去进行操作。</p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python 如何实现装饰器？</title>
+    <url>/posts/e67a2035/</url>
+    <content><![CDATA[<h1 id="Python-如何实现一个装饰器"><a href="#Python-如何实现一个装饰器" class="headerlink" title="Python 如何实现一个装饰器"></a>Python 如何实现一个装饰器</h1><blockquote>
+<p>首先，装饰器为调用高阶函数提供了一种简单的语法<br>根据定义，装饰器是一个函数，它接受另外一个函数并在其基础功能上做统一的扩展</p>
+</blockquote>
+<h2 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h2><blockquote>
+<p>对于 Python 来说，一切皆对象，对象也是可以作为参数传递，这就是装饰器实现的基础</p>
+</blockquote>
+<p>例如，我想实现一个<code>日志打印</code>功能，调用对应方法或者对象时，可以显示其运行的信息。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">    func()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    printer(task)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>在这里我们实现了<code>task</code> 方法，在调用这个方法的时候，会显示调用的相关信息。</p>
+<p>可以看到我们使用<code>printer</code> 这个功能的时候，都是采用<code>printer(func)</code>的方式，如果在多处使用的话，<br>那么有没有比较简单的方式，例如在执行<code>task</code>方法的时候，自动去触发<code>printer</code>呢，还能像调用原方法一样？</p>
+<p>于是, 我们可以将该方法当成一个参数传递后，返回一个新的对象调用的方式：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">printer</span>(<span class="params">func</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run&quot;</span>)</span><br><span class="line"></span><br><span class="line">task = printer(task)</span><br><span class="line">task()</span><br></pre></td></tr></table></figure>
+
+<p>Python 中<code>允许在一个方法中嵌套另外一个方法</code>，这种特殊的机制就是<strong>闭包</strong>。<br>这个内部方法可以保留外部方法的作用域，内部方法也可以访问到外部方法的参数和变量。</p>
+<h2 id="装饰器"><a href="#装饰器" class="headerlink" title="装饰器"></a>装饰器</h2><blockquote>
+<p>python 支持一种装饰器语法糖「@」，使用这个语法糖，我们也可以实现与上面完全相同的功能</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="functools-wraps"><a href="#functools-wraps" class="headerlink" title="functools.wraps"></a>functools.wraps</h2><blockquote>
+<p>现在我们已经知道，装饰器其实就是先定义好一个闭包，然后使用语法糖<code>@</code>来装饰方法，最后达到重新定义方法的作用<br>但是这样使用的方法其实最终执行的是 <code>inner</code> 方法</p>
+</blockquote>
+<p>like: </p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@printer</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Output: inner</span></span><br></pre></td></tr></table></figure>
+<p>如何解决这个问题？</p>
+<p>python 其实有内置的 functools 模块，提供了一个 <code>wraps</code> 方法，专门来解决这个问题。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">logger</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">inner</span>():</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> running&quot;</span>, )</span><br><span class="line">        func()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;func <span class="subst">&#123;func.__name__&#125;</span> ended&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> inner</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@logger</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;task run &quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(task.__name__)</span><br><span class="line"></span><br><span class="line"><span class="comment"># output:</span></span><br><span class="line"><span class="comment"># hello</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="带参数的装饰器"><a href="#带参数的装饰器" class="headerlink" title="带参数的装饰器"></a>带参数的装饰器</h2><p>装饰器当然也可以传入参数，例如：<code>*args</code>、<code>**kwargs</code><br>例如使用装饰器来计算程序的运行时间：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># coding: utf8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">timeit</span>(<span class="params">prefix</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            start = time.time()</span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">            end = time.time()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&#x27;%s: duration time: %ds&#x27;</span> % (prefix, <span class="built_in">int</span>(end - start)))</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line">    <span class="keyword">return</span> decorator</span><br><span class="line"></span><br><span class="line"><span class="meta">@timeit(<span class="params"><span class="string">&#x27;prefix1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>(<span class="params">name</span>):</span></span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;hello %s&#x27;</span> % name)</span><br></pre></td></tr></table></figure>
+<h2 id="装饰器模版"><a href="#装饰器模版" class="headerlink" title="装饰器模版"></a>装饰器模版</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decorator</span>(<span class="params">func</span>):</span></span><br><span class="line"><span class="meta">    @wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">        <span class="comment"># do something</span></span><br><span class="line">        value = func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> value</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure>
+
+<h2 id="类实现装饰器"><a href="#类实现装饰器" class="headerlink" title="类实现装饰器"></a>类实现装饰器</h2><p><code>__call__</code> 魔法方法结合类也可以实现装饰器</p>
+<p>这里也给出一个通用模版</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> functools</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Decorator</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__int__</span>(<span class="params">self, params</span>):</span></span><br><span class="line">        self.params = params</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @functools.wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># do something</span></span><br><span class="line">            func(*args, **kwargs)</span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"><span class="meta">@Decorator(<span class="params"><span class="string">&#x27;params&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">hello()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="装饰器的使用场景"><a href="#装饰器的使用场景" class="headerlink" title="装饰器的使用场景"></a>装饰器的使用场景</h2><h3 id="记录调用日志"><a href="#记录调用日志" class="headerlink" title="记录调用日志"></a>记录调用日志</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Logger</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        self.name = name</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span>(<span class="params">self, func</span>):</span></span><br><span class="line"><span class="meta">        @wraps(<span class="params">func</span>)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">*args, **kwargs</span>):</span></span><br><span class="line">            <span class="comment"># 记录调用日志</span></span><br><span class="line">            logging.getLogger().setLevel(logging.INFO)</span><br><span class="line">            logging.info(<span class="string">&#x27;call method: %s %s %s&#x27;</span>, func.__name__, args, kwargs)</span><br><span class="line">            <span class="keyword">return</span> func(*args, **kwargs)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Logger(<span class="params"><span class="string">&#x27;airflow&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">task</span>(<span class="params">name</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;run <span class="subst">&#123;name&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    task(name=<span class="string">&quot;task&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="路由映射"><a href="#路由映射" class="headerlink" title="路由映射"></a>路由映射</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> wraps</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> flask</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Router</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.url_map = &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">register</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span>(<span class="params">func</span>):</span></span><br><span class="line">            self.url_map[url] = func</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> wrapper</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">call</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        func = self.url_map.get(url)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> func:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&#x27;No url function: %s&#x27;</span>, url)</span><br><span class="line">        <span class="keyword">return</span> func()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">router = Router()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@router.register(<span class="params"><span class="string">&#x27;/page1&#x27;</span></span>)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">page1</span>():</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;page1&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(router.call(<span class="string">&#x27;page1&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>docker 与容器技术畅谈.md</title>
+    <url>/posts/bc91ee72/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
+<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
+</blockquote>
+<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
+<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
+<p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
+<p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
+<p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
+<p>那么为什么 docker 技术为何在短短几个月就风靡全世界了？</p>
+<ul>
+<li><strong>实则正是 <code>docker image</code></strong></li>
+</ul>
+<p>对于 Paas 项目而言，将项目运行的文件打包是一件极其麻烦的事情，对于每种语言，每种框架，每个版本都需要维护一个打好的包。</p>
+<p><strong>docker image 可以基于你所需要的系统文件，构建一个可以基于云端环境运行的压缩包。</strong></p>
+<h2 id="容器化技术的发展"><a href="#容器化技术的发展" class="headerlink" title="容器化技术的发展"></a>容器化技术的发展</h2><p>在以上的文章中，介绍了 docker 技术为何火热的原因。<br>对于一个大型的业务应用来说，从前端，后端，到数据库系统，文件系统等，往往是需要多个容器的，那么就存在着，如何能够优雅的在云端环境有序地运行。<br>于是，docker 公司便开发出了一个<code>容器编排化的工具</code>, <strong>docker Swarm</strong> 项目</p>
+<p>与此同时，Mesos 社区也开发出了一个类似的工具<code>Marathon</code>, 它虽然不能像 Swarm 那样提供原生的 Docker API, 但是其却拥有一个独特的核心竞争力：</p>
+<ul>
+<li><strong>超大规模集群的管理经验</strong></li>
+</ul>
+<p>也就在这个时候，google 公司根据公司多年的发展经验和借助成熟的内部项目<code>Borg</code>系统，宣布了 <code>Kubernetes</code> 项目的诞生。<br>而也是仅仅在两年之前，各个国内外的互联网厂商开始将自己的项目接入 k8s，宣布了 k8s 时代的到来。</p>
+<p>本文仅仅讨论 <code>docker 容器化技术</code>，对于<code>容器化编排</code>不做过多的介绍。</p>
+<h1 id="容器到底是怎么一回事？"><a href="#容器到底是怎么一回事？" class="headerlink" title="容器到底是怎么一回事？"></a>容器到底是怎么一回事？</h1><p>在上述的文章中，已经简单介绍了几个概念:</p>
+<ul>
+<li><code>虚拟器</code></li>
+<li><code>容器</code></li>
+<li><code>容器化技术</code></li>
+<li><code>镜像</code></li>
+</ul>
+<p>我们可以总结一下：<strong>容器其实就是一种沙盒技术，使用 <code>Cgroups</code>和<code>Namespace</code> 技术，将你的应用通过限制和隔离的技术在指定的环境中，良好的运行起来</strong></p>
+<p>先说结论，容器其实就是一种<code>特殊的进程</code>而已</p>
+<h2 id="隔离技术-Namespace"><a href="#隔离技术-Namespace" class="headerlink" title="隔离技术 - Namespace"></a>隔离技术 - Namespace</h2><blockquote>
+<p>那么隔离技术是如何实现的？</p>
+</blockquote>
+<p>首先创建一个容器：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker run -it --name=ubuntu-test ubuntu:18.04 /bin/sh</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ps</span></span><br><span class="line">  PID TTY          TIME CMD</span><br><span class="line">    1 pts/0    00:00:00 sh</span><br><span class="line">    7 pts/0    00:00:00 ps</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
+<p>我们可以看到这个容器中，一共有两个进程，通过 ps 可以看到 sh ,就是这个容器内部的第 1 号进程（PID=1）。</p>
+<p>这是为什么呢？</p>
+<p>本来，当我们在宿主机上运行了一个 /bin/sh 程序的时候，我们的操作系统都会给其分配一个进程编号，例如 PID=100。但是通过 <code>docker run</code> 命令时，docker<br>就会在当前的进程时，调整其 namespace 相关参数，将其变为在这个 docker 中的 1 号进程。</p>
+<p>这种技术就是<strong>Linux 里面的 Namespace 机制</strong>。</p>
+<p>我们知道，在 Linux 系统中创建进程的系统调用是 clone():</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, SIGCHID, NUll);</span><br></pre></td></tr></table></figure>
+
+<p>通过指定 <code>CLONE_NEWPID</code> 参数，而每个 <code>Namespace</code>里的应用进程，都会认为自己是当前容器里的第一号进程。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, CLONE_NEWPID | SIGCHLD, NULL)</span><br></pre></td></tr></table></figure>
+
+<p>在 Linux 操作系统中，还提供了 <code>Mount</code>、<code>UTS</code>、<code>IPC</code>、<code>Network</code>、<code>User</code> 这些 Namespace，用来对<code>各种不同的进程</code>上下文进行”障眼法”操作。</p>
+<h2 id="限制技术-Cgroups"><a href="#限制技术-Cgroups" class="headerlink" title="限制技术 - Cgroups"></a>限制技术 - Cgroups</h2><blockquote>
+<p>Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等<br>在 Linux 中，Cgroups 给用户暴露出来的操作接口是<strong>文件系统</strong>，即它以文件和目录的方式组织在操作系统的 /sys/fs/cgroup 路径下。</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># mount -t cgroup</span></span></span><br><span class="line">cpuset on /sys/fs/cgroup/cpuset type cgroup (ro,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cpu on /sys/fs/cgroup/cpu type cgroup (ro,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cpuacct on /sys/fs/cgroup/cpuacct type cgroup (ro,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">blkio on /sys/fs/cgroup/blkio type cgroup (ro,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">memory on /sys/fs/cgroup/memory type cgroup (ro,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">devices on /sys/fs/cgroup/devices type cgroup (ro,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">freezer on /sys/fs/cgroup/freezer type cgroup (ro,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">net_cls on /sys/fs/cgroup/net_cls type cgroup (ro,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">perf_event on /sys/fs/cgroup/perf_event type cgroup (ro,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">net_prio on /sys/fs/cgroup/net_prio type cgroup (ro,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">hugetlb on /sys/fs/cgroup/hugetlb type cgroup (ro,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">pids on /sys/fs/cgroup/pids type cgroup (ro,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">rdma on /sys/fs/cgroup/rdma type cgroup (ro,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (ro,nosuid,nodev,noexec,relatime,name=systemd)</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
+<p>其中，例如 <code>cpuset</code>、<code>cpu</code>、<code>memory</code> 这样的子目录，也叫子系统。这些都是可以被 <code>Cgroups</code> 进行限制的资源种类。</p>
+<p>现在我们看一下子系统中关于 CPU 的相关配置文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ls /sys/fs/cgroup/cpu</span></span><br><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release</span><br><span class="line">cgroup.procs	       cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat	 tasks</span><br></pre></td></tr></table></figure>
+<p>这些输出配置中，可以看到 <code>cpu.cfs_period_us</code> 和 <code>cpu.cfs_quota_us</code>，这两个参数需要组合使用，可以用来限制进程在长度<code>cfs_period</code>的一段时间内，<br>只能被分配到总量为 <code>cfs_quota</code> 的 CPU 时间。</p>
+<p>另开一个终端，输入:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">while : ; do : ; done &amp;</span><br><span class="line"></span><br><span class="line">23223</span><br></pre></td></tr></table></figure>
+<p>键入：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top</span><br><span class="line"><span class="meta">%</span><span class="bash">Cpu0 :100.0 us, 0.0 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
+<p>可以看到 CPU 的使用率已经 100% 了， quota 还没有任何限制（-1）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span> </span><br><span class="line">-1</span><br><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_period_us</span> </span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
+<p>在现在的默认配置中，在 100 ms 中的 cpu 时间中，使用 100ms 的 CPU 时间，也就是 100 %。<br>现在调整为 20%:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span></span><br></pre></td></tr></table></figure>
+<p>然后将限制的进程 PID 写入 container 组里的 tasks 文件:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 23223 &gt; /sys/fs/cgroup/cpu/container/tasks</span> </span><br></pre></td></tr></table></figure>
+<p>然后使用 <code>top</code> 指令查看:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash">Cpu0 : 20.3 us, 0.0 sy, 0.0 ni, 79.7 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
+<p>现在可以看到已经为 <code>20%</code> 左右了<br>其他关于 <code>blkio</code>，<code>cpuset</code>，<code>memory</code> 可以自行尝试</p>
+<h3 id="docker-运行时的限制参数"><a href="#docker-运行时的限制参数" class="headerlink" title="docker 运行时的限制参数"></a>docker 运行时的限制参数</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -it --cpu-period=100000 --cpu-quota=20000 ubuntu:18.04 /bin/bash</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置就会将对应的值写入到 docker-container 的配置文件中，这个 Docker 容器，只能使用到 20% 的 CPU 带宽。</p>
+<h3 id="虚拟机和容器对比"><a href="#虚拟机和容器对比" class="headerlink" title="虚拟机和容器对比"></a>虚拟机和容器对比</h3><img src="/images/虚拟机和容器对比图.png" width = "500" height = "300" alt="" align=center />
+
+<p>虚拟机的工作原理，通过硬件虚拟化功能，模拟出了运行一个操作系统需要的各种硬件，例如 CPU、内存、I/O 设备等等。<br>docker 项目帮助用户启动的，还是原来的应用进程，但是 Docker 会为它们加上了各种各样的 Namespace 参数。</p>
+<p>所以，”敏捷” 和 “高性能” 是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。</p>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
       </tags>
   </entry>
 </search>
