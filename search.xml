@@ -901,7 +901,7 @@
 </ul>
 <p>这些策略就和我们清理房间采取的策略一致</p>
 <p>那么如何采用 <strong>链表</strong>，来实现 <strong>LRU缓存淘汰策略</strong>呢 ？</p>
-<h2 id="链表钙览"><a href="#链表钙览" class="headerlink" title="链表钙览"></a>链表钙览</h2><p>首先解释一个 <strong>链表</strong> 的数据结构</p>
+<h2 id="链表简介"><a href="#链表简介" class="headerlink" title="链表简介"></a>链表简介</h2><p>首先解释一个 <strong>链表</strong> 的数据结构</p>
 <blockquote>
 <p>与数组结构不同的是，链表不需要连续的内存空间来存储，<strong>它是通过<code>指针</code>将一组零散的内存块串联起来使用</strong>。</p>
 </blockquote>
@@ -989,10 +989,10 @@
 
 ]]></content>
       <categories>
-        <category>数据与结构算法</category>
+        <category>数据结构与算法</category>
       </categories>
       <tags>
-        <tag>数据与结构算法</tag>
+        <tag>数据结构与算法</tag>
       </tags>
   </entry>
 </search>
