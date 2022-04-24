@@ -33,8 +33,9 @@
 <meta property="og:image" content="https://static001.geekbang.org/resource/image/45/17/452e943788bdeea462d364389bd08a17.jpg">
 <meta property="og:image" content="http://example.com/images/linknode.png">
 <meta property="og:image" content="https://static001.geekbang.org/resource/image/cb/0b/cbc8ab20276e2f9312030c313a9ef70b.jpg">
+<meta property="og:image" content="http://example.com/images/link_node_exaples.png">
 <meta property="article:published_time" content="2020-04-13T03:04:55.000Z">
-<meta property="article:modified_time" content="2022-04-23T13:19:04.546Z">
+<meta property="article:modified_time" content="2022-04-24T08:06:12.014Z">
 <meta property="article:author" content="tyrone">
 <meta property="article:tag" content="数据结构与算法">
 <meta name="twitter:card" content="summary">
@@ -222,7 +223,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-23 21:19:04" itemprop="dateModified" datetime="2022-04-23T21:19:04+08:00">2022-04-23</time>
+                <time title="修改时间：2022-04-24 16:06:12" itemprop="dateModified" datetime="2022-04-24T16:06:12+08:00">2022-04-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -247,7 +248,7 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>5.2k</span>
+              <span>5.5k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -352,20 +353,39 @@
 </ul>
 <p>和数组相比，链表存储的数据是不连续的存储空间，数据之间采用指针引用方式连接。</p>
 <p>链表各适合插入、删除操作频繁的场景，查询的时间复杂度较高。</p>
-<h2 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h2><p>LRU 的实现？</p>
+<h3 id="链表实现注意点"><a href="#链表实现注意点" class="headerlink" title="链表实现注意点"></a>链表实现注意点</h3><ul>
+<li><p>理解指针或引用含义</p>
+<blockquote>
+<p>将某个变量赋值给指针，实际上就是将这个变量的地址赋值给指针，或者反过来说，指针中存储了这个变量的内存地址，指向了这个变量，通过指针就能找到这个变量</p>
+</blockquote>
+</li>
+<li><p>警惕指针丢失和内存泄露<br>在插入指针的时候，注意操作的顺序，例如：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">p.<span class="built_in">next</span> = x</span><br><span class="line">x.<span class="built_in">next</span> = p.<span class="built_in">next</span></span><br></pre></td></tr></table></figure>
+<p>上面的语句出现了自己指向自己的情况，交换两行就可以了<br>删除链表节点的时候，也一定要记得手动释放内存空间。</p>
+</li>
+<li><p>利用哨兵简化实现难度</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cur = self.head</span><br></pre></td></tr></table></figure></li>
+<li><p>重点留意边界条件处理</p>
+</li>
+</ul>
+<ol>
+<li>链表为空的时候</li>
+<li>链表只包含一个节点的情况</li>
+<li>链表只包含头尾节点</li>
+</ol>
+<ul>
+<li>举例绘图，辅助思考<br><img src="/images/link_node_exaples.png" alt="direct"><h2 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h2></li>
+</ul>
+<p>LRU 的实现？</p>
 <p>字符串是通过单链表来存储的，那如何判断一个回文字符呢？</p>
 <p>解决思路：</p>
 <p>法一：</p>
 <p>使用快慢指针找到中点，然后将后半链表 reversed，然后一个指针在头部，一个指针在中部，逐个比较。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">is_palindrome</span>(<span class="params">head</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> head:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> head.<span class="built_in">next</span> == <span class="literal">None</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    slow = reverse_node(find_middle_node(head))</span><br><span class="line">    traverse(slow)</span><br><span class="line">    traverse(head)</span><br><span class="line">    <span class="keyword">while</span> slow:</span><br><span class="line">        <span class="keyword">if</span> head.data != slow.data:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        slow = slow.<span class="built_in">next</span></span><br><span class="line">        head = head.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_middle_node</span>(<span class="params">head</span>):</span></span><br><span class="line">    fast, slow = head, head</span><br><span class="line">    <span class="keyword">while</span> fast.<span class="built_in">next</span> <span class="keyword">and</span> fast.<span class="built_in">next</span>.<span class="built_in">next</span>:</span><br><span class="line">        fast = fast.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line">        slow = slow.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> slow</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reverse_node</span>(<span class="params">head</span>):</span></span><br><span class="line">    p, rev = head, <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> p:</span><br><span class="line">        rev, rev.<span class="built_in">next</span>, p = p, rev, p.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rev</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">node</span>):</span></span><br><span class="line">    cur = node</span><br><span class="line">    <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">        <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">        cur = cur.<span class="built_in">next</span></span><br><span class="line">    <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    my_str = <span class="string">&quot;1012101&quot;</span></span><br><span class="line">    c = Chain()</span><br><span class="line">    <span class="keyword">for</span> v <span class="keyword">in</span> my_str:</span><br><span class="line">        c.append(v)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(is_palindrome(c.head))</span><br></pre></td></tr></table></figure>
 
-
-
-
-
-
-
-
+<h2 id="链表练习题目"><a href="#链表练习题目" class="headerlink" title="链表练习题目"></a>链表练习题目</h2><blockquote>
+<p>206，141，21，19，876</p>
+</blockquote>
 
     </div>
 
@@ -393,13 +413,10 @@
 
         
     <div class="post-nav">
+      <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/posts/bc91ee72/" rel="prev" title="docker 与容器技术畅谈">
-      <i class="fa fa-chevron-left"></i> docker 与容器技术畅谈
-    </a></div>
-      <div class="post-nav-item">
-    <a href="/posts/bd0fa4a9/" rel="next" title="Python 内存管理，垃圾回收，缓存重用机制">
-      Python 内存管理，垃圾回收，缓存重用机制 <i class="fa fa-chevron-right"></i>
+    <a href="/posts/bc91ee72/" rel="next" title="docker 与容器技术畅谈">
+      docker 与容器技术畅谈 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -459,7 +476,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E8%A1%A8%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">链表简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E9%93%BE%E8%A1%A8"><span class="nav-number">1.1.1.</span> <span class="nav-text">单链表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E9%93%BE%E8%A1%A8%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.1.2.</span> <span class="nav-text">单链表的实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BE%AA%E7%8E%AF%E9%93%BE%E8%A1%A8"><span class="nav-number">1.1.3.</span> <span class="nav-text">循环链表</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E5%90%91%E9%93%BE%E8%A1%A8"><span class="nav-number">1.2.</span> <span class="nav-text">双向链表</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%93%8D%E4%BD%9C"><span class="nav-number">1.2.1.</span> <span class="nav-text">删除操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%92%E5%85%A5%E6%93%8D%E4%BD%9C"><span class="nav-number">1.2.2.</span> <span class="nav-text">插入操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2"><span class="nav-number">1.2.3.</span> <span class="nav-text">查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8C%E5%90%91%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.2.4.</span> <span class="nav-text">双向链表实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.3.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.4.</span> <span class="nav-text">思考题</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E8%A1%A8%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">链表简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E9%93%BE%E8%A1%A8"><span class="nav-number">1.1.1.</span> <span class="nav-text">单链表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E9%93%BE%E8%A1%A8%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.1.2.</span> <span class="nav-text">单链表的实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BE%AA%E7%8E%AF%E9%93%BE%E8%A1%A8"><span class="nav-number">1.1.3.</span> <span class="nav-text">循环链表</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E5%90%91%E9%93%BE%E8%A1%A8"><span class="nav-number">1.2.</span> <span class="nav-text">双向链表</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%93%8D%E4%BD%9C"><span class="nav-number">1.2.1.</span> <span class="nav-text">删除操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%92%E5%85%A5%E6%93%8D%E4%BD%9C"><span class="nav-number">1.2.2.</span> <span class="nav-text">插入操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2"><span class="nav-number">1.2.3.</span> <span class="nav-text">查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8C%E5%90%91%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.2.4.</span> <span class="nav-text">双向链表实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.3.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0%E6%B3%A8%E6%84%8F%E7%82%B9"><span class="nav-number">1.3.1.</span> <span class="nav-text">链表实现注意点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.4.</span> <span class="nav-text">思考题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E8%A1%A8%E7%BB%83%E4%B9%A0%E9%A2%98%E7%9B%AE"><span class="nav-number">1.5.</span> <span class="nav-text">链表练习题目</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
