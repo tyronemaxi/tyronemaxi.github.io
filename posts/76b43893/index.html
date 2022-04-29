@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="进程、线程、协程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解 进程、线程、协程">
+<meta property="og:url" content="http://example.com/posts/76b43893/index.html">
+<meta property="og:site_name" content="Tyrone&#39;s Blog">
+<meta property="og:description" content="进程、线程、协程">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/threads/PCB.png">
+<meta property="og:image" content="http://example.com/images/threads/%E8%BF%9B%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E7%8A%B6%E6%80%81%E5%88%87%E6%8D%A2.png">
+<meta property="og:image" content="http://example.com/images/threads/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97%E7%AE%97%E6%B3%95.png">
+<meta property="og:image" content="http://example.com/images/threads/%E7%BA%BF%E7%A8%8B%E4%B8%8E%E8%BF%9B%E7%A8%8B%E7%9A%84%E5%AF%B9%E6%AF%94.png">
+<meta property="og:image" content="http://example.com/images/threads/%E7%BA%BF%E7%A8%8B%E7%9A%84%E7%8A%B6%E6%80%81.png">
+<meta property="og:image" content="http://example.com/images/threads/thread_1.png">
+<meta property="og:image" content="http://example.com/images/threads/thread_2.png">
+<meta property="og:image" content="http://example.com/images/threads/thread_3.png">
+<meta property="article:published_time" content="2021-03-28T06:36:24.000Z">
+<meta property="article:modified_time" content="2022-04-29T08:00:09.431Z">
+<meta property="article:author" content="tyrone">
+<meta property="article:tag" content="深入理解计算机系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/threads/PCB.png">
+
+<link rel="canonical" href="http://example.com/posts/76b43893/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>深入理解 进程、线程、协程 | Tyrone's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tyrone's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/76b43893/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="tyrone">
+      <meta itemprop="description" content="人生最好的境界就是保持内心丰富的安静">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tyrone's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          深入理解 进程、线程、协程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-03-28 14:36:24" itemprop="dateCreated datePublished" datetime="2021-03-28T14:36:24+08:00">2021-03-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-29 16:00:09" itemprop="dateModified" datetime="2022-04-29T16:00:09+08:00">2022-04-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">深入理解计算机系统</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>10k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+            <div class="post-description">进程、线程、协程</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h1><p>参考：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/panlq/p/13180589.html">https://www.cnblogs.com/panlq/p/13180589.html</a><br><strong>进程是系统进行资源分配和调度的独立单位，<code>程序段</code>、<code>数据段</code>、<code>PCB(进程控制模块)</code>三部分组成了<code>进程 实体(进程映像)</code>，PCB 是进程存在的唯一标准</strong></p>
+<blockquote>
+<p>操作系统为了管理进程设置的一个专门的<code>数据结构</code>，用它来记录进程的外部特征，描述进程的运动变化进程。系统利用 PCB 来控制和管理进程，所以 PCB 是系<br>统感知进程存在的唯一标志。进程与 PCB 是一一对应的。<br>detail: <a target="_blank" rel="noopener" href="http://www.haodaquan.com/159">http://www.haodaquan.com/159</a></p>
+</blockquote>
+<h2 id="PCB"><a href="#PCB" class="headerlink" title="PCB"></a>PCB</h2><p><img src="../../images/threads/PCB.png" alt="direct"></p>
+<h2 id="进程的状态"><a href="#进程的状态" class="headerlink" title="进程的状态"></a>进程的状态</h2><ul>
+<li><strong>创建态</strong><br>操作系统为进程分配资源， 初始化 PCB</li>
+<li><strong>就绪态</strong><br>运行资源等条件都满足，存储在就绪队列中，等待 CPU 调度</li>
+<li><strong>运行态</strong><br>CPU 正在执行进程</li>
+<li><strong>阻塞态</strong><br>等待某些条件满足，等待消息回复，等待同步锁，Sleep 等，阻塞队列</li>
+<li><strong>终止态</strong><br>回收进程拥有的资源，撤销 PCB</li>
+</ul>
+<h2 id="进程之间的转换"><a href="#进程之间的转换" class="headerlink" title="进程之间的转换"></a>进程之间的转换</h2><p><img src="../../images/threads/%E8%BF%9B%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E7%8A%B6%E6%80%81%E5%88%87%E6%8D%A2.png" alt="img.png"></p>
+<h3 id="进程的切换与过程"><a href="#进程的切换与过程" class="headerlink" title="进程的切换与过程"></a>进程的切换与过程</h3><blockquote>
+<p>进程的调度、切换是有代价的</p>
+</blockquote>
+<ul>
+<li><ol>
+<li>对原来运行进程的各种数据的保存</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对新的进程各种数据恢复(程序计数器，程序状态字，各种数据寄存器的现场)<br>进程调度算法的相关参数：</li>
+</ol>
+</li>
+<li>CPU 利用率：CPU 工作时间/作业完成的总时间</li>
+<li>系统吞吐量: 单位时间内完成作业的数量</li>
+<li>周转时间: 从作业被提交给系统开始，到作业完成为止的时间间隔 = 作业完成时间 - 作业提交时间</li>
+<li>带权周转时间: (由于周转时间相同的情况下，可能实际作业的运行时间不一样，这样就会给用户带来不一样的感觉)<br>作业周转时间/作业实际运行时间，带权周转时间 &gt;= 1, 越小越好</li>
+<li>平均带权周转时间: 各作业带权周转时间之和/作业数</li>
+<li>等待时间</li>
+<li>响应时间</li>
+</ul>
+<h2 id="调度算法"><a href="#调度算法" class="headerlink" title="调度算法"></a>调度算法</h2><p>算法思想？用于解决什么问题<br>算法规则，用于作业（PCB作业）调度还是进程调度<br>抢占式的还是非抢占式的？<br>优缺点？是否会导致饥饿？</p>
+<h3 id="当前交互式系统常用调度算法"><a href="#当前交互式系统常用调度算法" class="headerlink" title="当前交互式系统常用调度算法"></a>当前交互式系统常用调度算法</h3><ul>
+<li><strong>时间片轮转(Round-Robin)</strong><ul>
+<li>算法思想: 公平地、轮流地为各个进程服务，让每个进程在一定时间间隔内可以得到响应</li>
+<li>算法规则: 按照各进程到达就绪队列的顺序，轮流让各个进程执行一个时间片(例如：100ms),若进程未在一个时间片内执行完，则剥夺处理机，将进程重新放到就绪队列队尾重新排队</li>
+<li>用于作业/进程调度: 用于进程的调度（只有作业放入内存）</li>
+<li>是否可抢占？若进程未能在规定时间片内完成，将被强行剥夺处理机使用权，由时钟装置发出时钟终端信号来通知 CPU 时间片到达</li>
+<li>优缺点: 适用于分时操作系统，由于高频率的进程切换，因此有一定开销；不区分任务的紧急程度</li>
+<li>是否会导致饥饿：不会</li>
+</ul>
+</li>
+<li><strong>优先级调度算法</strong><ul>
+<li>算法思想：随着计算机的发展，特别是实时操作系统的出现，越来越多的应用场景需要根据任务的进程程度决定处理顺序</li>
+<li>算法规则: 每个作业/进程有各自的优先级，调度时选择优先级最高的作业/进程</li>
+<li>用于作业/进程调度: 即可用于作业调度（处于外存后备队列中的作业调度进内存），也可用于进程调度(选择就绪队列中的进程，为其分配处理机)，甚至 I/O 调度</li>
+<li>是否可抢占？具有可抢占版本，也有非抢占式的</li>
+<li>优缺点: 适用于实时操作系统，用优先级区分紧急程度，可灵活地调整对各种作业/及进程的偏好程度。缺点：会导致饥饿</li>
+<li>是否会导致饥饿：会</li>
+</ul>
+</li>
+<li><strong>多级反馈队列调度算法</strong><ul>
+<li>算法思想：综合 FCFS、SJF(SPF)、时间片轮转、优先级调度</li>
+<li>算法规则：<ul>
+<li><ol>
+<li>设置多级别就绪队列，各级别队列优先级从高到低，时间片从小到大</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>新进程到达时先进入第 1 级队列，按照 FCFS 原则排队等待被分配时间片，若用完时间片进程还未结束，则进程进入下一级队列队尾</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>只有第 k 级别队列为空是，才会为 K+1 级对头的进程分配时间片</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>用于作业/进程调度：用于进程调度</li>
+<li>是否可抢占？抢占式算法。在 k 级队列的进程运行过程中，若更上级别的队列（1-k-1级）中进入一个新进程，则由于新进程处于优先级高的队列中，因此新进程会抢占处理机，原本运行的进程放回 k 级别队列队尾。</li>
+<li>优缺点：对各类的进程相对公平(FCFS 的有点)；每个新到达的进程都可以很快就得到响应（RR优点）；短进程只用较少的时间就可以完成（SPF）的优点；不必实现估计进程的运行时间；可灵活地调整对各类进程的偏好程度，比如 CPU 密集型进程、I/O 密集型进程（可以将因 I/O 而阻塞的进程重新放回原队列，这样 I/O 形进程就可以保持较高优先级）</li>
+<li>是否会导致饥饿感：会</li>
+</ul>
+</li>
+</ul>
+<p>相关知识：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/whu-2017/p/9477391.html">https://www.cnblogs.com/whu-2017/p/9477391.html</a><br>例题:<br><img src="../../images/threads/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97%E7%AE%97%E6%B3%95.png" alt="img.png"></p>
+<h2 id="进程间的通信方式"><a href="#进程间的通信方式" class="headerlink" title="进程间的通信方式"></a>进程间的通信方式</h2><p>参考：<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/c1015f5ffa74">https://www.jianshu.com/p/c1015f5ffa74</a><br>在计算机系统中，进程之间有时需要进行数据的通信，但是不同进程之间的数据存储是相互隔离的，每一个进程都只能访问自己占有的数据，这时我们就需要使用用于进程间的通信的机制了<br>不过，出来套接字外，进程间的通信的前提是两进程必须是父子进程关系，没有这种关系的进程间是不能直接进行通信，而是需要利用其共同的父进程进行信息的中转</p>
+<h3 id="管道"><a href="#管道" class="headerlink" title="管道"></a>管道</h3><blockquote>
+<p>管道通信在系统中，是以文件的方式进行读写的，匿名管道在物理上由文件系统的高速缓冲区构成，而命名管道则可在系统的临时文件中找到具体的文件，相当于通过外部文件来交流信息。<br>父子进程间以比特流、字符流的方式传递信息。管道属于半双工通信，在父子进程中同时创建一对管道，然后利用其中一端(0端)来读数据，另一端来写数据。</p>
+</blockquote>
+<h4 id="python-实现匿名管道"><a href="#python-实现匿名管道" class="headerlink" title="python 实现匿名管道"></a>python 实现匿名管道</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># coding:utf-8</span></span><br><span class="line"><span class="keyword">import</span> multiprocessing</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">proc1</span>(<span class="params">pipe0, pipe1</span>):</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;[proc1] 发送：  &quot;</span>, i)</span><br><span class="line">        pipe0.send(i)</span><br><span class="line">        pipe1.send(i)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;[proc1] proc2 接收:&#x27;</span>, pipe0.recv())</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;[proc1] proc3 接收:&#x27;</span>, pipe1.recv())</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">proc2</span>(<span class="params">pipe</span>):</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        msg = pipe.recv()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;[proc2] proc2 接收:&#x27;</span>, msg)</span><br><span class="line">        pipe.send(<span class="string">&#x27;proc2收到数据：&#x27;</span> + <span class="built_in">str</span>(msg))</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">proc3</span>(<span class="params">pipe</span>):</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        msg = pipe.recv()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;[proc3] proc3 接收:&#x27;</span>, msg)</span><br><span class="line">        pipe.send(<span class="string">&#x27;proc3收到数据：&#x27;</span> + <span class="built_in">str</span>(msg))</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Build a pipe</span></span><br><span class="line">    pipe0 = multiprocessing.Pipe()</span><br><span class="line">    pipe1 = multiprocessing.Pipe()</span><br><span class="line">    <span class="built_in">print</span>(pipe0)</span><br><span class="line">    <span class="built_in">print</span>(pipe1)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Pass an end of the pipe to process 1</span></span><br><span class="line">    p1 = multiprocessing.Process(target=proc1, args=(pipe0[<span class="number">0</span>], pipe1[<span class="number">0</span>],))</span><br><span class="line">    <span class="comment"># Pass the other end of the pipe to process 2</span></span><br><span class="line">    p2 = multiprocessing.Process(target=proc2, args=(pipe0[<span class="number">1</span>],))</span><br><span class="line">    <span class="comment"># Pass the other end of the pipe to process 3</span></span><br><span class="line">    p3 = multiprocessing.Process(target=proc3, args=(pipe1[<span class="number">1</span>],))</span><br><span class="line"></span><br><span class="line">    p1.start()</span><br><span class="line">    p2.start()</span><br><span class="line">    p3.start()</span><br><span class="line"></span><br><span class="line">    p1.join()</span><br><span class="line">    p2.join()</span><br><span class="line">    p3.join()</span><br></pre></td></tr></table></figure>
+<h3 id="信号量"><a href="#信号量" class="headerlink" title="信号量"></a>信号量</h3><ul>
+<li>生产者进程生产产品，消费者进程消费产品</li>
+<li>当生产者进程生产产品时，如果没有空缓冲区可用，那么生产者进程必须等待消费者进程释放出一个缓冲区</li>
+<li>当消费者进程消费产品时，如果缓冲区中没有产品，那么消费者进程将被阻塞，直到新的产品被生产出来。<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> multiprocessing</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> multiprocessing.sharedctypes <span class="keyword">import</span> Array</span><br><span class="line"></span><br><span class="line">a = Array(<span class="string">&#x27;i&#x27;</span>, [i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>)])  <span class="comment"># 共享内存</span></span><br><span class="line">a[<span class="number">0</span>] = <span class="number">0</span></span><br><span class="line">a[<span class="number">1</span>] = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">semaphore_num = multiprocessing.Semaphore(<span class="number">0</span>)  <span class="comment"># 产品个数</span></span><br><span class="line">semaphore_empty = multiprocessing.Semaphore(<span class="number">20</span>)  <span class="comment"># 缓冲区空位个数n</span></span><br><span class="line">semaphore_mutex = multiprocessing.Semaphore(<span class="number">1</span>)  <span class="comment"># 对缓冲区进行操作的互斥信号量</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">consumer</span>(<span class="params">flag</span>):</span></span><br><span class="line">    <span class="keyword">global</span> num</span><br><span class="line">    <span class="keyword">global</span> no</span><br><span class="line">    time.sleep(<span class="number">3</span>)</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">True</span>):</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;消费者 &quot;</span> + <span class="built_in">str</span>(flag) + <span class="string">&quot; 等待中...&quot;</span>)</span><br><span class="line"></span><br><span class="line">        item = random.randint(<span class="number">1</span>, <span class="number">3</span>)</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(item):</span><br><span class="line">            semaphore_num.acquire()  <span class="comment"># 消费 -1</span></span><br><span class="line">            semaphore_mutex.acquire()  <span class="comment"># 加锁</span></span><br><span class="line">            no = a[<span class="number">0</span>]</span><br><span class="line">            num = a[<span class="number">1</span>]</span><br><span class="line">            num -= <span class="number">1</span></span><br><span class="line">            no += <span class="number">1</span></span><br><span class="line">            a[<span class="number">0</span>] = no</span><br><span class="line">            a[<span class="number">1</span>] = num</span><br><span class="line">            <span class="built_in">print</span>(<span class="built_in">str</span>(no) + <span class="string">&quot; [消费者 &quot;</span> + <span class="built_in">str</span>(flag) + <span class="string">&quot;] 消费产品 1. 剩余： &quot;</span> + <span class="built_in">str</span>(num))</span><br><span class="line">            semaphore_mutex.release()  <span class="comment"># 开锁</span></span><br><span class="line">            semaphore_empty.release()  <span class="comment"># 释放空位 +1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">producer</span>():</span></span><br><span class="line">    <span class="keyword">global</span> num</span><br><span class="line">    <span class="keyword">global</span> no</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">True</span>):</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;生产者开始生产...&quot;</span>)</span><br><span class="line">        item = random.randint(<span class="number">1</span>, <span class="number">6</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;生产个数：&#123;&#125;&#x27;</span>.<span class="built_in">format</span>(item))</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(item):</span><br><span class="line">            semaphore_empty.acquire()  <span class="comment"># 占用空位</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(item):</span><br><span class="line">            semaphore_mutex.acquire()  <span class="comment"># 加锁</span></span><br><span class="line">            no = a[<span class="number">0</span>]</span><br><span class="line">            num = a[<span class="number">1</span>]</span><br><span class="line">            num += <span class="number">1</span></span><br><span class="line">            no += <span class="number">1</span></span><br><span class="line">            a[<span class="number">0</span>] = no</span><br><span class="line">            a[<span class="number">1</span>] = num</span><br><span class="line">            <span class="built_in">print</span>(<span class="built_in">str</span>(no) + <span class="string">&quot; [生产者] 生产产品 1. 剩余： &quot;</span> + <span class="built_in">str</span>(num))</span><br><span class="line">            semaphore_mutex.release()  <span class="comment"># 开锁</span></span><br><span class="line">            semaphore_num.release()  <span class="comment"># 生产</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    p1 = multiprocessing.Process(target=producer)</span><br><span class="line">    p2 = multiprocessing.Process(target=consumer, args=(<span class="string">&quot;0&quot;</span>))</span><br><span class="line">    p3 = multiprocessing.Process(target=consumer, args=(<span class="string">&quot;1&quot;</span>))</span><br><span class="line">    p1.start()</span><br><span class="line">    p2.start()</span><br><span class="line">    p3.start()</span><br><span class="line">    p1.join()</span><br><span class="line">    p2.join()</span><br><span class="line">    p3.join()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;程序结束&quot;</span>)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="共享内存"><a href="#共享内存" class="headerlink" title="共享内存"></a>共享内存</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> multiprocessing</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line">size = <span class="number">8</span> * <span class="number">1024</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">pro1</span>(<span class="params">a</span>):</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">pro2</span>(<span class="params">a</span>):</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, size):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;[porc2] 写入：  &quot;</span>, i)</span><br><span class="line">        a[i] = i</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">pro3</span>(<span class="params">a</span>):</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, size):</span><br><span class="line">        msg = a[i]</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;[pro3] pro3 读出：&#x27;</span>, msg)</span><br><span class="line">        time.sleep(<span class="number">0.5</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> multiprocessing.sharedctypes <span class="keyword">import</span> Array</span><br><span class="line"></span><br><span class="line">a = Array(<span class="string">&#x27;i&#x27;</span>, [i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(size)])</span><br><span class="line"></span><br><span class="line">p1 = multiprocessing.Process(target=pro1, args=(a,))</span><br><span class="line">p2 = multiprocessing.Process(target=pro2, args=(a,))</span><br><span class="line">p3 = multiprocessing.Process(target=pro3, args=(a,))</span><br><span class="line"></span><br><span class="line">p1.start()</span><br><span class="line">p2.start()</span><br><span class="line">p3.start()</span><br><span class="line"></span><br><span class="line">p1.join()</span><br><span class="line">p2.join()</span><br><span class="line">p3.join()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="socket-套接字"><a href="#socket-套接字" class="headerlink" title="socket 套接字"></a>socket 套接字</h3><blockquote>
+<p>套接字是网络进程通信的机制，一般是用于位于不同机器上的进程间的通信。很多网络程序如即时通讯软件、游戏、浏览器<br>数据库等，都往往使用的这种机制。<br>参考：<a target="_blank" rel="noopener" href="https://blog.ailemon.net/2018/01/21/python-implement-about-socket-connection/">https://blog.ailemon.net/2018/01/21/python-implement-about-socket-connection/</a></p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> multiprocessing</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClientProcess</span>(<span class="params">multiprocessing.Process</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self,conn,addr</span>):</span></span><br><span class="line">        multiprocessing.Process.__init__(self)</span><br><span class="line">        self.conn = conn</span><br><span class="line">        self.addr = addr</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.conn.sendall(<span class="built_in">bytes</span>(<span class="string">&quot;你好，我是AI柠檬~&quot;</span>,encoding=<span class="string">&quot;utf-8&quot;</span>))</span><br><span class="line">        ret_timeout = <span class="built_in">str</span>(self.conn.recv(<span class="number">1024</span>),encoding=<span class="string">&quot;utf-8&quot;</span>)</span><br><span class="line">        self.conn.settimeout(<span class="built_in">int</span>(ret_timeout))</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">while</span>(<span class="literal">True</span>):</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                ret = <span class="built_in">str</span>(self.conn.recv(<span class="number">1024</span>),encoding=<span class="string">&quot;utf-8&quot;</span>)</span><br><span class="line">                self.conn.sendall(<span class="built_in">bytes</span>(<span class="string">&quot;我收到了你的信息：&quot;</span>+ret,encoding=<span class="string">&quot;utf-8&quot;</span>))</span><br><span class="line">                <span class="keyword">if</span>(ret==<span class="string">&quot;:q&quot;</span>):</span><br><span class="line">                    self.conn.close()</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">except</span> Exception <span class="keyword">as</span> ex:</span><br><span class="line">                self.conn.close()</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    s = socket.socket()</span><br><span class="line">    inp_addr = <span class="built_in">input</span>(<span class="string">&quot;Please input this server&#x27;s ip address:\n&gt;&gt;&gt;&quot;</span>)</span><br><span class="line">    inp_port = <span class="built_in">input</span>(<span class="string">&quot;Please input this server&#x27;s port:\n&gt;&gt;&gt;&quot;</span>)</span><br><span class="line">    s.bind((inp_addr,<span class="built_in">int</span>(inp_port)))</span><br><span class="line">    s.listen()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;服务器已开启&quot;</span>)</span><br><span class="line">    users = []</span><br><span class="line">    <span class="keyword">while</span>(<span class="literal">True</span>):</span><br><span class="line">        conn,addr=s.accept()</span><br><span class="line">        </span><br><span class="line">        p = ClientProcess(conn,addr)</span><br><span class="line">        p.start()</span><br><span class="line">        users.append(p)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;有一个新用户连接，进程号pid:&quot;</span>, p.pid)</span><br><span class="line">        num = <span class="number">0</span></span><br><span class="line">        </span><br><span class="line">        tmp_users=[]</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(users)):</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span>(users[i].is_alive()==<span class="literal">True</span>):</span><br><span class="line">                tmp_users.append(users[i])</span><br><span class="line">            </span><br><span class="line">        users = tmp_users</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;当前用户数：&quot;</span>, <span class="built_in">len</span>(users))</span><br><span class="line">    s.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line">obj = socket.socket()</span><br><span class="line"></span><br><span class="line">inp_addr = <span class="built_in">input</span>(<span class="string">&quot;Please input server&#x27;s ip address:\n&gt;&gt;&gt;&quot;</span>)</span><br><span class="line">inp_port = <span class="built_in">input</span>(<span class="string">&quot;Please input server&#x27;s port:\n&gt;&gt;&gt;&quot;</span>)</span><br><span class="line">obj.connect((inp_addr,<span class="built_in">int</span>(inp_port)))</span><br><span class="line"></span><br><span class="line">inp_timeout = <span class="built_in">input</span>(<span class="string">&quot;Please input timeout(s):\n&gt;&gt;&gt;&quot;</span>)</span><br><span class="line">obj.sendall(<span class="built_in">bytes</span>(inp_timeout,encoding=<span class="string">&quot;utf-8&quot;</span>))</span><br><span class="line">obj.settimeout(<span class="built_in">int</span>(inp_timeout))</span><br><span class="line"></span><br><span class="line">msg = <span class="built_in">str</span>(obj.recv(<span class="number">1024</span>),encoding=<span class="string">&quot;utf-8&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(msg)</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">    inp = <span class="built_in">input</span>(<span class="string">&quot;Please(:q\退出):\n&gt;&gt;&gt;&quot;</span>)</span><br><span class="line">    <span class="keyword">if</span>(inp!=<span class="string">&quot;&quot;</span>):</span><br><span class="line">        obj.sendall(<span class="built_in">bytes</span>(inp,encoding=<span class="string">&quot;utf-8&quot;</span>))</span><br><span class="line">    <span class="keyword">if</span>(inp == <span class="string">&quot;:q&quot;</span>):</span><br><span class="line">        obj.close()</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        ret = <span class="built_in">str</span>(obj.recv(<span class="number">1024</span>),encoding=<span class="string">&quot;utf-8&quot;</span>)</span><br><span class="line">        <span class="built_in">print</span>(ret)</span><br><span class="line">    <span class="keyword">except</span> socket.timeout:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;[Error]Network Connection Time Out!&quot;</span>)</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    <span class="keyword">except</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;[Error]Unknown Network Connection Error!&quot;</span>)</span><br><span class="line">        <span class="keyword">break</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="线程"><a href="#线程" class="headerlink" title="线程"></a>线程</h1><p><strong>线程是 CPU 进行调度的基本单位</strong><br><img src="../../images/threads/%E7%BA%BF%E7%A8%8B%E4%B8%8E%E8%BF%9B%E7%A8%8B%E7%9A%84%E5%AF%B9%E6%AF%94.png" alt="img.png"><br>类比：<br>去图书馆看书。<br>切换进程运行环境：有一个不认识的人要用桌子，你需要把你的书收走，他把自己的书放到桌子上<br>同一进程内的线程切换=你的舍友要用这张书桌，可以不把桌子上的书收走</p>
+<h2 id="线程的属性"><a href="#线程的属性" class="headerlink" title="线程的属性"></a>线程的属性</h2><ul>
+<li>线程是处理机调度的单位</li>
+<li>多 CPU 计算机中，各个线程可占用不同的 CPU</li>
+<li>每个线程都有一个线程 ID、线程控制块（TCB）</li>
+<li>线程也有就绪、阻塞、运行三种基本状态</li>
+<li>线程几乎不拥有系统资源</li>
+<li>同一进程的不同线程间共享进程的资源</li>
+<li>由于共享内存地址空间，同一进程中的线程间通信甚至无需系统干预</li>
+<li>同一进程中的线程切换，不会引起进程切换</li>
+<li>不同进程中的线程切换，会引起进程切换</li>
+<li>切换同进程内的线程，系统开销很小</li>
+<li>切换进程，开销很大</li>
+</ul>
+<h2 id="线程的实现方式"><a href="#线程的实现方式" class="headerlink" title="线程的实现方式"></a>线程的实现方式</h2><ul>
+<li><strong>用户级线程(User-Level Thread)</strong>, 用户级线程是由应用程序通过线程库实现，如 python(thread), 线程的管理由应用程序负责</li>
+<li><strong>内核级线程(kernel-Level Thread)</strong>, 内核级线程的管理工作由操作系统内核完成，线程调度，切换等工作都由内核负责，因此内核级线程的切换必然需要在核心态下才能完成</li>
+</ul>
+<p>进程和线程关系：一条线程指的是<strong>进程中一个单一顺序的控制流</strong>，一个进程中可以并发多个线程，每条线程并行执行不同的任务。CPU 的最小调度单元是线程。</p>
+<h2 id="线程的基本状态"><a href="#线程的基本状态" class="headerlink" title="线程的基本状态"></a>线程的基本状态</h2><ul>
+<li>新建（New）: 线程在进程内派生出来，它即可由进程派生，也可由线程派生</li>
+<li>阻塞（blocked）: 线程运行过程中，可能由于各种进入阻塞状态<ul>
+<li>通过 sleep 方法进入睡眠状态</li>
+<li>线程调用一个在 I/O 阻塞的操作，即该操作在输入输出操作完成之前不会返回它的调用者</li>
+<li>试图得到一个锁，而该锁被其他线程持有</li>
+<li>等待某个触发条件</li>
+</ul>
+</li>
+<li>就绪（ready）：一个新创建的线程并不自动开始运行，要执行线程，必须调用线程的 start()方法。<br>当线程对象调用 start()方法返回后，线程就处于就绪状态。处于就绪状态的线程并不一定运行 run()方法，线程还必须同其他线程竞争 CPU 时间，只有获得 CPU 时间才可以运行线程</li>
+<li>运行(running): 线程后的 CPU 时间后，进入运行状态真正开始执行 run() 方法</li>
+<li>死亡(dead): 线程退出自然死亡，或者异常终止导致线程猝死<br><img src="../../images/threads/%E7%BA%BF%E7%A8%8B%E7%9A%84%E7%8A%B6%E6%80%81.png" alt="img.png"></li>
+</ul>
+<h2 id="线程模型"><a href="#线程模型" class="headerlink" title="线程模型"></a>线程模型</h2><h3 id="用户级线程模型（一对多模型）"><a href="#用户级线程模型（一对多模型）" class="headerlink" title="用户级线程模型（一对多模型）"></a>用户级线程模型（一对多模型）</h3><p><img src="../../images/threads/thread_1.png" alt="img.png"><br>多个用户态的线程对应着一个内核线程，程序的创建、终止、切换或者同步等线程工作必须自身来完成。python 就是这种。虽然可以实现异步，但是不能有效利用多核（GIL）</p>
+<h3 id="内核级别线程模型（一对一）"><a href="#内核级别线程模型（一对一）" class="headerlink" title="内核级别线程模型（一对一）"></a>内核级别线程模型（一对一）</h3><p><img src="../../images/threads/thread_2.png" alt="img.png"><br>这种模型直接调用操作系统的内核线程，所有线程的创建、终止、切换、同步等操作，都由内核来完成。C++ 就是这种</p>
+<h3 id="两级线程模型-M-N"><a href="#两级线程模型-M-N" class="headerlink" title="两级线程模型(M:N)"></a>两级线程模型(M:N)</h3><p><img src="../../images/threads/thread_3.png" alt="img.png"><br>这种线程模型会先创建多个内核级线程，然后用自身的用户级线程去对应创建的多个内核级线程，自身的用户级线程需要本身程度去调度，内核级的线程交给操作系统内核去调度。<br>GO 语言就是这种</p>
+<h3 id="线程总结"><a href="#线程总结" class="headerlink" title="线程总结"></a>线程总结</h3><p>python 中的多线程因为 GIL 的存在，并不能利用多核CPU优势，但是在阻塞的系统调用中，如 sock.connect(),<br>sock.recv() 等耗时的 I/O 操作，当前的线程会释放 GIL,让出处理器。但是单个线程内，阻塞调用上还是阻塞的。除了 GIL 之外，所有的多线程还有通病，它们的调度策略是抢占式的，以保证同等优先级的线程都有机执行，带来的问题就是：<br>并不知道下一刻执行那个线程，也不知道正在执行什么代码，会存在<strong>竞态条件</strong></p>
+<h1 id="协程"><a href="#协程" class="headerlink" title="协程"></a>协程</h1><p>协程通过在线程中实现调度，避免了陷入内核级别的上下文切换造成的性能损失，进而突破了线程在 IO 上的性能瓶颈。</p>
+<h2 id="python-协程"><a href="#python-协程" class="headerlink" title="python 协程"></a>python 协程</h2><p>eventloop 协程模型<br>python 的协程源于 yield 指令</p>
+<ul>
+<li>yield item 用于产出一个值，反馈给 next() 的调用方法</li>
+<li>让出处理机，暂停执行生成器，让调用方继续工作，直到需要使用另一个值时再调用 next()</li>
+</ul>
+<p>协程式对线程的调度，yield 类似惰性求职方式可以视为一种流程控制工具，实现协作式多任务，python3.5引入了 async/await 表达式，使得协程证实在语言层面得到支持和优化，大大简化之前的 yield 写法。<br>python 中的协程的调度是非抢占式的，也就是说一个协程必须主动让出执行机会，其他协程才有机会运行。让出执行的关键字 await,如果一个协程阻塞了，持续不让出 CPU 处理机，那么整个线程就卡住了，没有任何并发。</p>
+<h2 id="go-协程"><a href="#go-协程" class="headerlink" title="go 协程"></a>go 协程</h2><p>go - GMP模型<br>go 语言使用 go 关键字，goroutine 之间使用 channel 通信</p>
+<p>go 实现了两种并发形式：</p>
+<ul>
+<li>多线程共享内存：如 Java 或者 C++ 在多线程中共享数据的时候，通过锁来访问</li>
+<li>Go 语言特有的，也是 Go 语言推荐的 CSP （communicating sequential processes）并发模型</li>
+</ul>
+<p>协程本质上来说是一种用户态的线程，不需要系统来执行抢占式调度，而是在语言层面实现线程的调度。</p>
+<p>go 协程是轻量级的，栈初始为 2KB(os 操作系统的线程一般都是固有的栈内存 2M)，调度不涉及系统调用，用户函数调用前会检查栈空间是否充足，不够的话，会进行栈扩容，栈大小限制可以达到 1GB。</p>
+<p>Go 语言相比起其他语言的优势在于 OS 线程是由 OS 内核来调度的，goroutine 则是由 Go 运行时（runtime）自己的调度器调度的，这个调度器使用一个称为 m:n 调度的技术。<br>其一大特点是 goroutine 的调度是在用户态下完成的，不涉及内核态与用户态之间的频繁切换，包括内存的分配与释放，都是在用户态维护着一块大的内存池，不直接调用系统的 malloc 函数，成本比调度 OS 线程低很多。<br>另外一方面充分利用了多核的硬件资源，近似的把若干 goroutine 均分在物理线程上。</p>
+
+    </div>
+
+    
+    
+    
+    
+      <div>
+     <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:24px;">-------------THANKS  FOR  READING-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> 深入理解计算机系统</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/bc91ee72/" rel="prev" title="docker 与容器技术畅谈">
+      <i class="fa fa-chevron-left"></i> docker 与容器技术畅谈
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/bd0fa4a9/" rel="next" title="Python 内存管理，垃圾回收，缓存重用机制">
+      Python 内存管理，垃圾回收，缓存重用机制 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">进程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#PCB"><span class="nav-number">1.1.</span> <span class="nav-text">PCB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E7%9A%84%E7%8A%B6%E6%80%81"><span class="nav-number">1.2.</span> <span class="nav-text">进程的状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E8%BD%AC%E6%8D%A2"><span class="nav-number">1.3.</span> <span class="nav-text">进程之间的转换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E7%9A%84%E5%88%87%E6%8D%A2%E4%B8%8E%E8%BF%87%E7%A8%8B"><span class="nav-number">1.3.1.</span> <span class="nav-text">进程的切换与过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95"><span class="nav-number">1.4.</span> <span class="nav-text">调度算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BD%93%E5%89%8D%E4%BA%A4%E4%BA%92%E5%BC%8F%E7%B3%BB%E7%BB%9F%E5%B8%B8%E7%94%A8%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95"><span class="nav-number">1.4.1.</span> <span class="nav-text">当前交互式系统常用调度算法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E7%9A%84%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F"><span class="nav-number">1.5.</span> <span class="nav-text">进程间的通信方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%A1%E9%81%93"><span class="nav-number">1.5.1.</span> <span class="nav-text">管道</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#python-%E5%AE%9E%E7%8E%B0%E5%8C%BF%E5%90%8D%E7%AE%A1%E9%81%93"><span class="nav-number">1.5.1.1.</span> <span class="nav-text">python 实现匿名管道</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%A1%E5%8F%B7%E9%87%8F"><span class="nav-number">1.5.2.</span> <span class="nav-text">信号量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98"><span class="nav-number">1.5.3.</span> <span class="nav-text">共享内存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#socket-%E5%A5%97%E6%8E%A5%E5%AD%97"><span class="nav-number">1.5.4.</span> <span class="nav-text">socket 套接字</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">线程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%B1%9E%E6%80%A7"><span class="nav-number">2.1.</span> <span class="nav-text">线程的属性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">2.2.</span> <span class="nav-text">线程的实现方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E7%9A%84%E5%9F%BA%E6%9C%AC%E7%8A%B6%E6%80%81"><span class="nav-number">2.3.</span> <span class="nav-text">线程的基本状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.4.</span> <span class="nav-text">线程模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B%EF%BC%88%E4%B8%80%E5%AF%B9%E5%A4%9A%E6%A8%A1%E5%9E%8B%EF%BC%89"><span class="nav-number">2.4.1.</span> <span class="nav-text">用户级线程模型（一对多模型）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E7%BA%A7%E5%88%AB%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B%EF%BC%88%E4%B8%80%E5%AF%B9%E4%B8%80%EF%BC%89"><span class="nav-number">2.4.2.</span> <span class="nav-text">内核级别线程模型（一对一）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E7%BA%A7%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B-M-N"><span class="nav-number">2.4.3.</span> <span class="nav-text">两级线程模型(M:N)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E6%80%BB%E7%BB%93"><span class="nav-number">2.4.4.</span> <span class="nav-text">线程总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">协程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#python-%E5%8D%8F%E7%A8%8B"><span class="nav-number">3.1.</span> <span class="nav-text">python 协程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#go-%E5%8D%8F%E7%A8%8B"><span class="nav-number">3.2.</span> <span class="nav-text">go 协程</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="tyrone"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">tyrone</p>
+  <div class="site-description" itemprop="description">人生最好的境界就是保持内心丰富的安静</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tyrone</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">53k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">48 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
