@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="cookie &amp;&amp; session &amp;&amp; jwt 使用总结">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cookie &amp;&amp; session &amp;&amp; jwt 使用总结">
+<meta property="og:url" content="http://example.com/posts/ea9b1fcc/index.html">
+<meta property="og:site_name" content="Tyrone&#39;s Blog">
+<meta property="og:description" content="cookie &amp;&amp; session &amp;&amp; jwt 使用总结">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/posts/ea9b1fcc/session.png">
+<meta property="og:image" content="http://example.com/posts/ea9b1fcc/refresh_token.png">
+<meta property="og:image" content="http://example.com/posts/ea9b1fcc/JWT.png">
+<meta property="article:published_time" content="2020-04-13T03:04:55.000Z">
+<meta property="article:modified_time" content="2022-05-02T09:53:36.114Z">
+<meta property="article:author" content="tyrone">
+<meta property="article:tag" content="HTTP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/posts/ea9b1fcc/session.png">
+
+<link rel="canonical" href="http://example.com/posts/ea9b1fcc/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>cookie && session && jwt 使用总结 | Tyrone's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tyrone's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/ea9b1fcc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="tyrone">
+      <meta itemprop="description" content="人生最好的境界就是保持内心丰富的安静">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tyrone's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          cookie && session && jwt 使用总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-04-13 11:04:55" itemprop="dateCreated datePublished" datetime="2020-04-13T11:04:55+08:00">2020-04-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-05-02 17:53:36" itemprop="dateModified" datetime="2022-05-02T17:53:36+08:00">2022-05-02</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/HTTP/" itemprop="url" rel="index"><span itemprop="name">HTTP</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+            <div class="post-description">cookie && session && jwt 使用总结</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="认证-授权-凭证"><a href="#认证-授权-凭证" class="headerlink" title="认证-授权-凭证"></a>认证-授权-凭证</h1><h2 id="什么是认证"><a href="#什么是认证" class="headerlink" title="什么是认证"></a>什么是认证</h2><p>认证就是验证当前用户的身份：<br>互联网中的认证：</p>
+<ul>
+<li>用户名密码登陆</li>
+<li>邮箱发送登陆连接验证</li>
+<li>手机号接收验证码<h2 id="什么是授权"><a href="#什么是授权" class="headerlink" title="什么是授权"></a>什么是授权</h2>用户授权第三方应用访问该用户某些资源的权限</li>
+<li>你在安装手机应用的时候，APP 会询问是否允许授予权限（地址获取，存储权限获取）</li>
+<li>微信访问小程序时，登陆时，小程序会询问是否允许授予权限</li>
+<li>实现授权的方式：cookie、session、token、OAuth</li>
+</ul>
+<h2 id="什么是凭证-Credentials"><a href="#什么是凭证-Credentials" class="headerlink" title="什么是凭证(Credentials)"></a>什么是凭证(Credentials)</h2><p>实现认证和授权的前提是需要一种媒介（证书）来标记访问者身份</p>
+<p>在互联网应用中一般网站（如掘金）会有两种模式，游客模式和登陆模式。游客模式中，可以正常浏览网站上面的文章，但是一旦想要点赞/收藏/分享文章，就需要登陆或者注册账号。<br>当用户登陆成功后，服务器会给该用户使用的浏览器颁发一个令牌（token）,这个林牌用来表明你的身份，每次浏览器发送请求时就会带上这个令牌，就可以使用游客模式下无法使用的功能。</p>
+<h1 id="Cookie"><a href="#Cookie" class="headerlink" title="Cookie"></a>Cookie</h1><ul>
+<li><p><strong>HTTP 是无状态的协议</strong>（对于网络请求没有记忆能力，每次客户端和服务端会话完成时，服务端不会保存任何会话信息）：每个请求都是独立的，服务端无法确认当前访问者的身份信息。<br>所以服务器与浏览器为了进行会话跟踪（知道是谁在访问我），就必须主动的去维护一个状态，这个状态用于告知服务端前后端前后两个请求是否来自同一浏览器。而这个状态通过 cookie 或者 session 去实现。</p>
+</li>
+<li><p><strong>cookie 存储在客户端</strong>：cookie 是服务器发送到用户浏览器并保存在本地的一小块数据，它会在浏览器下次向同一服务器再发起请求时被携带并发送到服务器上。</p>
+</li>
+<li><p><strong>cookie 是不可跨域的</strong>：每个 cookie 都会绑定单一的域名，无法在别的域名下获取使用，一级域名和二级域名之间是允许共享使用的（靠的是 domain）。</p>
+</li>
+</ul>
+<p>cookie 常用的属性：</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>name=value</td>
+<td>key-value,设置 Cookie 的名称及相对应的值，都必须是<strong>字符串类型</strong><br />- 如果值为 Unicode 字符，需要为字符编码<br />- 如果值为二进制数据，则需要使用 BASE64 编码</td>
+</tr>
+<tr>
+<td>domain</td>
+<td>指定 cookie 所属域名，默认是当前域名</td>
+</tr>
+<tr>
+<td>path</td>
+<td><strong>指定 cookie 在哪个路径（路由）下生效，默认是 ‘/‘</strong><br />如果设置为 <code>/abc</code>，则只有 <code>/abc</code>下的路由可以访问到该 cookie，如：<code>abc/read</code></td>
+</tr>
+<tr>
+<td>maxAge</td>
+<td>cookie 失效时间，单位秒。如果为整数，则该 cookie 在 maxAge 秒后失效。如果为负数，该 cookie 为临时 cookie ，关闭浏览器即失效，浏览器也不会以任何形式保存该 cookie。如果为 0 ,表示删除该 cookie。默认为 -1。</td>
+</tr>
+<tr>
+<td>expires</td>
+<td>过期时间，在设置的某个时间点后该 cookie 就会失效。<br />一般浏览器的 cookie 都是默认存储的，当关闭浏览器结束这个会话的时候，这个 cookie 也就会被删除。</td>
+</tr>
+<tr>
+<td>secure</td>
+<td>该 cookie 是否仅被使用安全协议传输。安全协议有 HTTPS，SSL 等，在网络上传输数据之前先将数据加密。默认为 False</td>
+</tr>
+<tr>
+<td>httpOnly</td>
+<td><strong>如果给某个 cookie 设置了 httpOnly 属性，则无法通过 JS 脚本读取到该 cookie 的信息，但还是能通过 Application 中手动修改 cookie,所以只是在一定程度上可以防止 XSS 攻击，不是绝对的安全</strong></td>
+</tr>
+</tbody></table>
+<h1 id="session"><a href="#session" class="headerlink" title="session"></a>session</h1><ul>
+<li>session 是另一种记录服务器和客户端<strong>会话状态</strong>的机制</li>
+<li>session 是基于 cookie 实现的，session 存储在服务器端，sessionId 会被存储在客户端的 cookie 中</li>
+</ul>
+<p><img src="session.png" alt="img_1.png"></p>
+<h2 id="session-认证流程"><a href="#session-认证流程" class="headerlink" title="session 认证流程"></a>session 认证流程</h2><ul>
+<li>用户第一次请求服务器的时候，服务器根据用户提交的相关信息，创建对应的 Session</li>
+<li>请求返回时将此 Session 的唯一标识信息 SessionID 返回给浏览器</li>
+<li>浏览器接收到服务器返回的 SessionID 信息后，会将此信息存入到 Cookie 中，同时 Cookie 记录此 SessionID 属于哪个域名</li>
+<li>当用户第二次访问服务器的时候，请求会自动判断此域名下是否存在 Cookie 信息，如果存在自动将 Cookie 信息发送给客户端，服务端会从 Cookie 中获取 SessionID, 再根据 SessionID 查找对应的 Session 信息，如果没有找到说民用户没有登陆或者登陆失败，如果找到 Session 证明用户已经登陆可执行后面操作。</li>
+</ul>
+<p><strong>SessionID 是连接 Cookie 和 Session 的一道桥梁</strong>，大部分系统也是根据此原理来验证用户登陆状态</p>
+<h1 id="Cookie-和-Session-区别"><a href="#Cookie-和-Session-区别" class="headerlink" title="Cookie 和 Session 区别"></a>Cookie 和 Session 区别</h1><ul>
+<li><strong>安全性</strong>：Session 比 Cookie 安全，Session 是<strong>存储在服务器端</strong>的，Cookie 是<strong>存储在客户端</strong>的。</li>
+<li><strong>存取值的类型不同</strong>：Cookie 只支持存<strong>字符串</strong>数据，想要设置其他类型的数据，需要将其转换成字符串，Session 可以存任意数据类型</li>
+<li><strong>有效性不同</strong>：Cookie 可设置长时间保持，比如我们经常使用默认登陆功能，Session 一般失效时间较短，客户端关闭（默认情况下）或者 Session 超时都会失效</li>
+<li><strong>存储大小不同</strong>：单个 Cookie 保存的<strong>数据不能超过 4K</strong>，Session 可存储数据远高于 Cookie，但是当访问量过多，会占用过多的服务器资源。</li>
+</ul>
+<h1 id="Token-（令牌）"><a href="#Token-（令牌）" class="headerlink" title="Token （令牌）"></a>Token （令牌）</h1><h2 id="Acess-Token"><a href="#Acess-Token" class="headerlink" title="Acess Token"></a>Acess Token</h2><ul>
+<li>访问资源接口（API）时所需要的资源凭证</li>
+<li>简单 token 的组成：<code>uid(用户唯一的身份标识)</code>、<code>time(当前时间的时间戳)</code>、<code>sign</code>(签名，token 的前几位以哈希算法压缩成一定长度的十六进制字符串)</li>
+<li>特点：<ul>
+<li><strong>服务端无状态化、可扩展性好</strong></li>
+<li><strong>支持移动端设备</strong></li>
+<li>安全</li>
+<li>支持跨程序调用</li>
+</ul>
+</li>
+</ul>
+<h3 id="tocken-的身份验证流程："><a href="#tocken-的身份验证流程：" class="headerlink" title="tocken 的身份验证流程："></a>tocken 的身份验证流程：</h3><p>![img_1.png](token 验证机制.png)</p>
+<ul>
+<li><ol>
+<li>客户端使用用户名跟密码请求登陆</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>服务端收到请求，去验证用户端与密码</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>验证成功后，服务端会签发一个 token 并把这个 token 发送给客户端</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>客户端收到 token 后，会把它存储起来，比如放在 <code>cookie</code> 或者 <code>localStorage</code> 里</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>客户端每次向服务端请求资源的时候需要带着服务端签发的 token</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>服务端收到请求，然后去验证客户端请求里面带着的 token，如果验证成功，就向客户端返回请求的数据</li>
+</ol>
+</li>
+</ul>
+<p>特点：</p>
+<ul>
+<li><strong>每一次请求都需要携带 token,需要把 token 放在 HTTP 的 Header 里</strong></li>
+<li><strong>基于 token 的用户认证是一种服务端无状态的认证方式，服务端不同存放 token 数据。用解析 token 的计算方式换取 session 的存储空间，从而减轻服务器的压力，减少频繁的查询数据库</strong></li>
+<li><strong>token 完全由应用管理，所以它可以避开同源策略</strong></li>
+</ul>
+<h2 id="Refresh-Token"><a href="#Refresh-Token" class="headerlink" title="Refresh Token"></a>Refresh Token</h2><p><img src="refresh_token.png" alt="img_1.png"></p>
+<ul>
+<li>refresh token 是专门用于刷新 access token 的 token。如果没有 refresh token，也可以刷新 access token，但每次刷新都要用户输入登陆用户名和密码，比较麻烦。有了 refresh token，就可以减少这个麻烦，<br>客户端直接用 refresh token 去更新 access token，无需用户进行额外的操作。</li>
+</ul>
+<h2 id="Token-和-Session-的区别"><a href="#Token-和-Session-的区别" class="headerlink" title="Token 和 Session 的区别"></a>Token 和 Session 的区别</h2><ul>
+<li>Session 是一种<strong>记录服务器和客户端会话状态的机制，使服务端有状态化，可以记录会话信息。</strong></li>
+<li>Token 是<strong>令牌</strong>，**访问资源接口（API）时所需要的资源凭证。Token <strong>使服务端无状态化，不会存储会话信息</strong></li>
+<li>作为身份验证 Token 安全性比 Session 好，因为每一个请求都有签名还能防止监听以及重放攻击，而 Session 就必须依赖链路层来保障通讯安全了。</li>
+<li>所谓的 Session 认证只是简单的把 User 信息存储到 Session 里，因为 SessionID 的不可预测性，暂时认为是安全的。而 Token，如果指的是 OAuth Token 或类似机制的话，提供的是认证和授权，认证是针对用户，授权是指的 App。其目的是让某 App 有权利访问某用户的信息。<br>这里的 <strong>Token 是唯一的</strong>（每个项目的 secret 还是相关信息不同）。不可以转移到其他 App 上，也不可以转到其他用户上。</li>
+<li>Session 只是提供一种简单的认证，即只要有此 SessionID,即认为有此 User 的全部权限。是需要严格保密的，这个数据只是保存在服务器上，不应该共享给其他往后在哪或者第三方 App。<br>所以简单来说：<ul>
+<li><strong>如果你的用户数据可能需要和第三方共享，或者允许第三方调用 API 接口，用 Token。若永远只是自己的 website 则可以用 Seesion</strong>。</li>
+</ul>
+</li>
+</ul>
+<h1 id="JWT"><a href="#JWT" class="headerlink" title="JWT"></a>JWT</h1><ul>
+<li>Json Web Token 是目前前后端分离的<strong>跨域认证</strong>解决方案</li>
+<li>是一种<strong>认证授权</strong>机制</li>
+<li>基于 JSON 的开放标准（RFC 7519）</li>
+<li>使用 HMAC 算法或者是 RSA 的公/私密钥对 JWT 进行签名。<br><img src="JWT.png" alt="img_1.png"></li>
+</ul>
+<p>这里参考：<a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html">http://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html</a></p>
+<p>用户认证流程：</p>
+<ul>
+<li>客户端使用用户名和密码来请求服务器进行登陆</li>
+<li>服务器进行用户名和密码的验证</li>
+<li>通过验证，服务器生成一个 token 并返回给浏览器</li>
+<li>客户端存储 token,存储位置为 header/localstorge/url?token=xxxxx 的方式</li>
+<li>服务端验证 token 值，并返回相应的响应</li>
+</ul>
+<h2 id="JWT-token-数据组成格式"><a href="#JWT-token-数据组成格式" class="headerlink" title="JWT token 数据组成格式"></a>JWT token 数据组成格式</h2><p>JWT token 是一个字符串，由三部分组成，用 . 隔开</p>
+<ul>
+<li>头部（header）</li>
+<li>载荷（payload）</li>
+<li>签名（signature）</li>
+</ul>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ</span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// Generate JWT token</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GenerateJwtToken</span><span class="params">(username, password <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	nowTime := time.Now()</span><br><span class="line">	expireTime := nowTime.Add(<span class="number">2</span> * time.Hour)</span><br><span class="line"></span><br><span class="line">	claims := Claims&#123;</span><br><span class="line">	    <span class="comment">// header</span></span><br><span class="line">		username,</span><br><span class="line">		password,</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// payload</span></span><br><span class="line">		jwt.StandardClaims&#123;</span><br><span class="line">			ExpiresAt: expireTime.Unix(),</span><br><span class="line">			Issuer:    PROJECTISSUE,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// signature</span></span><br><span class="line">	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)</span><br><span class="line">	</span><br><span class="line">	token, err := tokenClaims.SignedString(projectSecret)</span><br><span class="line">	<span class="keyword">return</span> token, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="基于-Gin-的-JWT-实现"><a href="#基于-Gin-的-JWT-实现" class="headerlink" title="基于 Gin 的 JWT 实现"></a>基于 Gin 的 JWT 实现</h2><p>代码地址：<a target="_blank" rel="noopener" href="https://github.com/tyronemaxi/Jwt-practice">https://github.com/tyronemaxi/Jwt-practice</a></p>
+
+    </div>
+
+    
+    
+    
+    
+      <div>
+     <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:24px;">-------------THANKS  FOR  READING-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/HTTP/" rel="tag"><i class="fa fa-tag"></i> HTTP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/bc91ee72/" rel="prev" title="docker 与容器技术畅谈">
+      <i class="fa fa-chevron-left"></i> docker 与容器技术畅谈
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/76b43893/" rel="next" title="深入理解 进程、线程、协程">
+      深入理解 进程、线程、协程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AE%A4%E8%AF%81-%E6%8E%88%E6%9D%83-%E5%87%AD%E8%AF%81"><span class="nav-number">1.</span> <span class="nav-text">认证-授权-凭证</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E8%AE%A4%E8%AF%81"><span class="nav-number">1.1.</span> <span class="nav-text">什么是认证</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E6%8E%88%E6%9D%83"><span class="nav-number">1.2.</span> <span class="nav-text">什么是授权</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%87%AD%E8%AF%81-Credentials"><span class="nav-number">1.3.</span> <span class="nav-text">什么是凭证(Credentials)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Cookie"><span class="nav-number">2.</span> <span class="nav-text">Cookie</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#session"><span class="nav-number">3.</span> <span class="nav-text">session</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#session-%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B"><span class="nav-number">3.1.</span> <span class="nav-text">session 认证流程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Cookie-%E5%92%8C-Session-%E5%8C%BA%E5%88%AB"><span class="nav-number">4.</span> <span class="nav-text">Cookie 和 Session 区别</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Token-%EF%BC%88%E4%BB%A4%E7%89%8C%EF%BC%89"><span class="nav-number">5.</span> <span class="nav-text">Token （令牌）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Acess-Token"><span class="nav-number">5.1.</span> <span class="nav-text">Acess Token</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#tocken-%E7%9A%84%E8%BA%AB%E4%BB%BD%E9%AA%8C%E8%AF%81%E6%B5%81%E7%A8%8B%EF%BC%9A"><span class="nav-number">5.1.1.</span> <span class="nav-text">tocken 的身份验证流程：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Refresh-Token"><span class="nav-number">5.2.</span> <span class="nav-text">Refresh Token</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Token-%E5%92%8C-Session-%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">5.3.</span> <span class="nav-text">Token 和 Session 的区别</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#JWT"><span class="nav-number">6.</span> <span class="nav-text">JWT</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#JWT-token-%E6%95%B0%E6%8D%AE%E7%BB%84%E6%88%90%E6%A0%BC%E5%BC%8F"><span class="nav-number">6.1.</span> <span class="nav-text">JWT token 数据组成格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E-Gin-%E7%9A%84-JWT-%E5%AE%9E%E7%8E%B0"><span class="nav-number">6.2.</span> <span class="nav-text">基于 Gin 的 JWT 实现</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="tyrone"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">tyrone</p>
+  <div class="site-description" itemprop="description">人生最好的境界就是保持内心丰富的安静</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tyrone</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">58k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">53 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
