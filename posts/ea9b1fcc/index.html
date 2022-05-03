@@ -22,20 +22,21 @@
 
   <meta name="description" content="cookie &amp;&amp; session &amp;&amp; jwt 使用总结">
 <meta property="og:type" content="article">
-<meta property="og:title" content="cookie &amp;&amp; session &amp;&amp; jwt 使用总结">
+<meta property="og:title" content="Cookie &amp;&amp; Session &amp;&amp; JWT 使用总结">
 <meta property="og:url" content="http://example.com/posts/ea9b1fcc/index.html">
 <meta property="og:site_name" content="Tyrone&#39;s Blog">
 <meta property="og:description" content="cookie &amp;&amp; session &amp;&amp; jwt 使用总结">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/posts/ea9b1fcc/session.png">
-<meta property="og:image" content="http://example.com/posts/ea9b1fcc/refresh_token.png">
-<meta property="og:image" content="http://example.com/posts/ea9b1fcc/JWT.png">
+<meta property="og:image" content="http://example.com/images/session.png">
+<meta property="og:image" content="http://example.com/images/token_verify.png">
+<meta property="og:image" content="http://example.com/images/refresh_token.png">
+<meta property="og:image" content="http://example.com/images/JWT.png">
 <meta property="article:published_time" content="2020-04-13T03:04:55.000Z">
-<meta property="article:modified_time" content="2022-05-02T09:53:36.114Z">
+<meta property="article:modified_time" content="2022-05-02T10:04:01.834Z">
 <meta property="article:author" content="tyrone">
 <meta property="article:tag" content="HTTP">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/posts/ea9b1fcc/session.png">
+<meta name="twitter:image" content="http://example.com/images/session.png">
 
 <link rel="canonical" href="http://example.com/posts/ea9b1fcc/">
 
@@ -50,7 +51,7 @@
   };
 </script>
 
-  <title>cookie && session && jwt 使用总结 | Tyrone's Blog</title>
+  <title>Cookie && Session && JWT 使用总结 | Tyrone's Blog</title>
   
 
 
@@ -202,7 +203,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          cookie && session && jwt 使用总结
+          Cookie && Session && JWT 使用总结
         </h1>
 
         <div class="post-meta">
@@ -219,7 +220,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-02 17:53:36" itemprop="dateModified" datetime="2022-05-02T17:53:36+08:00">2022-05-02</time>
+                <time title="修改时间：2022-05-02 18:04:01" itemprop="dateModified" datetime="2022-05-02T18:04:01+08:00">2022-05-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -264,16 +265,19 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="认证-授权-凭证"><a href="#认证-授权-凭证" class="headerlink" title="认证-授权-凭证"></a>认证-授权-凭证</h1><h2 id="什么是认证"><a href="#什么是认证" class="headerlink" title="什么是认证"></a>什么是认证</h2><p>认证就是验证当前用户的身份：<br>互联网中的认证：</p>
+        <h1 id="认证-授权-凭证"><a href="#认证-授权-凭证" class="headerlink" title="认证-授权-凭证"></a>认证-授权-凭证</h1><h2 id="什么是认证"><a href="#什么是认证" class="headerlink" title="什么是认证"></a>什么是认证</h2><p><strong>认证就是验证当前用户的身份</strong>：<br>互联网中的认证：</p>
 <ul>
 <li>用户名密码登陆</li>
 <li>邮箱发送登陆连接验证</li>
-<li>手机号接收验证码<h2 id="什么是授权"><a href="#什么是授权" class="headerlink" title="什么是授权"></a>什么是授权</h2>用户授权第三方应用访问该用户某些资源的权限</li>
+<li>手机号接收验证码</li>
+</ul>
+<h2 id="什么是授权"><a href="#什么是授权" class="headerlink" title="什么是授权"></a>什么是授权</h2><p>用户授权第三方应用访问该用户某些资源的权限</p>
+<ul>
 <li>你在安装手机应用的时候，APP 会询问是否允许授予权限（地址获取，存储权限获取）</li>
 <li>微信访问小程序时，登陆时，小程序会询问是否允许授予权限</li>
 <li>实现授权的方式：cookie、session、token、OAuth</li>
 </ul>
-<h2 id="什么是凭证-Credentials"><a href="#什么是凭证-Credentials" class="headerlink" title="什么是凭证(Credentials)"></a>什么是凭证(Credentials)</h2><p>实现认证和授权的前提是需要一种媒介（证书）来标记访问者身份</p>
+<h2 id="什么是凭证-Credentials"><a href="#什么是凭证-Credentials" class="headerlink" title="什么是凭证(Credentials)"></a>什么是凭证(Credentials)</h2><p>实现认证和授权的前提是需要一种<strong>媒介（证书）</strong>来标记访问者身份</p>
 <p>在互联网应用中一般网站（如掘金）会有两种模式，游客模式和登陆模式。游客模式中，可以正常浏览网站上面的文章，但是一旦想要点赞/收藏/分享文章，就需要登陆或者注册账号。<br>当用户登陆成功后，服务器会给该用户使用的浏览器颁发一个令牌（token）,这个林牌用来表明你的身份，每次浏览器发送请求时就会带上这个令牌，就可以使用游客模式下无法使用的功能。</p>
 <h1 id="Cookie"><a href="#Cookie" class="headerlink" title="Cookie"></a>Cookie</h1><ul>
 <li><p><strong>HTTP 是无状态的协议</strong>（对于网络请求没有记忆能力，每次客户端和服务端会话完成时，服务端不会保存任何会话信息）：每个请求都是独立的，服务端无法确认当前访问者的身份信息。<br>所以服务器与浏览器为了进行会话跟踪（知道是谁在访问我），就必须主动的去维护一个状态，这个状态用于告知服务端前后端前后两个请求是否来自同一浏览器。而这个状态通过 cookie 或者 session 去实现。</p>
@@ -324,7 +328,7 @@
 <li>session 是另一种记录服务器和客户端<strong>会话状态</strong>的机制</li>
 <li>session 是基于 cookie 实现的，session 存储在服务器端，sessionId 会被存储在客户端的 cookie 中</li>
 </ul>
-<p><img src="session.png" alt="img_1.png"></p>
+<p><img src="/images/session.png" alt="direct"></p>
 <h2 id="session-认证流程"><a href="#session-认证流程" class="headerlink" title="session 认证流程"></a>session 认证流程</h2><ul>
 <li>用户第一次请求服务器的时候，服务器根据用户提交的相关信息，创建对应的 Session</li>
 <li>请求返回时将此 Session 的唯一标识信息 SessionID 返回给浏览器</li>
@@ -349,7 +353,7 @@
 </ul>
 </li>
 </ul>
-<h3 id="tocken-的身份验证流程："><a href="#tocken-的身份验证流程：" class="headerlink" title="tocken 的身份验证流程："></a>tocken 的身份验证流程：</h3><p>![img_1.png](token 验证机制.png)</p>
+<h3 id="tocken-的身份验证流程："><a href="#tocken-的身份验证流程：" class="headerlink" title="tocken 的身份验证流程："></a>tocken 的身份验证流程：</h3><p><img src="/images/token_verify.png" alt="direct"></p>
 <ul>
 <li><ol>
 <li>客户端使用用户名跟密码请求登陆</li>
@@ -382,7 +386,7 @@
 <li><strong>基于 token 的用户认证是一种服务端无状态的认证方式，服务端不同存放 token 数据。用解析 token 的计算方式换取 session 的存储空间，从而减轻服务器的压力，减少频繁的查询数据库</strong></li>
 <li><strong>token 完全由应用管理，所以它可以避开同源策略</strong></li>
 </ul>
-<h2 id="Refresh-Token"><a href="#Refresh-Token" class="headerlink" title="Refresh Token"></a>Refresh Token</h2><p><img src="refresh_token.png" alt="img_1.png"></p>
+<h2 id="Refresh-Token"><a href="#Refresh-Token" class="headerlink" title="Refresh Token"></a>Refresh Token</h2><p><img src="/images/refresh_token.png" alt="direct"></p>
 <ul>
 <li>refresh token 是专门用于刷新 access token 的 token。如果没有 refresh token，也可以刷新 access token，但每次刷新都要用户输入登陆用户名和密码，比较麻烦。有了 refresh token，就可以减少这个麻烦，<br>客户端直接用 refresh token 去更新 access token，无需用户进行额外的操作。</li>
 </ul>
@@ -400,7 +404,7 @@
 <li>Json Web Token 是目前前后端分离的<strong>跨域认证</strong>解决方案</li>
 <li>是一种<strong>认证授权</strong>机制</li>
 <li>基于 JSON 的开放标准（RFC 7519）</li>
-<li>使用 HMAC 算法或者是 RSA 的公/私密钥对 JWT 进行签名。<br><img src="JWT.png" alt="img_1.png"></li>
+<li>使用 HMAC 算法或者是 RSA 的公/私密钥对 JWT 进行签名。<br><img src="/images/JWT.png" alt="direct"></li>
 </ul>
 <p>这里参考：<a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html">http://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html</a></p>
 <p>用户认证流程：</p>
@@ -584,12 +588,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">58k</span>
+    <span title="站点总字数">62k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">53 分钟</span>
+    <span title="站点阅读时长">56 分钟</span>
 </div>
 <!--
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
