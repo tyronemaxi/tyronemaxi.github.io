@@ -36,7 +36,7 @@
 <meta property="og:image" content="http://example.com/images/threads/thread_2.png">
 <meta property="og:image" content="http://example.com/images/threads/thread_3.png">
 <meta property="article:published_time" content="2021-03-28T06:36:24.000Z">
-<meta property="article:modified_time" content="2022-04-29T08:05:31.517Z">
+<meta property="article:modified_time" content="2022-05-06T03:31:13.168Z">
 <meta property="article:author" content="tyrone">
 <meta property="article:tag" content="深入理解计算机系统">
 <meta name="twitter:card" content="summary">
@@ -224,7 +224,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-29 16:05:31" itemprop="dateModified" datetime="2022-04-29T16:05:31+08:00">2022-04-29</time>
+                <time title="修改时间：2022-05-06 11:31:13" itemprop="dateModified" datetime="2022-05-06T11:31:13+08:00">2022-05-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -271,7 +271,7 @@
       
         <h1 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h1><p>参考：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/panlq/p/13180589.html">https://www.cnblogs.com/panlq/p/13180589.html</a><br><strong>进程是系统进行资源分配和调度的独立单位，<code>程序段</code>、<code>数据段</code>、<code>PCB(进程控制模块)</code>三部分组成了<code>进程 实体(进程映像)</code>，PCB 是进程存在的唯一标准</strong></p>
 <blockquote>
-<p>操作系统为了管理进程设置的一个专门的<code>数据结构</code>，用它来记录进程的外部特征，描述进程的运动变化进程。系统利用 PCB 来控制和管理进程，所以 PCB 是系<br>统感知进程存在的唯一标志。进程与 PCB 是一一对应的。<br>detail: <a target="_blank" rel="noopener" href="http://www.haodaquan.com/159">http://www.haodaquan.com/159</a></p>
+<p>操作系统为了管理进程设置的一个专门的<code>数据结构</code>，用它来记录进程的外部特征，描述进程的运动变化进程。系统利用 PCB 来控制和管理进程，所以 <strong>PCB 是系统感知进程存在的唯一标志</strong>。进程与 PCB 是一一对应的。<br>detail: <a target="_blank" rel="noopener" href="http://www.haodaquan.com/159">http://www.haodaquan.com/159</a></p>
 </blockquote>
 <h2 id="PCB"><a href="#PCB" class="headerlink" title="PCB"></a>PCB</h2><p><img src="../../images/threads/PCB.png" alt="direct"></p>
 <h2 id="进程的状态"><a href="#进程的状态" class="headerlink" title="进程的状态"></a>进程的状态</h2><ul>
@@ -322,7 +322,7 @@
 <li>是否会导致饥饿：会</li>
 </ul>
 </li>
-<li><strong>多级反馈队列调度算法</strong><ul>
+<li><strong>多级反馈队列调度算法</strong><br>维护了多个按照<strong>优先级从高到低</strong>的进程队列，且每个队列时间片不一致，采用抢占式算法调度。<ul>
 <li>算法思想：综合 FCFS、SJF(SPF)、时间片轮转、优先级调度</li>
 <li>算法规则：<ul>
 <li><ol>
@@ -377,8 +377,8 @@
 <li>切换进程，开销很大</li>
 </ul>
 <h2 id="线程的实现方式"><a href="#线程的实现方式" class="headerlink" title="线程的实现方式"></a>线程的实现方式</h2><ul>
-<li><strong>用户级线程(User-Level Thread)</strong>, 用户级线程是由应用程序通过线程库实现，如 python(thread), 线程的管理由应用程序负责</li>
-<li><strong>内核级线程(kernel-Level Thread)</strong>, 内核级线程的管理工作由操作系统内核完成，线程调度，切换等工作都由内核负责，因此内核级线程的切换必然需要在核心态下才能完成</li>
+<li><strong>用户级线程(User-Level Thread)</strong>, <strong>用户级线程是由应用程序通过线程库实现</strong>，如 python(thread), 线程的管理由应用程序负责</li>
+<li><strong>内核级线程(kernel-Level Thread)</strong>, <strong>内核级线程的管理工作由操作系统内核完成，线程调度，切换等工作都由内核负责</strong>，因此内核级线程的切换必然需要在核心态下才能完成</li>
 </ul>
 <p>进程和线程关系：一条线程指的是<strong>进程中一个单一顺序的控制流</strong>，一个进程中可以并发多个线程，每条线程并行执行不同的任务。CPU 的最小调度单元是线程。</p>
 <h2 id="线程的基本状态"><a href="#线程的基本状态" class="headerlink" title="线程的基本状态"></a>线程的基本状态</h2><ul>
@@ -394,18 +394,18 @@
 <li>运行(running): 线程后的 CPU 时间后，进入运行状态真正开始执行 run() 方法</li>
 <li>死亡(dead): 线程退出自然死亡，或者异常终止导致线程猝死<br><img src="../../images/threads/%E7%BA%BF%E7%A8%8B%E7%9A%84%E7%8A%B6%E6%80%81.png" alt="img.png"></li>
 </ul>
-<h2 id="线程模型"><a href="#线程模型" class="headerlink" title="线程模型"></a>线程模型</h2><h3 id="用户级线程模型（一对多模型）"><a href="#用户级线程模型（一对多模型）" class="headerlink" title="用户级线程模型（一对多模型）"></a>用户级线程模型（一对多模型）</h3><p><img src="../../images/threads/thread_1.png" alt="img.png"><br>多个用户态的线程对应着一个内核线程，程序的创建、终止、切换或者同步等线程工作必须自身来完成。python 就是这种。虽然可以实现异步，但是不能有效利用多核（GIL）</p>
-<h3 id="内核级别线程模型（一对一）"><a href="#内核级别线程模型（一对一）" class="headerlink" title="内核级别线程模型（一对一）"></a>内核级别线程模型（一对一）</h3><p><img src="../../images/threads/thread_2.png" alt="img.png"><br>这种模型直接调用操作系统的内核线程，所有线程的创建、终止、切换、同步等操作，都由内核来完成。C++ 就是这种</p>
-<h3 id="两级线程模型-M-N"><a href="#两级线程模型-M-N" class="headerlink" title="两级线程模型(M:N)"></a>两级线程模型(M:N)</h3><p><img src="../../images/threads/thread_3.png" alt="img.png"><br>这种线程模型会先创建多个内核级线程，然后用自身的用户级线程去对应创建的多个内核级线程，自身的用户级线程需要本身程度去调度，内核级的线程交给操作系统内核去调度。<br>GO 语言就是这种</p>
+<h2 id="线程模型"><a href="#线程模型" class="headerlink" title="线程模型"></a>线程模型</h2><h3 id="用户级线程模型（一对多模型）"><a href="#用户级线程模型（一对多模型）" class="headerlink" title="用户级线程模型（一对多模型）"></a>用户级线程模型（一对多模型）</h3><p><img src="../../images/threads/thread_1.png" alt="img.png"><br><strong>多个用户态的线程对应着一个内核线程，程序的创建、终止、切换或者同步等线程工作必须自身来完成</strong>。python 就是这种。虽然可以实现异步，但是不能有效利用多核（GIL）</p>
+<h3 id="内核级别线程模型（一对一）"><a href="#内核级别线程模型（一对一）" class="headerlink" title="内核级别线程模型（一对一）"></a>内核级别线程模型（一对一）</h3><p><img src="../../images/threads/thread_2.png" alt="img.png"><br>这种模型直接<strong>调用操作系统的内核线程，所有线程的创建、终止、切换、同步等操作，都由内核来完成</strong>。C++ 就是这种</p>
+<h3 id="两级线程模型-M-N"><a href="#两级线程模型-M-N" class="headerlink" title="两级线程模型(M:N)"></a>两级线程模型(M:N)</h3><p><img src="../../images/threads/thread_3.png" alt="img.png"><br>这种线程模型会<strong>先创建多个内核级线程，然后用自身的用户级线程去对应创建的多个内核级线程</strong>，自身的用户级线程需要本身程度去调度，内核级的线程交给操作系统内核去调度。<br>GO 语言就是这种</p>
 <h3 id="线程总结"><a href="#线程总结" class="headerlink" title="线程总结"></a>线程总结</h3><p>python 中的多线程因为 GIL 的存在，并不能利用多核CPU优势，但是在阻塞的系统调用中，如 sock.connect(),<br>sock.recv() 等耗时的 I/O 操作，当前的线程会释放 GIL,让出处理器。但是单个线程内，阻塞调用上还是阻塞的。除了 GIL 之外，所有的多线程还有通病，它们的调度策略是抢占式的，以保证同等优先级的线程都有机执行，带来的问题就是：<br>并不知道下一刻执行那个线程，也不知道正在执行什么代码，会存在<strong>竞态条件</strong></p>
 <h1 id="协程"><a href="#协程" class="headerlink" title="协程"></a>协程</h1><p>协程通过在线程中实现调度，避免了陷入内核级别的上下文切换造成的性能损失，进而突破了线程在 IO 上的性能瓶颈。</p>
-<h2 id="python-协程"><a href="#python-协程" class="headerlink" title="python 协程"></a>python 协程</h2><p>eventloop 协程模型<br>python 的协程源于 yield 指令</p>
+<h2 id="python-协程"><a href="#python-协程" class="headerlink" title="python 协程"></a>python 协程</h2><p><strong>eventloop 协程模型</strong><br>python 的协程源于 yield 指令</p>
 <ul>
 <li>yield item 用于产出一个值，反馈给 next() 的调用方法</li>
 <li>让出处理机，暂停执行生成器，让调用方继续工作，直到需要使用另一个值时再调用 next()</li>
 </ul>
 <p>协程式对线程的调度，yield 类似惰性求职方式可以视为一种流程控制工具，实现协作式多任务，python3.5引入了 async/await 表达式，使得协程证实在语言层面得到支持和优化，大大简化之前的 yield 写法。<br>python 中的协程的调度是非抢占式的，也就是说一个协程必须主动让出执行机会，其他协程才有机会运行。让出执行的关键字 await,如果一个协程阻塞了，持续不让出 CPU 处理机，那么整个线程就卡住了，没有任何并发。</p>
-<h2 id="go-协程"><a href="#go-协程" class="headerlink" title="go 协程"></a>go 协程</h2><p>go - GMP模型<br>go 语言使用 go 关键字，goroutine 之间使用 channel 通信</p>
+<h2 id="go-协程"><a href="#go-协程" class="headerlink" title="go 协程"></a>go 协程</h2><p>go - <strong>GMP模型</strong><br>go 语言使用 go 关键字，goroutine 之间使用 channel 通信</p>
 <p>go 实现了两种并发形式：</p>
 <ul>
 <li>多线程共享内存：如 Java 或者 C++ 在多线程中共享数据的时候，通过锁来访问</li>
@@ -413,7 +413,7 @@
 </ul>
 <p><strong>协程本质上来说是一种用户态的线程，不需要系统来执行抢占式调度，而是在语言层面实现线程的调度。</strong></p>
 <p>go 协程是轻量级的，栈初始为 2KB(os 操作系统的线程一般都是固有的栈内存 2M)，调度不涉及系统调用，用户函数调用前会检查栈空间是否充足，不够的话，会进行栈扩容，栈大小限制可以达到 1GB。</p>
-<p>Go 语言相比起其他语言的优势在于 OS 线程是由 OS 内核来调度的，goroutine 则是由 Go 运行时（runtime）自己的调度器调度的，这个调度器使用一个称为 m:n 调度的技术。<br>其一大特点是 goroutine 的调度是在用户态下完成的，不涉及内核态与用户态之间的频繁切换，包括内存的分配与释放，都是在用户态维护着一块大的内存池，不直接调用系统的 malloc 函数，成本比调度 OS 线程低很多。<br>另外一方面充分利用了多核的硬件资源，近似的把若干 goroutine 均分在物理线程上。</p>
+<p>Go 语言相比起其他语言的优势在于 OS 线程是由 OS 内核来调度的，<strong>goroutine 则是由 Go 运行时（runtime）自己的调度器调度的</strong>，这个调度器使用一个称为 m:n 调度的技术。<br>其一大特点是 goroutine 的调度是在用户态下完成的，不涉及内核态与用户态之间的频繁切换，包括内存的分配与释放，都是在用户态维护着一块大的内存池，不直接调用系统的 malloc 函数，成本比调度 OS 线程低很多。<br>另外一方面<strong>充分利用了多核的硬件资源，近似的把若干 goroutine 均分在物理线程上。</strong></p>
 
     </div>
 
