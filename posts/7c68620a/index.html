@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Redis 高可用方案概览">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 高可用方案">
+<meta property="og:url" content="http://example.com/posts/7c68620a/index.html">
+<meta property="og:site_name" content="Tyrone&#39;s Blog">
+<meta property="og:description" content="Redis 高可用方案概览">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-04-05T08:03:09.000Z">
+<meta property="article:modified_time" content="2022-05-23T08:44:39.051Z">
+<meta property="article:author" content="tyrone">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/posts/7c68620a/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Redis 高可用方案 | Tyrone's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tyrone's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/7c68620a/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="tyrone">
+      <meta itemprop="description" content="人生最好的境界就是保持内心丰富的安静">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tyrone's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis 高可用方案
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-04-05 16:03:09" itemprop="dateCreated datePublished" datetime="2021-04-05T16:03:09+08:00">2021-04-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-05-23 16:44:39" itemprop="dateModified" datetime="2022-05-23T16:44:39+08:00">2022-05-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index"><span itemprop="name">redis</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+            <div class="post-description">Redis 高可用方案概览</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Redis-高可用方案"><a href="#Redis-高可用方案" class="headerlink" title="Redis 高可用方案"></a>Redis 高可用方案</h1><p>Redis 高可用方式主要有以下四种：</p>
+<ul>
+<li><strong>数据持久化</strong></li>
+<li><strong>主从数据同步（主从复制）</strong></li>
+<li><strong>Redis 哨兵模式 (Sentinel)</strong></li>
+<li><strong>Redis 集群（Cluster）</strong></li>
+</ul>
+<p>数据持久化保证系统在发生宕机或者重启之后数据不会丢失，增加了系统的可靠性和减少了系统不可用的时间（省去了手动恢复数据的过程）；<br>主从数据同步可以将数据存储至多台服务器，这样当遇到一台服务器宕机之后，可以很快地切换到另一台服务器以继续提供服务；<br>哨兵模式发生故障之后自动切换主服务器；<br>Redis 集群提供多主多从的 Redis 分布式集群环境，用于提供性能更好的 Redis 服务，并且它自身拥有故障自动切换的能力。</p>
+<h2 id="数据持久化"><a href="#数据持久化" class="headerlink" title="数据持久化"></a>数据持久化</h2><p>Redis 4.0 之前数据持久化方式有两种：<strong>AOF 方式和 RDB 方式。</strong></p>
+<h3 id="RDB"><a href="#RDB" class="headerlink" title="RDB"></a>RDB</h3><p>RDB (Redis Database, 快照方式) 按照<code>一定的时间周期</code> 策略把内存的数据以<code>快照(snapshot)</code>的方式保存到硬盘的二进制文件中。<br>即：snapshot 快照存储，对应产生数据文件为 <code>dump.db</code>，通过配置文件中的 <code>save</code> 参数来定义快照的周期。<br>核心函数：<code>rdbSave</code>(生成 RDB 文件) 和 <code>rdbLoad</code>（从文件加载内存）两个函数。</p>
+<p><strong>优点：是以二进制存储的，占用空间更小、数据存储更紧凑，并且与 AOF 相比，RDB 具备更快的重启恢复能力。</strong></p>
+<h3 id="AOF"><a href="#AOF" class="headerlink" title="AOF"></a>AOF</h3><p>AOF 是 (append only file) 的缩写。Redis 会将每一个收到的写命令都通过 <code>Write</code> 函数追加到文件最后，类似于 MySQL 的 binlog.<br>当 Redis 重启时，就会从 <code>appendlonly.aof</code> 中加载命令来重建整个 Redis 数据库。<br>每当执行服务器函数或函数时，<code>flushAppendOnlyFile</code> 函数都会被调用，这个函数执行两个工作：</p>
+<ul>
+<li>WRITE<br>根据条件，将 <code>aof_buf</code> 中的缓存写入 AOF 文件中；</li>
+<li>SAVE<br>根据条件，调用 <code>fsync</code> 或 <code>fdatasync</code> 函数，将 AOF 文件保存到磁盘中</li>
+</ul>
+<p>总结：</p>
+<ul>
+<li>RDB 占用空间更小、占用空间小，具备更快的重启恢复能力。</li>
+<li>AOF 存储频率更高，数据丢失的风险越低，招用空间大，重启速度较慢。</li>
+<li>也可以使用混合持久化功能，通过<code>config get aof-use-rdb-preamble</code> 的命令来查询 Redis 混合持久化的功能是否开启。</li>
+</ul>
+<h2 id="Redis-主从同步"><a href="#Redis-主从同步" class="headerlink" title="Redis 主从同步"></a>Redis 主从同步</h2><p>在 Redis 集群环境中，对于主机器和从机器数据一致的操作，就需要主从同步，也叫 application，来同步主节点的数据。</p>
+<p>Redis 主从同步分为：<strong>主从模式</strong> 和 <strong>从从模式</strong></p>
+<h3 id="主从复制的三种机制"><a href="#主从复制的三种机制" class="headerlink" title="主从复制的三种机制"></a>主从复制的三种机制</h3><ul>
+<li><ol>
+<li>主从节点连接正常时，主设备会发送一连串的数据流来保持对 <code>slave</code> 的更新：包括客户端的写入，key 的过期或被逐出等待。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>当 master 和 slave 之间的连接断开之后（网络原因、连接超时等），slave 重新连接 master 会尝试进行部分重同步：<strong>尝试获取在断开连接期间丢失的命令流</strong></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>当第二步中无法进行部分重同步，<strong>slave 会进行全量同步</strong></li>
+</ol>
+</li>
+</ul>
+<p>Redis 使用的默认是<strong>异步复制</strong>，其特点是<code>低延迟</code>和<code>高性能</code>。</p>
+<h2 id="Redis-哨兵模式"><a href="#Redis-哨兵模式" class="headerlink" title="Redis 哨兵模式"></a>Redis 哨兵模式</h2><p>Redis 哨兵模式是用来监视 Redis 主从服务器的，当 Redis 的主从服务器发生故障之后，Redis 哨兵提供了自动容灾修复的功能。<br>Redis 哨兵模块存储在 Redis 的 src/redis-sentinel 目录。我们可以使用命令<code>./src/redis-sentinel sentinel.conf</code> 来启动哨兵功能。</p>
+<p>Redis Sentinel 是社区版本推出的原生高可用解决方案，其部署架构主要包括两部分：<strong>Redis Sentinel 集群</strong>和 <strong>Redis 数据集群</strong>。</p>
+<p>其中 Redis Sentinel 集群是由若干个 Sentinel 节点组成的分布式集群，可以实现</p>
+<ul>
+<li><strong>故障发现</strong></li>
+<li><strong>故障自动转移</strong></li>
+<li><strong>配置中心</strong></li>
+<li><strong>客户端通知</strong></li>
+</ul>
+<p>Redis Sentinel 的节点数量要满足 <code>2n+1</code> 的奇数个。<br>哨兵的工作主要是：</p>
+<ul>
+<li>监控</li>
+<li>故障检测</li>
+<li>故障转移</li>
+<li>sentinel leader</li>
+<li>master 重选</li>
+</ul>
+<h3 id="哨兵（Sentinel）工作方式"><a href="#哨兵（Sentinel）工作方式" class="headerlink" title="哨兵（Sentinel）工作方式"></a>哨兵（Sentinel）工作方式</h3><ul>
+<li><ol>
+<li>每个 Sentinel 以每秒钟一次的频率向它管理的 master, slave 以及其他 Sentinel 实例发送一个 PING 命令。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>如果一个节点距离最后一次有效回复 PING 命令的时间超过 <code>own-after-milliseconds</code> 选项所指定的值，则这个实例会被<code>Sentinel</code>标记为主观下线。</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>若一个 master 节点被标记为主观下线，则正在监视这个 master 的所有 Sentinel 要以每秒一次的频率确认 master 是否进入了主观下线的状态</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>当有足够数量的 Sentinel (大于等于配置文件指定的值) 在指定的时间范围内确认 master 的确进入了主观下线状态，则 master 会被标记为客观下线。</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>在一般情况下，每个 Sentinel 会以 10 s 一次的频率向它已知的所有 master, slave 发送 INFO 命令。</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>当 master 被 Sentinel 标记为客观下线时，sentinel 向下线的 master 的所有 slave 发送 INFO 命令的频率会从 10s/次改为 1s/次</li>
+</ol>
+</li>
+</ul>
+<h4 id="故障检测"><a href="#故障检测" class="headerlink" title="故障检测"></a>故障检测</h4><ul>
+<li>主观下线(Subjective Down, SDOWN): 是指一个哨兵通过检测发现某个主节点发生故障的一种状态。</li>
+<li>客观下线(Objective Down, ODOWN): 是指哨兵检测到某个主节点发生故障，通过命令 SENTINEL <code>is-master-down-by-addr</code> 与其他哨兵节点协商，并且在指定时间内接收到指定数量的其他哨兵的确认反馈时的一种状态。</li>
+</ul>
+<p><strong>主观下线表示哨兵通过检测发现节点宕机，客观下线表示哨兵不但自己认为该节点宕机，而且该哨兵与其他节点沟通后，达到一定数量的哨兵都认为节点宕机了。</strong></p>
+<h4 id="故障转移"><a href="#故障转移" class="headerlink" title="故障转移"></a>故障转移</h4><p>Sentinel 判定主节点客观宕机（ODOWN）后，将进入故障转移过程。</p>
+<p>进入故障转移的前提是：<strong>主节点为客观宕机状态</strong>，当前<strong>没有故障转移在执行、上次故障转移已经超时</strong>。Sentinel 确认可以执行故障转移后，会进行以下几项准备工作：</p>
+<ul>
+<li>故障转移等待开始；<br>设置 failover_state: SENTINEL_FAILOVER_STATE_WAIT_START </li>
+<li>主节点处于故障转移过程中<br>设置当前主节点标识位：SRI_FAILOVER_IN_PROGRESS （主节点处于故障转移过程中）</li>
+<li>记录故障转移开始时间以及 failover_state 状态修改时间；</li>
+</ul>
+<h4 id="Sentinel-故障转移-Leader-选举"><a href="#Sentinel-故障转移-Leader-选举" class="headerlink" title="Sentinel 故障转移 Leader 选举"></a>Sentinel 故障转移 Leader 选举</h4><p><strong>当一个主节点被判断为客观下线时，监控这个主节点的所有 Sentinel 会进行协商，选举一个 Leader 对下线的主节点执行故障转移操作。</strong><br>Sentinel 需要在集群内进行”拉票”，”拉票” 的依据就是配置 quorum 以及 “拉票”的时间。</p>
+<ul>
+<li><strong>配置 quorum 越大，优先级越高；</strong></li>
+<li><strong>“拉票” 请求时间越早，优先级越高；</strong></li>
+</ul>
+<p>“投票”完成后就到了”唱票”环节，该过程是在 <code>SENTINEL_FAILOVER_STATE_WAIT_START</code> 状态下执行的。</p>
+<p>Redis 使用了 Raft 算法实现领导者选举，大体思路：</p>
+<ul>
+<li>每个在线的 Sentinel 节点都有资格成为 Leader, 每个 Sentinel 节点发现当它确认主节点客观下线检查的时候，会向其他 Sentinel 节点发送<br><code>sentinel is-master-down-by-addr</code> 命令，要求将自己设置为<code>leader</code></li>
+<li>每个节点在每个选举轮次中只有一次投票权，接收到命令的 Sentinel 节点，如果没有同意过其他 Sentinel 节点的 <code>sentinel is-master-down-by-addr</code> 命令，<br>将同意该请求，否则拒绝</li>
+<li>如果该 Sentinel 节点发现自己的票数已经大于等于 max (quorum, num(sentinels)/ 2 + 1),那么它将成为领导者。其他的投票就会终止，即使后续还有其他的哨兵节点到达配置，也没有作用</li>
+<li>如果此过程中没有产生领导者，暂停一段时间，再进行下一轮选举，current_epoch 加 1<br>合理部署 Sentinel 的节点的个数，以及配置 sentinel 选举的法定人数<ol>
+<li>sentinel 节点个数最好 &gt;= 3.</li>
+<li>sentinel 节点个数最好是奇数.</li>
+<li>sentinel 的选举法定人数设置为 （n/2 + 1）</li>
+</ol>
+</li>
+</ul>
+<p>配置</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> sentinel.conf</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> sentinel monitor &lt;master-name&gt; &lt;ip&gt; &lt;redis-port&gt; &lt;quorum&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>quorum</code> 是<strong>法定人数</strong>。作用：多个 sentinel 进行相互选举，有超过<strong>法定人数</strong>的 sentinel 选举某个 sentinel 为 leader,那么他就成为 leader,<br>leader 负责故障转移。这个法定人数，一般配置为 （n/2 + 1）较为合理</p>
+<h4 id="新主节点的选举"><a href="#新主节点的选举" class="headerlink" title="新主节点的选举"></a>新主节点的选举</h4><p><strong>当主节点客观下线时，Sentinel Leader 会从该主节点存活的从节点中选出一个新的主节点。</strong><br>首先，过滤掉相关从节点：</p>
+<ul>
+<li>主观下线的或者处于断线状态的从节点；</li>
+<li>最近 5s 内未回复过 Sentinel Leader INFO 命令的从节点；</li>
+<li>从节点的优先级为 0 的从节点，由配置项 replica-priority 决定；</li>
+<li>与主节点断开连接超过 10 倍 <code>down-after-milliseconds</code> 的从节点；</li>
+</ul>
+<p>当 Sentinel 集群选举出 Sentinel Leader 后，由 Sentinel Leader 从 redis 从节点中选择一个 redis 节点作为主节点：</p>
+<ul>
+<li><ol>
+<li>过滤故障的节点</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>选择优先级 <code>slave-priority</code> 最大的从节点作为主节点，如不存在则继续</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>选择复制偏移量最大的从节点作为主节点，如不存在则继续</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>选择 runid（redis 每次启动的时候生成随机的 runid 作为 redis 的标识）最小的从节点作为主节点</li>
+</ol>
+</li>
+</ul>
+<h2 id="Redis-集群"><a href="#Redis-集群" class="headerlink" title="Redis 集群"></a>Redis 集群</h2><p>Redis 集群是 Redis 3.0 版本推出的 Redis 集群方案，将数据分布在不同的主服务器上，以此来降低系统对单主节点的依赖，并且可以大大提高 Redis 服务的读写性能。</p>
+<p>Redis 集群除了拥有主从模式 + 哨兵模式的所有功能之外，还提供了多个主从节点的集群功能，实现了真正意义上的分布式集群服务。<br>Redis 集群可以实现数据分片服务，也就是说在 Redis 集群中有 16384 个槽位来存储所有的数据，当我们有 N 个主节点时，可以把 16384 个槽位平均分配到 N 台主服务器上。<br>当有 key-value 存储时，Redis 会使用 crc16 算法进行 hash 得到一个整数值，然后用这个整数值对 16384进行取模来得到具体槽位，再把此值存储在对应的服务器上，读取操作也是同样的道理，这样我们就实现了数据分片的功能。</p>
+
+    </div>
+
+    
+    
+    
+    
+      <div>
+     <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:24px;">-------------THANKS  FOR  READING-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"><i class="fa fa-tag"></i> Redis</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/76b43893/" rel="prev" title="深入理解 进程、线程、协程">
+      <i class="fa fa-chevron-left"></i> 深入理解 进程、线程、协程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/bd0fa4a9/" rel="next" title="Python 内存管理，垃圾回收，缓存重用机制">
+      Python 内存管理，垃圾回收，缓存重用机制 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Redis-%E9%AB%98%E5%8F%AF%E7%94%A8%E6%96%B9%E6%A1%88"><span class="nav-number">1.</span> <span class="nav-text">Redis 高可用方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%8C%81%E4%B9%85%E5%8C%96"><span class="nav-number">1.1.</span> <span class="nav-text">数据持久化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RDB"><span class="nav-number">1.1.1.</span> <span class="nav-text">RDB</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AOF"><span class="nav-number">1.1.2.</span> <span class="nav-text">AOF</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5"><span class="nav-number">1.2.</span> <span class="nav-text">Redis 主从同步</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E7%9A%84%E4%B8%89%E7%A7%8D%E6%9C%BA%E5%88%B6"><span class="nav-number">1.2.1.</span> <span class="nav-text">主从复制的三种机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-%E5%93%A8%E5%85%B5%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.</span> <span class="nav-text">Redis 哨兵模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%93%A8%E5%85%B5%EF%BC%88Sentinel%EF%BC%89%E5%B7%A5%E4%BD%9C%E6%96%B9%E5%BC%8F"><span class="nav-number">1.3.1.</span> <span class="nav-text">哨兵（Sentinel）工作方式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E6%A3%80%E6%B5%8B"><span class="nav-number">1.3.1.1.</span> <span class="nav-text">故障检测</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB"><span class="nav-number">1.3.1.2.</span> <span class="nav-text">故障转移</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Sentinel-%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB-Leader-%E9%80%89%E4%B8%BE"><span class="nav-number">1.3.1.3.</span> <span class="nav-text">Sentinel 故障转移 Leader 选举</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%B0%E4%B8%BB%E8%8A%82%E7%82%B9%E7%9A%84%E9%80%89%E4%B8%BE"><span class="nav-number">1.3.1.4.</span> <span class="nav-text">新主节点的选举</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-%E9%9B%86%E7%BE%A4"><span class="nav-number">1.4.</span> <span class="nav-text">Redis 集群</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="tyrone"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">tyrone</p>
+  <div class="site-description" itemprop="description">人生最好的境界就是保持内心丰富的安静</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tyrone</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">82k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:15</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

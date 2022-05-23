@@ -464,167 +464,6 @@
       </tags>
   </entry>
   <entry>
-    <title>MySQL 索引总结 -</title>
-    <url>/posts/6e16c56e/</url>
-    <content><![CDATA[<h1 id="什么是-索引？"><a href="#什么是-索引？" class="headerlink" title="什么是 索引？"></a>什么是 <strong>索引</strong>？</h1><p><strong>索引（ MySQL 中也叫做<code>键(key)</code>）</strong> 是<strong>存储引擎</strong>用于<strong>快速找到记录</strong>的一种<strong>数据结构</strong>。本文主要学习的是基于 InnoDB 存储引擎。<br>索引对于良好的性能非常关键，对于较大的数据量来说，索引的创建愈发重要。</p>
-<h1 id="索引的类型"><a href="#索引的类型" class="headerlink" title="索引的类型"></a>索引的类型</h1><blockquote>
-<p>索引有很多种类型，可以为不同的场景提供更好的性能。</p>
-</blockquote>
-<h2 id="从存储结构上分"><a href="#从存储结构上分" class="headerlink" title="从存储结构上分"></a>从存储结构上分</h2><ul>
-<li>Btree 索引 （B+tree、B-tree）</li>
-<li>哈希索引</li>
-<li>full-index 全文索引</li>
-<li>RTree</li>
-</ul>
-<h2 id="从应用层次上划分"><a href="#从应用层次上划分" class="headerlink" title="从应用层次上划分"></a>从应用层次上划分</h2><ul>
-<li>普通索引：即一个索引只包含单个列，一个表可以有多个单列索引</li>
-<li>唯一索引：索引列的值必须唯一，但允许有空值</li>
-<li>复合索引：一个索引包含多个列</li>
-</ul>
-<h2 id="从表记录的存储形式上来划分"><a href="#从表记录的存储形式上来划分" class="headerlink" title="从表记录的存储形式上来划分"></a>从表记录的存储形式上来划分</h2><ul>
-<li>聚簇索引：表记录的排列顺序和索引的排列顺序一致</li>
-<li>非聚簇索引：表记录的排列顺序和索引的排列顺序不一致</li>
-</ul>
-<h1 id="聚簇索引和非聚簇索引"><a href="#聚簇索引和非聚簇索引" class="headerlink" title="聚簇索引和非聚簇索引"></a>聚簇索引和非聚簇索引</h1><blockquote>
-<p>在 InnoDB 中，表数据文件本身就是按照 B+Tree 组织的一个索引结构。<br>聚簇索引就是按照每张表的主键构造一颗 B+ 树，同时叶子节点中存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。<br>一般建表会用一个自增主键做聚簇索引，没有的话 MySQL 会默认创建<br>在日常的开发任务中，根据实际情况自行添加的索引都是辅助索引，辅助索引就是一个为了需要找主键索引的二级索引，先找到主键索引再通过主键索引找到数据。</p>
-</blockquote>
-<h2 id="聚簇索引"><a href="#聚簇索引" class="headerlink" title="聚簇索引"></a>聚簇索引</h2><blockquote>
-<p>聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。</p>
-</blockquote>
-<p>聚簇索引就是按照每张表的主键构建一颗 B+ 树，同时叶子节点存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。这个特性决定了索引组织表中的数据也是索引的一部分，每张表只能拥有一个聚簇索引。<br><img src="../../images/mysql/%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95.png" alt="direct"></p>
-<h2 id="聚簇索引的优点"><a href="#聚簇索引的优点" class="headerlink" title="聚簇索引的优点"></a>聚簇索引的优点</h2><ul>
-<li>数据访问更快，因为**聚簇索引是将索引和数据保存在同一个 B+ 树中，因此从聚簇索引中获取数据比非聚簇索引更快。</li>
-<li>聚簇索引对于主键的排序查找和范围查找速度更快。</li>
-<li>使用覆盖索引扫描的查询可以直接使用页节点中的主键值</li>
-</ul>
-<h2 id="聚簇索引的缺点"><a href="#聚簇索引的缺点" class="headerlink" title="聚簇索引的缺点"></a>聚簇索引的缺点</h2><ul>
-<li></li>
-<li>插入速度严重依赖插入顺序，按照主键的顺序插入是最快的方式。一般定义一个自增的 ID 列作为主键，但是如果不是按照主键顺序加载数据，那么在jia</li>
-<li>更新主键的代价很高，因为将会导致被更新的行移动，一般对于 InnoDB 表，定义主键不可更新</li>
-<li>二级索引访问需要两次索引查找，第一次找到主键值，第二次根据主键值找到行数据。</li>
-</ul>
-<h1 id="非聚簇索引"><a href="#非聚簇索引" class="headerlink" title="非聚簇索引"></a>非聚簇索引</h1><p>在聚簇索引之上创建的索引称之为辅助索引，辅助索引访问数据总是需要二次查找。辅助索引叶子节点存放的不再是行的物理位置，而是主键值。<br>通过辅助索引找到主键值，再通过主键值找到数据行的数据页，再通过数据页中的 Page Directory 找到数据行。</p>
-<p>InnoDB 辅助索引的叶子节点并不包含行记录的全部数据，叶子节点包含键值外，还包含了相应行数据的聚簇索引键。</p>
-<h2 id="B-Tree-索引"><a href="#B-Tree-索引" class="headerlink" title="B-Tree 索引"></a>B-Tree 索引</h2><blockquote>
-<p>特点：<strong>每一个叶子节点都包含指向下一个叶子节点的指针</strong>，从而方便叶子节点的范围遍历</p>
-</blockquote>
-<p>B-Tree 通常意味着所有的值都是按照顺序存储的，并且每一个叶子页到根的距离相同。<br><img src="../../images/mysql/B+Tree%E7%B4%A2%E5%BC%95.png" alt="img.png"></p>
-<h2 id="B-Tree-索引检索数据的原理"><a href="#B-Tree-索引检索数据的原理" class="headerlink" title="B-Tree 索引检索数据的原理"></a>B-Tree 索引检索数据的原理</h2><p>存储引擎不再需要进行全表扫描来获取需要的数据，取而代之的是<strong>从索引的根节点开始进行搜索</strong>。<br>根节点的槽中存放了指向子节点的指针，存储引擎根据这些指针向下层查找。这些指针<strong>实际上定义了子节点页中值的上限和下限</strong>，通过比较<strong>节点页中的值和要查找的值</strong>可以找到合适的指针进入下层子节点。<br>最终存储引擎的查找只会有两种情况：<strong>1. 找到对应的值。2. 记录不存在。</strong></p>
-<p><strong>叶子节点指针指向的是被索引的数据，而不是其他节点页。</strong></p>
-<p>树的深度和表的大小直接相关</p>
-<p>B-Tree 对索引列是顺序组织存储的，所以很适合查找范围数据。</p>
-<p>B-Tree 索引适用于<strong>全值键、键值范围或键前缀</strong>查找。键前缀查找只适用于最左前缀查找</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE People (</span><br><span class="line">    last_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;姓&#x27;,</span><br><span class="line">    first_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;名&#x27;,</span><br><span class="line">    dob date not null DEFAULT &#x27;&#x27; comment &#x27;出生日期&#x27;,</span><br><span class="line">    gender enum(0, 1) not null comment &#x27;&#x27;,</span><br><span class="line">    key(last_name, first_name, dob)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">INSERT INTO People values (&#x27;Cuba&#x27;, &#x27;Allen&#x27;, &#x27;1960-01-01&#x27;),</span><br><span class="line">(&#x27;Angelina&#x27;, &#x27;Astaire&#x27;, &#x27;1980-03-04&#x27;),</span><br><span class="line">(&#x27;Julla&#x27;, &#x27;Barrymore&#x27;, &#x27;2000-05-16&#x27;),</span><br><span class="line">(&#x27;Christian&#x27;, &#x27;Akroyd&#x27;, &#x27;1958-12-07&#x27;),</span><br><span class="line">(&#x27;Akroyd&#x27;, &#x27;Klrsten&#x27;, &#x27;1978-11-02&#x27;)</span><br></pre></td></tr></table></figure>
-
-<p><img src="../../images/mysql/BTree%E5%8F%B6%E5%AD%90%E7%BB%93%E7%82%B9.png" alt="direct"></p>
-<h2 id="B-Tree-索引的查询类型"><a href="#B-Tree-索引的查询类型" class="headerlink" title="B-Tree 索引的查询类型"></a>B-Tree 索引的查询类型</h2><blockquote>
-<p>explain 分析 SQL 的执行计划<br>需要重点关注 type、rows、filtered、extra。<br>type 由上至下，效率越来越高</p>
-<ul>
-<li>ALL 全表扫描</li>
-<li>index 索引全扫描</li>
-<li>range 索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</li>
-<li>ref 使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录，常出现在关联查询中</li>
-<li>eq_ref 类似 ref,区别在于使用的是唯一索引，使用主键的关联查询</li>
-<li>const/system 单条记录，系统会把匹配行中的其它列作为常数处理，如主键或唯一索引查询</li>
-<li>null MySQL 不访问任何表或索引，直接返回结果</li>
-</ul>
-</blockquote>
-<blockquote>
-<p>虽然上至下，效率越来越高，但是根据cost模型，假设有两个索引<code>idx1(a, b, c)</code>,<code>idx2(a, c)</code>，SQL为<code>select * from t where a = 1 and b in (1, 2) order by c;</code>如果走idx1，那么是type为range，如果走idx2，那么type是ref；当需要扫描的行数，使用idx2大约是idx1的5倍以上时，会用idx1，否则会用idx2</p>
-</blockquote>
-<blockquote>
-<p><strong>Extra</strong></p>
-</blockquote>
-<blockquote>
-<ul>
-<li>Using filesort：MySQL需要额外的一次传递，以找出如何按排序顺序检索行。通过根据联接类型浏览所有行并为所有匹配WHERE子句的行保存排序关键字和行的指针来完成排序。然后关键字被排序，并按排序顺序检索行。</li>
-<li><strong>Using temporary：使用了临时表保存中间结果，性能特别差，需要重点优化</strong></li>
-<li>Using index：表示相应的 select 操作中使用了覆盖索引（Coveing Index）,避免访问了表的数据行，效率不错！如果同时出现 using where，意味着无法直接通过索引查找来查询到符合条件的数据。</li>
-<li>Using index condition：MySQL5.6之后新增的ICP，using index condtion就是使用了ICP（索引下推），在存储引擎层进行数据过滤，而不是在服务层过滤，利用索引现有的数据减少回表的数据。</li>
-</ul>
-</blockquote>
-<ul>
-<li><strong>全值匹配</strong><pre><code>**全值匹配指的是和索引中所有列进行匹配**
-</code></pre>
-例如:<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br><span class="line">```  </span><br><span class="line">output:</span><br><span class="line">```markdown</span><br><span class="line">id            | 1</span><br><span class="line">select_type   | SIMPLE</span><br><span class="line">table         | People</span><br><span class="line">partitions    | &lt;null&gt;</span><br><span class="line">type          | ref</span><br><span class="line">possible_keys | last_name</span><br><span class="line">key           | last_name</span><br><span class="line">key_len       | 107</span><br><span class="line">ref           | const,const,const</span><br><span class="line">rows          | 1</span><br><span class="line">filtered      | 100.0</span><br><span class="line">Extra         | &lt;null&gt;</span><br></pre></td></tr></table></figure></li>
-</ul>
-<p>这里的 type 为 ref, <strong>ref 表示使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录</strong>，常出现在关联查询中</p>
-<ul>
-<li><p><strong>匹配索引最左前缀</strong><br>  查找所有姓为 <code>Allen</code> 的人，例如 <code>explain select * from People where last_name=&#39;Cuba&#39;\G;</code><br>output:</p>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure></li>
-<li><p><strong>匹配列前缀</strong><br>  查找只<strong>匹配某一列的值的开头部分</strong>，只使用到了索引的第一列。<br>例如 <code>explain select * from People where last_name like &#39;C%&#39;\G;</code></p>
-</li>
-</ul>
-<p>output:</p>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-
-<p>这里的 type 为 range, key 为 last_name, <strong>range 表示索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</strong></p>
-<ul>
-<li><p>匹配范围值<br>  可用于查找姓在 <code>Angelina</code> 和 <code>Julla</code> 之间的人<br>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name between &#x27;Angelina&#x27; and &#x27;Julla&#x27;;</span><br></pre></td></tr></table></figure>
-<p>output:</p>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 3</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using where; Using index</span></span><br></pre></td></tr></table></figure>
-<p>这里 key 使用为 last_name, type 为 range 范围查询。</p>
-</li>
-<li><p><strong>精确匹配某一列并范围匹配另一列, 即第一列全匹配，第二列 first_name 范围匹配</strong><br>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name between &#x27;Allen&#x27; and &#x27;zxxx&#x27;;</span><br></pre></td></tr></table></figure>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 104</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-<p>这里索引用到了 last_name, type 为 range 范围查询。</p>
-</li>
-<li><p><strong>只访问索引的查询</strong><br>B-Tree 通常可以支持 “只访问索引的查询”，即查询只需要访问索引，无需访问数据行。<br>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name=&#x27;Allen&#x27;;</span><br></pre></td></tr></table></figure></li>
-<li><p>索引也可以用到 order by 排序操作，order by 子句满足前面列出的几种查询类型。</p>
-</li>
-</ul>
-<h2 id="B-Tree-索引的限制"><a href="#B-Tree-索引的限制" class="headerlink" title="B-Tree 索引的限制"></a>B-Tree 索引的限制</h2><ul>
-<li><strong>需要满足最左原则</strong>，即若不是按照索引的最左列开始查找的话，无法使用索引；<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where first_name=&#x27;Allen&#x27;\G;</span><br><span class="line"></span><br><span class="line">explain select * from People</span><br><span class="line">where dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
-output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ALL</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key<span class="emphasis">_len       | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 7</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using where</span></span><br></pre></td></tr></table></figure></li>
-<li>不能跳过索引中的列。例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
-output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-这样只是使用到了索引 <code>last_name</code>，<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure></li>
-</ul>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | const,const,const</span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
-<p>通过 ref 的 <code>const, const, const</code> 可以知道，前者只用到了 <code>last_name</code> index，而后者都用到了<br>这里可以看到 type 类型为 ALL 表示全表扫描；</p>
-<ul>
-<li>若查询中有<strong>某个列的范围查询，则右边所有列都无法使用索引优化查找</strong>。<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name like &#x27;A%&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
-output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-<h1 id="索引的优点"><a href="#索引的优点" class="headerlink" title="索引的优点"></a>索引的优点</h1></li>
-<li><strong>索引大大减少了服务器需要扫描的数据量</strong></li>
-<li><strong>索引可以帮助服务器避免排序和临时表</strong></li>
-<li>索引可以将随机 I/O 变为顺序 I/O</li>
-<li>索引对于 InnoDB (对索引支持行级锁) 非常重要，因为它可以让查询锁更少的元祖。<br>在 MySQL 5.1 和更新的版本中，InnoDB 可以在服务器端过滤掉行后就释放锁，但在早期的 MySQL 版本中，InnoDB 直到事务提交时才会解锁。对不需要的元组的加锁，会增加锁的开销，降低并发性。<br>InnoDB 仅对需要访问的元组加锁，而<strong>索引能够减少 InnoDB 访问的元组数</strong>。但是只有在存储引擎层过滤掉那些不需要的数据才能达到这种目的。</li>
-<li>关于 InnoDB、索引和锁：InnoDB在二级索引上使用共享锁（读锁），但是访问主键索引需要排他锁（写锁）</li>
-</ul>
-<h1 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h1><ul>
-<li><strong>由于索引的存在，在进行`INSERT、UPDATE、DELETE 时，需要进行数据的更新修改，会降低更新表的速度</strong>。MySQL 不仅要保存数据，还要保存索引文件。</li>
-<li><strong>建立索引会占用磁盘空间的索引文件。当数据量比较大的表及组合索引较多时，索引文件会膨胀的很快</strong></li>
-<li>如果某个数据列包含许多重复的内容，建立索引就没有实际效果。</li>
-<li>对于数据量非常小的表，全表扫描更高效。</li>
-</ul>
-<p>综上：建立一个<code>好</code>的索引是非常考究的，需要根据业务和实际场景不断的优化。</p>
-<h1 id="索引的使用"><a href="#索引的使用" class="headerlink" title="索引的使用"></a>索引的使用</h1><h2 id="普通索引"><a href="#普通索引" class="headerlink" title="普通索引"></a>普通索引</h2><p>这类索引是最基本的索引，普通索引的唯一任务就是加快对数据的访问速度。<br>这类索引应该只为最经常出现在查询条件（where column = ）或 排序条件（order by column）中的数据列创建索引。</p>
-<ul>
-<li>创建<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE table_name ADD INDEX index_name (column)</span><br></pre></td></tr></table></figure>
-<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2>普通索引允许被索引的数据列包含重复的值，而唯一索引列的值必须唯一，但允许有空值如果是组合索引，则列值的组合必须唯一</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE UNIQUE INDEX idx_xxx ON my_table (column)</span><br></pre></td></tr></table></figure>
-
-<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>它是一种特殊的唯一索引，不允许有空值。一个表只能有一个主键。</p>
-<p>一般在创建主键的时候，会同时创建。</p>
-<h2 id="组合索引"><a href="#组合索引" class="headerlink" title="组合索引"></a>组合索引</h2><p>组合索引也可称为联合索引，为表的多个列创建索引；<br>为了进一步榨取 MySQL 的效率，就要考虑建立组合索引。</p>
-<p>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE my_table ADD INDEX idx_name_city_age (name, city, age)</span><br></pre></td></tr></table></figure>
-<p>建立这样的组合索引，其实是相当于分别建立了下面三组组合索引：<br><code>username, city, age</code><br><code>username, city</code><br><code>username</code></p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>「 高性能的索引 」</p>
-]]></content>
-      <categories>
-        <category>MySQL</category>
-      </categories>
-      <tags>
-        <tag>MySQL</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>聊一聊 MySQL 事务</title>
     <url>/posts/26a608fc/</url>
     <content><![CDATA[<h1 id="InnoDB-Architecture"><a href="#InnoDB-Architecture" class="headerlink" title="InnoDB Architecture"></a>InnoDB Architecture</h1><blockquote>
@@ -789,6 +628,167 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <li>幻读（Phantom Read）:<br><strong>一个事务的两次查询中夹杂着插入事务的操作，数据量不一致</strong></li>
 </ul>
 <h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>理解事务的特性，原子性，一致性，持久性，隔离性，可以在使用中，更好的定位到问题，更好的设计业务系统。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL 索引总结 -</title>
+    <url>/posts/6e16c56e/</url>
+    <content><![CDATA[<h1 id="什么是-索引？"><a href="#什么是-索引？" class="headerlink" title="什么是 索引？"></a>什么是 <strong>索引</strong>？</h1><p><strong>索引（ MySQL 中也叫做<code>键(key)</code>）</strong> 是<strong>存储引擎</strong>用于<strong>快速找到记录</strong>的一种<strong>数据结构</strong>。本文主要学习的是基于 InnoDB 存储引擎。<br>索引对于良好的性能非常关键，对于较大的数据量来说，索引的创建愈发重要。</p>
+<h1 id="索引的类型"><a href="#索引的类型" class="headerlink" title="索引的类型"></a>索引的类型</h1><blockquote>
+<p>索引有很多种类型，可以为不同的场景提供更好的性能。</p>
+</blockquote>
+<h2 id="从存储结构上分"><a href="#从存储结构上分" class="headerlink" title="从存储结构上分"></a>从存储结构上分</h2><ul>
+<li>Btree 索引 （B+tree、B-tree）</li>
+<li>哈希索引</li>
+<li>full-index 全文索引</li>
+<li>RTree</li>
+</ul>
+<h2 id="从应用层次上划分"><a href="#从应用层次上划分" class="headerlink" title="从应用层次上划分"></a>从应用层次上划分</h2><ul>
+<li>普通索引：即一个索引只包含单个列，一个表可以有多个单列索引</li>
+<li>唯一索引：索引列的值必须唯一，但允许有空值</li>
+<li>复合索引：一个索引包含多个列</li>
+</ul>
+<h2 id="从表记录的存储形式上来划分"><a href="#从表记录的存储形式上来划分" class="headerlink" title="从表记录的存储形式上来划分"></a>从表记录的存储形式上来划分</h2><ul>
+<li>聚簇索引：表记录的排列顺序和索引的排列顺序一致</li>
+<li>非聚簇索引：表记录的排列顺序和索引的排列顺序不一致</li>
+</ul>
+<h1 id="聚簇索引和非聚簇索引"><a href="#聚簇索引和非聚簇索引" class="headerlink" title="聚簇索引和非聚簇索引"></a>聚簇索引和非聚簇索引</h1><blockquote>
+<p>在 InnoDB 中，表数据文件本身就是按照 B+Tree 组织的一个索引结构。<br>聚簇索引就是按照每张表的主键构造一颗 B+ 树，同时叶子节点中存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。<br>一般建表会用一个自增主键做聚簇索引，没有的话 MySQL 会默认创建<br>在日常的开发任务中，根据实际情况自行添加的索引都是辅助索引，辅助索引就是一个为了需要找主键索引的二级索引，先找到主键索引再通过主键索引找到数据。</p>
+</blockquote>
+<h2 id="聚簇索引"><a href="#聚簇索引" class="headerlink" title="聚簇索引"></a>聚簇索引</h2><blockquote>
+<p>聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。</p>
+</blockquote>
+<p>聚簇索引就是按照每张表的主键构建一颗 B+ 树，同时叶子节点存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。这个特性决定了索引组织表中的数据也是索引的一部分，每张表只能拥有一个聚簇索引。<br><img src="../../images/mysql/%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95.png" alt="direct"></p>
+<h2 id="聚簇索引的优点"><a href="#聚簇索引的优点" class="headerlink" title="聚簇索引的优点"></a>聚簇索引的优点</h2><ul>
+<li>数据访问更快，因为**聚簇索引是将索引和数据保存在同一个 B+ 树中，因此从聚簇索引中获取数据比非聚簇索引更快。</li>
+<li>聚簇索引对于主键的排序查找和范围查找速度更快。</li>
+<li>使用覆盖索引扫描的查询可以直接使用页节点中的主键值</li>
+</ul>
+<h2 id="聚簇索引的缺点"><a href="#聚簇索引的缺点" class="headerlink" title="聚簇索引的缺点"></a>聚簇索引的缺点</h2><ul>
+<li></li>
+<li>插入速度严重依赖插入顺序，按照主键的顺序插入是最快的方式。一般定义一个自增的 ID 列作为主键，但是如果不是按照主键顺序加载数据，那么在jia</li>
+<li>更新主键的代价很高，因为将会导致被更新的行移动，一般对于 InnoDB 表，定义主键不可更新</li>
+<li>二级索引访问需要两次索引查找，第一次找到主键值，第二次根据主键值找到行数据。</li>
+</ul>
+<h1 id="非聚簇索引"><a href="#非聚簇索引" class="headerlink" title="非聚簇索引"></a>非聚簇索引</h1><p>在聚簇索引之上创建的索引称之为辅助索引，辅助索引访问数据总是需要二次查找。辅助索引叶子节点存放的不再是行的物理位置，而是主键值。<br>通过辅助索引找到主键值，再通过主键值找到数据行的数据页，再通过数据页中的 Page Directory 找到数据行。</p>
+<p>InnoDB 辅助索引的叶子节点并不包含行记录的全部数据，叶子节点包含键值外，还包含了相应行数据的聚簇索引键。</p>
+<h2 id="B-Tree-索引"><a href="#B-Tree-索引" class="headerlink" title="B-Tree 索引"></a>B-Tree 索引</h2><blockquote>
+<p>特点：<strong>每一个叶子节点都包含指向下一个叶子节点的指针</strong>，从而方便叶子节点的范围遍历</p>
+</blockquote>
+<p>B-Tree 通常意味着所有的值都是按照顺序存储的，并且每一个叶子页到根的距离相同。<br><img src="../../images/mysql/B+Tree%E7%B4%A2%E5%BC%95.png" alt="img.png"></p>
+<h2 id="B-Tree-索引检索数据的原理"><a href="#B-Tree-索引检索数据的原理" class="headerlink" title="B-Tree 索引检索数据的原理"></a>B-Tree 索引检索数据的原理</h2><p>存储引擎不再需要进行全表扫描来获取需要的数据，取而代之的是<strong>从索引的根节点开始进行搜索</strong>。<br>根节点的槽中存放了指向子节点的指针，存储引擎根据这些指针向下层查找。这些指针<strong>实际上定义了子节点页中值的上限和下限</strong>，通过比较<strong>节点页中的值和要查找的值</strong>可以找到合适的指针进入下层子节点。<br>最终存储引擎的查找只会有两种情况：<strong>1. 找到对应的值。2. 记录不存在。</strong></p>
+<p><strong>叶子节点指针指向的是被索引的数据，而不是其他节点页。</strong></p>
+<p>树的深度和表的大小直接相关</p>
+<p>B-Tree 对索引列是顺序组织存储的，所以很适合查找范围数据。</p>
+<p>B-Tree 索引适用于<strong>全值键、键值范围或键前缀</strong>查找。键前缀查找只适用于最左前缀查找</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE People (</span><br><span class="line">    last_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;姓&#x27;,</span><br><span class="line">    first_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;名&#x27;,</span><br><span class="line">    dob date not null DEFAULT &#x27;&#x27; comment &#x27;出生日期&#x27;,</span><br><span class="line">    gender enum(0, 1) not null comment &#x27;&#x27;,</span><br><span class="line">    key(last_name, first_name, dob)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">INSERT INTO People values (&#x27;Cuba&#x27;, &#x27;Allen&#x27;, &#x27;1960-01-01&#x27;),</span><br><span class="line">(&#x27;Angelina&#x27;, &#x27;Astaire&#x27;, &#x27;1980-03-04&#x27;),</span><br><span class="line">(&#x27;Julla&#x27;, &#x27;Barrymore&#x27;, &#x27;2000-05-16&#x27;),</span><br><span class="line">(&#x27;Christian&#x27;, &#x27;Akroyd&#x27;, &#x27;1958-12-07&#x27;),</span><br><span class="line">(&#x27;Akroyd&#x27;, &#x27;Klrsten&#x27;, &#x27;1978-11-02&#x27;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="../../images/mysql/BTree%E5%8F%B6%E5%AD%90%E7%BB%93%E7%82%B9.png" alt="direct"></p>
+<h2 id="B-Tree-索引的查询类型"><a href="#B-Tree-索引的查询类型" class="headerlink" title="B-Tree 索引的查询类型"></a>B-Tree 索引的查询类型</h2><blockquote>
+<p>explain 分析 SQL 的执行计划<br>需要重点关注 type、rows、filtered、extra。<br>type 由上至下，效率越来越高</p>
+<ul>
+<li>ALL 全表扫描</li>
+<li>index 索引全扫描</li>
+<li>range 索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</li>
+<li>ref 使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录，常出现在关联查询中</li>
+<li>eq_ref 类似 ref,区别在于使用的是唯一索引，使用主键的关联查询</li>
+<li>const/system 单条记录，系统会把匹配行中的其它列作为常数处理，如主键或唯一索引查询</li>
+<li>null MySQL 不访问任何表或索引，直接返回结果</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>虽然上至下，效率越来越高，但是根据cost模型，假设有两个索引<code>idx1(a, b, c)</code>,<code>idx2(a, c)</code>，SQL为<code>select * from t where a = 1 and b in (1, 2) order by c;</code>如果走idx1，那么是type为range，如果走idx2，那么type是ref；当需要扫描的行数，使用idx2大约是idx1的5倍以上时，会用idx1，否则会用idx2</p>
+</blockquote>
+<blockquote>
+<p><strong>Extra</strong></p>
+</blockquote>
+<blockquote>
+<ul>
+<li>Using filesort：MySQL需要额外的一次传递，以找出如何按排序顺序检索行。通过根据联接类型浏览所有行并为所有匹配WHERE子句的行保存排序关键字和行的指针来完成排序。然后关键字被排序，并按排序顺序检索行。</li>
+<li><strong>Using temporary：使用了临时表保存中间结果，性能特别差，需要重点优化</strong></li>
+<li>Using index：表示相应的 select 操作中使用了覆盖索引（Coveing Index）,避免访问了表的数据行，效率不错！如果同时出现 using where，意味着无法直接通过索引查找来查询到符合条件的数据。</li>
+<li>Using index condition：MySQL5.6之后新增的ICP，using index condtion就是使用了ICP（索引下推），在存储引擎层进行数据过滤，而不是在服务层过滤，利用索引现有的数据减少回表的数据。</li>
+</ul>
+</blockquote>
+<ul>
+<li><strong>全值匹配</strong><pre><code>**全值匹配指的是和索引中所有列进行匹配**
+</code></pre>
+例如:<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br><span class="line">```  </span><br><span class="line">output:</span><br><span class="line">```markdown</span><br><span class="line">id            | 1</span><br><span class="line">select_type   | SIMPLE</span><br><span class="line">table         | People</span><br><span class="line">partitions    | &lt;null&gt;</span><br><span class="line">type          | ref</span><br><span class="line">possible_keys | last_name</span><br><span class="line">key           | last_name</span><br><span class="line">key_len       | 107</span><br><span class="line">ref           | const,const,const</span><br><span class="line">rows          | 1</span><br><span class="line">filtered      | 100.0</span><br><span class="line">Extra         | &lt;null&gt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>这里的 type 为 ref, <strong>ref 表示使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录</strong>，常出现在关联查询中</p>
+<ul>
+<li><p><strong>匹配索引最左前缀</strong><br>  查找所有姓为 <code>Allen</code> 的人，例如 <code>explain select * from People where last_name=&#39;Cuba&#39;\G;</code><br>output:</p>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure></li>
+<li><p><strong>匹配列前缀</strong><br>  查找只<strong>匹配某一列的值的开头部分</strong>，只使用到了索引的第一列。<br>例如 <code>explain select * from People where last_name like &#39;C%&#39;\G;</code></p>
+</li>
+</ul>
+<p>output:</p>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+
+<p>这里的 type 为 range, key 为 last_name, <strong>range 表示索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</strong></p>
+<ul>
+<li><p>匹配范围值<br>  可用于查找姓在 <code>Angelina</code> 和 <code>Julla</code> 之间的人<br>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name between &#x27;Angelina&#x27; and &#x27;Julla&#x27;;</span><br></pre></td></tr></table></figure>
+<p>output:</p>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 3</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using where; Using index</span></span><br></pre></td></tr></table></figure>
+<p>这里 key 使用为 last_name, type 为 range 范围查询。</p>
+</li>
+<li><p><strong>精确匹配某一列并范围匹配另一列, 即第一列全匹配，第二列 first_name 范围匹配</strong><br>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name between &#x27;Allen&#x27; and &#x27;zxxx&#x27;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 104</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+<p>这里索引用到了 last_name, type 为 range 范围查询。</p>
+</li>
+<li><p><strong>只访问索引的查询</strong><br>B-Tree 通常可以支持 “只访问索引的查询”，即查询只需要访问索引，无需访问数据行。<br>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name=&#x27;Allen&#x27;;</span><br></pre></td></tr></table></figure></li>
+<li><p>索引也可以用到 order by 排序操作，order by 子句满足前面列出的几种查询类型。</p>
+</li>
+</ul>
+<h2 id="B-Tree-索引的限制"><a href="#B-Tree-索引的限制" class="headerlink" title="B-Tree 索引的限制"></a>B-Tree 索引的限制</h2><ul>
+<li><strong>需要满足最左原则</strong>，即若不是按照索引的最左列开始查找的话，无法使用索引；<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where first_name=&#x27;Allen&#x27;\G;</span><br><span class="line"></span><br><span class="line">explain select * from People</span><br><span class="line">where dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
+output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ALL</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key<span class="emphasis">_len       | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 7</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using where</span></span><br></pre></td></tr></table></figure></li>
+<li>不能跳过索引中的列。例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
+output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+这样只是使用到了索引 <code>last_name</code>，<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | const,const,const</span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
+<p>通过 ref 的 <code>const, const, const</code> 可以知道，前者只用到了 <code>last_name</code> index，而后者都用到了<br>这里可以看到 type 类型为 ALL 表示全表扫描；</p>
+<ul>
+<li>若查询中有<strong>某个列的范围查询，则右边所有列都无法使用索引优化查找</strong>。<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name like &#x27;A%&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
+output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+<h1 id="索引的优点"><a href="#索引的优点" class="headerlink" title="索引的优点"></a>索引的优点</h1></li>
+<li><strong>索引大大减少了服务器需要扫描的数据量</strong></li>
+<li><strong>索引可以帮助服务器避免排序和临时表</strong></li>
+<li>索引可以将随机 I/O 变为顺序 I/O</li>
+<li>索引对于 InnoDB (对索引支持行级锁) 非常重要，因为它可以让查询锁更少的元祖。<br>在 MySQL 5.1 和更新的版本中，InnoDB 可以在服务器端过滤掉行后就释放锁，但在早期的 MySQL 版本中，InnoDB 直到事务提交时才会解锁。对不需要的元组的加锁，会增加锁的开销，降低并发性。<br>InnoDB 仅对需要访问的元组加锁，而<strong>索引能够减少 InnoDB 访问的元组数</strong>。但是只有在存储引擎层过滤掉那些不需要的数据才能达到这种目的。</li>
+<li>关于 InnoDB、索引和锁：InnoDB在二级索引上使用共享锁（读锁），但是访问主键索引需要排他锁（写锁）</li>
+</ul>
+<h1 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h1><ul>
+<li><strong>由于索引的存在，在进行`INSERT、UPDATE、DELETE 时，需要进行数据的更新修改，会降低更新表的速度</strong>。MySQL 不仅要保存数据，还要保存索引文件。</li>
+<li><strong>建立索引会占用磁盘空间的索引文件。当数据量比较大的表及组合索引较多时，索引文件会膨胀的很快</strong></li>
+<li>如果某个数据列包含许多重复的内容，建立索引就没有实际效果。</li>
+<li>对于数据量非常小的表，全表扫描更高效。</li>
+</ul>
+<p>综上：建立一个<code>好</code>的索引是非常考究的，需要根据业务和实际场景不断的优化。</p>
+<h1 id="索引的使用"><a href="#索引的使用" class="headerlink" title="索引的使用"></a>索引的使用</h1><h2 id="普通索引"><a href="#普通索引" class="headerlink" title="普通索引"></a>普通索引</h2><p>这类索引是最基本的索引，普通索引的唯一任务就是加快对数据的访问速度。<br>这类索引应该只为最经常出现在查询条件（where column = ）或 排序条件（order by column）中的数据列创建索引。</p>
+<ul>
+<li>创建<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE table_name ADD INDEX index_name (column)</span><br></pre></td></tr></table></figure>
+<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2>普通索引允许被索引的数据列包含重复的值，而唯一索引列的值必须唯一，但允许有空值如果是组合索引，则列值的组合必须唯一</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE UNIQUE INDEX idx_xxx ON my_table (column)</span><br></pre></td></tr></table></figure>
+
+<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>它是一种特殊的唯一索引，不允许有空值。一个表只能有一个主键。</p>
+<p>一般在创建主键的时候，会同时创建。</p>
+<h2 id="组合索引"><a href="#组合索引" class="headerlink" title="组合索引"></a>组合索引</h2><p>组合索引也可称为联合索引，为表的多个列创建索引；<br>为了进一步榨取 MySQL 的效率，就要考虑建立组合索引。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE my_table ADD INDEX idx_name_city_age (name, city, age)</span><br></pre></td></tr></table></figure>
+<p>建立这样的组合索引，其实是相当于分别建立了下面三组组合索引：<br><code>username, city, age</code><br><code>username, city</code><br><code>username</code></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>「 高性能的索引 」</p>
 ]]></content>
       <categories>
         <category>MySQL</category>
@@ -973,8 +973,8 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
         <category>redis</category>
       </categories>
       <tags>
-        <tag>Redis</tag>
         <tag>MySQL</tag>
+        <tag>Redis</tag>
       </tags>
   </entry>
   <entry>
@@ -1235,6 +1235,161 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </categories>
       <tags>
         <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis 高可用方案</title>
+    <url>/posts/7c68620a/</url>
+    <content><![CDATA[<h1 id="Redis-高可用方案"><a href="#Redis-高可用方案" class="headerlink" title="Redis 高可用方案"></a>Redis 高可用方案</h1><p>Redis 高可用方式主要有以下四种：</p>
+<ul>
+<li><strong>数据持久化</strong></li>
+<li><strong>主从数据同步（主从复制）</strong></li>
+<li><strong>Redis 哨兵模式 (Sentinel)</strong></li>
+<li><strong>Redis 集群（Cluster）</strong></li>
+</ul>
+<p>数据持久化保证系统在发生宕机或者重启之后数据不会丢失，增加了系统的可靠性和减少了系统不可用的时间（省去了手动恢复数据的过程）；<br>主从数据同步可以将数据存储至多台服务器，这样当遇到一台服务器宕机之后，可以很快地切换到另一台服务器以继续提供服务；<br>哨兵模式发生故障之后自动切换主服务器；<br>Redis 集群提供多主多从的 Redis 分布式集群环境，用于提供性能更好的 Redis 服务，并且它自身拥有故障自动切换的能力。</p>
+<h2 id="数据持久化"><a href="#数据持久化" class="headerlink" title="数据持久化"></a>数据持久化</h2><p>Redis 4.0 之前数据持久化方式有两种：<strong>AOF 方式和 RDB 方式。</strong></p>
+<h3 id="RDB"><a href="#RDB" class="headerlink" title="RDB"></a>RDB</h3><p>RDB (Redis Database, 快照方式) 按照<code>一定的时间周期</code> 策略把内存的数据以<code>快照(snapshot)</code>的方式保存到硬盘的二进制文件中。<br>即：snapshot 快照存储，对应产生数据文件为 <code>dump.db</code>，通过配置文件中的 <code>save</code> 参数来定义快照的周期。<br>核心函数：<code>rdbSave</code>(生成 RDB 文件) 和 <code>rdbLoad</code>（从文件加载内存）两个函数。</p>
+<p><strong>优点：是以二进制存储的，占用空间更小、数据存储更紧凑，并且与 AOF 相比，RDB 具备更快的重启恢复能力。</strong></p>
+<h3 id="AOF"><a href="#AOF" class="headerlink" title="AOF"></a>AOF</h3><p>AOF 是 (append only file) 的缩写。Redis 会将每一个收到的写命令都通过 <code>Write</code> 函数追加到文件最后，类似于 MySQL 的 binlog.<br>当 Redis 重启时，就会从 <code>appendlonly.aof</code> 中加载命令来重建整个 Redis 数据库。<br>每当执行服务器函数或函数时，<code>flushAppendOnlyFile</code> 函数都会被调用，这个函数执行两个工作：</p>
+<ul>
+<li>WRITE<br>根据条件，将 <code>aof_buf</code> 中的缓存写入 AOF 文件中；</li>
+<li>SAVE<br>根据条件，调用 <code>fsync</code> 或 <code>fdatasync</code> 函数，将 AOF 文件保存到磁盘中</li>
+</ul>
+<p>总结：</p>
+<ul>
+<li>RDB 占用空间更小、占用空间小，具备更快的重启恢复能力。</li>
+<li>AOF 存储频率更高，数据丢失的风险越低，招用空间大，重启速度较慢。</li>
+<li>也可以使用混合持久化功能，通过<code>config get aof-use-rdb-preamble</code> 的命令来查询 Redis 混合持久化的功能是否开启。</li>
+</ul>
+<h2 id="Redis-主从同步"><a href="#Redis-主从同步" class="headerlink" title="Redis 主从同步"></a>Redis 主从同步</h2><p>在 Redis 集群环境中，对于主机器和从机器数据一致的操作，就需要主从同步，也叫 application，来同步主节点的数据。</p>
+<p>Redis 主从同步分为：<strong>主从模式</strong> 和 <strong>从从模式</strong></p>
+<h3 id="主从复制的三种机制"><a href="#主从复制的三种机制" class="headerlink" title="主从复制的三种机制"></a>主从复制的三种机制</h3><ul>
+<li><ol>
+<li>主从节点连接正常时，主设备会发送一连串的数据流来保持对 <code>slave</code> 的更新：包括客户端的写入，key 的过期或被逐出等待。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>当 master 和 slave 之间的连接断开之后（网络原因、连接超时等），slave 重新连接 master 会尝试进行部分重同步：<strong>尝试获取在断开连接期间丢失的命令流</strong></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>当第二步中无法进行部分重同步，<strong>slave 会进行全量同步</strong></li>
+</ol>
+</li>
+</ul>
+<p>Redis 使用的默认是<strong>异步复制</strong>，其特点是<code>低延迟</code>和<code>高性能</code>。</p>
+<h2 id="Redis-哨兵模式"><a href="#Redis-哨兵模式" class="headerlink" title="Redis 哨兵模式"></a>Redis 哨兵模式</h2><p>Redis 哨兵模式是用来监视 Redis 主从服务器的，当 Redis 的主从服务器发生故障之后，Redis 哨兵提供了自动容灾修复的功能。<br>Redis 哨兵模块存储在 Redis 的 src/redis-sentinel 目录。我们可以使用命令<code>./src/redis-sentinel sentinel.conf</code> 来启动哨兵功能。</p>
+<p>Redis Sentinel 是社区版本推出的原生高可用解决方案，其部署架构主要包括两部分：<strong>Redis Sentinel 集群</strong>和 <strong>Redis 数据集群</strong>。</p>
+<p>其中 Redis Sentinel 集群是由若干个 Sentinel 节点组成的分布式集群，可以实现</p>
+<ul>
+<li><strong>故障发现</strong></li>
+<li><strong>故障自动转移</strong></li>
+<li><strong>配置中心</strong></li>
+<li><strong>客户端通知</strong></li>
+</ul>
+<p>Redis Sentinel 的节点数量要满足 <code>2n+1</code> 的奇数个。<br>哨兵的工作主要是：</p>
+<ul>
+<li>监控</li>
+<li>故障检测</li>
+<li>故障转移</li>
+<li>sentinel leader</li>
+<li>master 重选</li>
+</ul>
+<h3 id="哨兵（Sentinel）工作方式"><a href="#哨兵（Sentinel）工作方式" class="headerlink" title="哨兵（Sentinel）工作方式"></a>哨兵（Sentinel）工作方式</h3><ul>
+<li><ol>
+<li>每个 Sentinel 以每秒钟一次的频率向它管理的 master, slave 以及其他 Sentinel 实例发送一个 PING 命令。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>如果一个节点距离最后一次有效回复 PING 命令的时间超过 <code>own-after-milliseconds</code> 选项所指定的值，则这个实例会被<code>Sentinel</code>标记为主观下线。</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>若一个 master 节点被标记为主观下线，则正在监视这个 master 的所有 Sentinel 要以每秒一次的频率确认 master 是否进入了主观下线的状态</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>当有足够数量的 Sentinel (大于等于配置文件指定的值) 在指定的时间范围内确认 master 的确进入了主观下线状态，则 master 会被标记为客观下线。</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>在一般情况下，每个 Sentinel 会以 10 s 一次的频率向它已知的所有 master, slave 发送 INFO 命令。</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>当 master 被 Sentinel 标记为客观下线时，sentinel 向下线的 master 的所有 slave 发送 INFO 命令的频率会从 10s/次改为 1s/次</li>
+</ol>
+</li>
+</ul>
+<h4 id="故障检测"><a href="#故障检测" class="headerlink" title="故障检测"></a>故障检测</h4><ul>
+<li>主观下线(Subjective Down, SDOWN): 是指一个哨兵通过检测发现某个主节点发生故障的一种状态。</li>
+<li>客观下线(Objective Down, ODOWN): 是指哨兵检测到某个主节点发生故障，通过命令 SENTINEL <code>is-master-down-by-addr</code> 与其他哨兵节点协商，并且在指定时间内接收到指定数量的其他哨兵的确认反馈时的一种状态。</li>
+</ul>
+<p><strong>主观下线表示哨兵通过检测发现节点宕机，客观下线表示哨兵不但自己认为该节点宕机，而且该哨兵与其他节点沟通后，达到一定数量的哨兵都认为节点宕机了。</strong></p>
+<h4 id="故障转移"><a href="#故障转移" class="headerlink" title="故障转移"></a>故障转移</h4><p>Sentinel 判定主节点客观宕机（ODOWN）后，将进入故障转移过程。</p>
+<p>进入故障转移的前提是：<strong>主节点为客观宕机状态</strong>，当前<strong>没有故障转移在执行、上次故障转移已经超时</strong>。Sentinel 确认可以执行故障转移后，会进行以下几项准备工作：</p>
+<ul>
+<li>故障转移等待开始；<br>设置 failover_state: SENTINEL_FAILOVER_STATE_WAIT_START </li>
+<li>主节点处于故障转移过程中<br>设置当前主节点标识位：SRI_FAILOVER_IN_PROGRESS （主节点处于故障转移过程中）</li>
+<li>记录故障转移开始时间以及 failover_state 状态修改时间；</li>
+</ul>
+<h4 id="Sentinel-故障转移-Leader-选举"><a href="#Sentinel-故障转移-Leader-选举" class="headerlink" title="Sentinel 故障转移 Leader 选举"></a>Sentinel 故障转移 Leader 选举</h4><p><strong>当一个主节点被判断为客观下线时，监控这个主节点的所有 Sentinel 会进行协商，选举一个 Leader 对下线的主节点执行故障转移操作。</strong><br>Sentinel 需要在集群内进行”拉票”，”拉票” 的依据就是配置 quorum 以及 “拉票”的时间。</p>
+<ul>
+<li><strong>配置 quorum 越大，优先级越高；</strong></li>
+<li><strong>“拉票” 请求时间越早，优先级越高；</strong></li>
+</ul>
+<p>“投票”完成后就到了”唱票”环节，该过程是在 <code>SENTINEL_FAILOVER_STATE_WAIT_START</code> 状态下执行的。</p>
+<p>Redis 使用了 Raft 算法实现领导者选举，大体思路：</p>
+<ul>
+<li>每个在线的 Sentinel 节点都有资格成为 Leader, 每个 Sentinel 节点发现当它确认主节点客观下线检查的时候，会向其他 Sentinel 节点发送<br><code>sentinel is-master-down-by-addr</code> 命令，要求将自己设置为<code>leader</code></li>
+<li>每个节点在每个选举轮次中只有一次投票权，接收到命令的 Sentinel 节点，如果没有同意过其他 Sentinel 节点的 <code>sentinel is-master-down-by-addr</code> 命令，<br>将同意该请求，否则拒绝</li>
+<li>如果该 Sentinel 节点发现自己的票数已经大于等于 max (quorum, num(sentinels)/ 2 + 1),那么它将成为领导者。其他的投票就会终止，即使后续还有其他的哨兵节点到达配置，也没有作用</li>
+<li>如果此过程中没有产生领导者，暂停一段时间，再进行下一轮选举，current_epoch 加 1<br>合理部署 Sentinel 的节点的个数，以及配置 sentinel 选举的法定人数<ol>
+<li>sentinel 节点个数最好 &gt;= 3.</li>
+<li>sentinel 节点个数最好是奇数.</li>
+<li>sentinel 的选举法定人数设置为 （n/2 + 1）</li>
+</ol>
+</li>
+</ul>
+<p>配置</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> sentinel.conf</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> sentinel monitor &lt;master-name&gt; &lt;ip&gt; &lt;redis-port&gt; &lt;quorum&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>quorum</code> 是<strong>法定人数</strong>。作用：多个 sentinel 进行相互选举，有超过<strong>法定人数</strong>的 sentinel 选举某个 sentinel 为 leader,那么他就成为 leader,<br>leader 负责故障转移。这个法定人数，一般配置为 （n/2 + 1）较为合理</p>
+<h4 id="新主节点的选举"><a href="#新主节点的选举" class="headerlink" title="新主节点的选举"></a>新主节点的选举</h4><p><strong>当主节点客观下线时，Sentinel Leader 会从该主节点存活的从节点中选出一个新的主节点。</strong><br>首先，过滤掉相关从节点：</p>
+<ul>
+<li>主观下线的或者处于断线状态的从节点；</li>
+<li>最近 5s 内未回复过 Sentinel Leader INFO 命令的从节点；</li>
+<li>从节点的优先级为 0 的从节点，由配置项 replica-priority 决定；</li>
+<li>与主节点断开连接超过 10 倍 <code>down-after-milliseconds</code> 的从节点；</li>
+</ul>
+<p>当 Sentinel 集群选举出 Sentinel Leader 后，由 Sentinel Leader 从 redis 从节点中选择一个 redis 节点作为主节点：</p>
+<ul>
+<li><ol>
+<li>过滤故障的节点</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>选择优先级 <code>slave-priority</code> 最大的从节点作为主节点，如不存在则继续</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>选择复制偏移量最大的从节点作为主节点，如不存在则继续</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>选择 runid（redis 每次启动的时候生成随机的 runid 作为 redis 的标识）最小的从节点作为主节点</li>
+</ol>
+</li>
+</ul>
+<h2 id="Redis-集群"><a href="#Redis-集群" class="headerlink" title="Redis 集群"></a>Redis 集群</h2><p>Redis 集群是 Redis 3.0 版本推出的 Redis 集群方案，将数据分布在不同的主服务器上，以此来降低系统对单主节点的依赖，并且可以大大提高 Redis 服务的读写性能。</p>
+<p>Redis 集群除了拥有主从模式 + 哨兵模式的所有功能之外，还提供了多个主从节点的集群功能，实现了真正意义上的分布式集群服务。<br>Redis 集群可以实现数据分片服务，也就是说在 Redis 集群中有 16384 个槽位来存储所有的数据，当我们有 N 个主节点时，可以把 16384 个槽位平均分配到 N 台主服务器上。<br>当有 key-value 存储时，Redis 会使用 crc16 算法进行 hash 得到一个整数值，然后用这个整数值对 16384进行取模来得到具体槽位，再把此值存储在对应的服务器上，读取操作也是同样的道理，这样我们就实现了数据分片的功能。</p>
+]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>Redis</tag>
       </tags>
   </entry>
   <entry>
@@ -1653,153 +1808,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>为什么使用链表&amp;&amp;实现</title>
-    <url>/posts/2c2cd033/</url>
-    <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>从一个经典的<strong>链表</strong>应用场景：<strong>LRU 缓存淘汰算法</strong>说开去。</p>
-</blockquote>
-<blockquote>
-<p><strong>缓存</strong>是为了解决高低速存储之间的差距而引入的技术。</p>
-</blockquote>
-<p>链表和数组对比：</p>
-<p><img src="https://static001.geekbang.org/resource/image/4f/68/4f63e92598ec2551069a0eef69db7168.jpg" alt="img"></p>
-<p>缓存的大小有限，当缓存被打满的时候，就需要<strong>清理或者保留某些数据</strong>，这一部分就需要缓存淘汰策略来决定。</p>
-<p><strong>常见的策略有三种:</strong></p>
-<ul>
-<li><strong>先进先出策略 FIFO (First In, First Out)</strong></li>
-<li><strong>最少使用策略（Least Frequently Used）</strong></li>
-<li><strong>最近最少使用策略（Least Recently Used）</strong></li>
-</ul>
-<p>这些策略就和我们清理房间采取的策略一致</p>
-<p>那么如何采用 <strong>链表</strong>，来实现 <strong>LRU缓存淘汰策略</strong>呢 ？</p>
-<h2 id="链表简介"><a href="#链表简介" class="headerlink" title="链表简介"></a>链表简介</h2><p>首先解释一个 <strong>链表</strong> 的数据结构</p>
-<blockquote>
-<p>与数组结构不同的是，<strong>链表不需要连续的内存空间来存储</strong>，<strong>它是通过<code>指针</code>将一组零散的内存块串联起来使用</strong>。</p>
-</blockquote>
-<p>用一张图直观的解释：</p>
-<p><img src="https://static001.geekbang.org/resource/image/d5/cd/d5d5bee4be28326ba3c28373808a62cd.jpg" alt="img"></p>
-<h3 id="单链表"><a href="#单链表" class="headerlink" title="单链表"></a>单链表</h3><p><img src="https://static001.geekbang.org/resource/image/b9/eb/b93e7ade9bb927baad1348d9a806ddeb.jpg" alt="img"></p>
-<p><strong>单链表</strong>是通过一个个<strong>节点（Node）</strong>组成的，每个节点包含了两个部分：</p>
-<ul>
-<li>存储数据的 <code>data</code></li>
-<li>存储指针的<code>next</code>, 用于指向下一个 node</li>
-</ul>
-<p>特点：</p>
-<ul>
-<li>数据的<strong>插入</strong>和<strong>删除</strong>非常迅速（无序）—— 时间复杂度 O(1)</li>
-<li>数据的<strong>查找</strong>时间复杂度是 O(n)</li>
-</ul>
-<p><img src="https://static001.geekbang.org/resource/image/45/17/452e943788bdeea462d364389bd08a17.jpg" alt="img"></p>
-<h3 id="单链表的实现"><a href="#单链表的实现" class="headerlink" title="单链表的实现"></a>单链表的实现</h3><ul>
-<li>查找 - find()</li>
-<li>删除 - remove()</li>
-<li>链表元素添加<ul>
-<li>头部添加元素 - add</li>
-<li>尾部添加元素 - append</li>
-<li>插入某个元素 - insert</li>
-</ul>
-</li>
-<li>链表元素展示 - traverse()</li>
-<li>链表长度 - <code> __len__</code></li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LinkedList</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    单链表的实现</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> -<span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            cur_data = cur.data</span><br><span class="line">            <span class="keyword">if</span> cur_data == data:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        pre = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> -<span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="keyword">if</span> cur == self.head:</span><br><span class="line">                    self.head = self.head.<span class="built_in">next</span></span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">                pre.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">            pre = cur</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        node.<span class="built_in">next</span> = self.head</span><br><span class="line">        self.head = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self.head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != <span class="literal">None</span>:</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">insert</span>(<span class="params">self, index, data</span>):</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span>:</span><br><span class="line">            self.add(data)</span><br><span class="line">        <span class="keyword">elif</span> index &gt; self.__len__():</span><br><span class="line">            self.append(data)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self.head</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(index -<span class="number">1</span>):</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            node = Node(data)</span><br><span class="line">            node.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">self</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> count</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    items = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]</span><br><span class="line">    chain = LinkedList()</span><br><span class="line">    <span class="keyword">for</span> value <span class="keyword">in</span> items:</span><br><span class="line">        node = Node(value)</span><br><span class="line">        chain.append(value)</span><br><span class="line"></span><br><span class="line">    chain.traverse()</span><br><span class="line"></span><br><span class="line">    chain.append(<span class="number">6</span>)</span><br><span class="line"></span><br><span class="line">    chain.traverse()</span><br><span class="line"></span><br><span class="line">    chain.remove(<span class="number">3</span>)</span><br><span class="line">    chain.remove(<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">    chain.traverse()</span><br><span class="line">    chain.insert(<span class="number">1</span>, <span class="number">100</span>)</span><br><span class="line">    chain.traverse()</span><br><span class="line">    <span class="built_in">print</span>(chain.find(<span class="number">5</span>), chain.find(<span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">len</span>(chain))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="循环链表"><a href="#循环链表" class="headerlink" title="循环链表"></a>循环链表</h3><blockquote>
-<p><strong>循环链表是一种特殊的单链表。它和单链表的唯一区别就是在尾节点</strong>。<br><strong>循环链表的尾结点指针指向链表的头节点。</strong></p>
-</blockquote>
-<p><img src="/images/linknode.png" alt="direct"><br>这种数据结构比较适合处理具有环形结构特点的数据。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">CircleLink</span>(<span class="params">SingleChain</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>(CircleLink, self).__init__()</span><br><span class="line">        self._head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            node.<span class="built_in">next</span> = node</span><br><span class="line">            self._head = node</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            self._head = node</span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            self._head = node</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">travel</span>(<span class="params">self</span>):</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;-**&#123;&#125;&quot;</span>.<span class="built_in">format</span>(cur.data), end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-**&#123;&#125;&quot;</span>.<span class="built_in">format</span>(cur.data), end=<span class="string">&#x27;&#x27;</span>)  <span class="comment"># 由于是 cur.next 判断的，故 cur 指向最后一个节点</span></span><br><span class="line">        <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        cur = self._head</span><br><span class="line">        index = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="keyword">return</span> index</span><br><span class="line">            index += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">if</span> cur.data == data:  <span class="comment"># 最后一个</span></span><br><span class="line">            <span class="keyword">return</span> self.__len__()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        <span class="keyword">if</span> cur.<span class="built_in">next</span> == self._head:</span><br><span class="line">            self._head = <span class="literal">None</span></span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        pre = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                pre.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            pre = cur</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 退出循环, cur指向尾结点</span></span><br><span class="line">        <span class="keyword">if</span> cur.data == data:</span><br><span class="line">            <span class="comment"># 链表中只有一个结点</span></span><br><span class="line">            pre.<span class="built_in">next</span> = self._head</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> count + <span class="number">1</span>  <span class="comment"># 未计算最后一个 Node</span></span><br></pre></td></tr></table></figure>
-
-
-<h2 id="双向链表"><a href="#双向链表" class="headerlink" title="双向链表"></a>双向链表</h2><blockquote>
-<p>双向链表，顾名思义，它支持两个方向，每个节点分为三个部分：</p>
-<ul>
-<li>prev</li>
-<li>data</li>
-<li>next</li>
-</ul>
-<p>双向链表可以支持 O(1) 时间复杂度的情况下找到前驱节点，双向链表在某些情况下的 插入、删除等操作都要比单链表简单、高效。</p>
-</blockquote>
-<h3 id="删除操作"><a href="#删除操作" class="headerlink" title="删除操作"></a>删除操作</h3><ul>
-<li><p>删除节点中“值等于某个给定值” 的节点</p>
-<p>对于这种情况，不管是单链表还是双链表，为了查找到值等于给定值的节点，都需要从头节点开始一个个依次遍历对比，找到后删除，时间复杂度为 O(n)</p>
-</li>
-<li><p>删除给定指针指向的节点</p>
-<p>对于单链表来说，删除指定的节点时，还需要知道前驱节点，那么就会存在遍历的操作，时间复杂度为 O(n)。</p>
-<p>对于双向链表来说，是存在 prev 指针的，那么时间复杂度相对于是 O(1)</p>
-</li>
-</ul>
-<h3 id="插入操作"><a href="#插入操作" class="headerlink" title="插入操作"></a>插入操作</h3><ul>
-<li>对于在某个节点前插入指定节点，时间复杂度是 O(1)</li>
-</ul>
-<h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>对于一个有序链表来说，双向链表可以通过记录上次查找的位置 pos，根据要查找的值与 p 的大小关系，决定是往前还是往后查找，平均时间复杂度为 O(log(n))</p>
-<p><img src="https://static001.geekbang.org/resource/image/cb/0b/cbc8ab20276e2f9312030c313a9ef70b.jpg" alt="img"></p>
-<h3 id="双向链表实现"><a href="#双向链表实现" class="headerlink" title="双向链表实现"></a>双向链表实现</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> chain.single_chain <span class="keyword">import</span> SingleChain</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 双向链表</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">XNode</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.prev = <span class="literal">None</span></span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 双向链表</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DoubleLink</span>(<span class="params">SingleChain</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>(DoubleLink, self).__init__()</span><br><span class="line">        self._head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = XNode(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self._head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            self._head.prev = node</span><br><span class="line">            self._head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = XNode(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self._head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">while</span> cur.<span class="built_in">next</span> <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line">            node.prev = cur</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">insert</span>(<span class="params">self, index, data</span>):</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span>:</span><br><span class="line">            self.add(data)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">elif</span> index &gt;= self.__len__():</span><br><span class="line">            self.append(data)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="comment"># status 1: 空</span></span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                self.add(data)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># status 2: 只有一个节点</span></span><br><span class="line">            <span class="keyword">if</span> cur.<span class="built_in">next</span> <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">if</span> index &lt;= <span class="number">0</span>:</span><br><span class="line">                    self.add(data)</span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line">                <span class="keyword">if</span> index &gt;= self.__len__():</span><br><span class="line">                    self.append(data)</span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># status 多个节点</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                count = <span class="number">0</span></span><br><span class="line">                node = XNode(data)</span><br><span class="line">                cur = self._head</span><br><span class="line">                <span class="keyword">while</span> count &lt; index:</span><br><span class="line">                    cur = cur.<span class="built_in">next</span></span><br><span class="line">                    count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">                node.<span class="built_in">next</span> = cur</span><br><span class="line">                node.prev = cur.prev</span><br><span class="line">                cur.prev.<span class="built_in">next</span> = node</span><br><span class="line">                cur.prev = node</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>链表包括：</p>
-<ul>
-<li>单向链表</li>
-<li>双向链表</li>
-<li>循环链表</li>
-</ul>
-<p>和数组相比，<strong>链表存储的数据是不连续的存储空间，数据之间采用指针引用方式连接。</strong><br>链表各适合插入、删除操作频繁的场景，查询的时间复杂度较高。</p>
-<h3 id="链表实现注意点"><a href="#链表实现注意点" class="headerlink" title="链表实现注意点"></a>链表实现注意点</h3><ul>
-<li><p>理解指针或引用含义</p>
-<blockquote>
-<p>将某个变量赋值给指针，实际上就是将这个变量的地址赋值给指针，或者反过来说，指针中存储了这个变量的内存地址，指向了这个变量，通过指针就能找到这个变量</p>
-</blockquote>
-</li>
-<li><p>警惕指针丢失和内存泄露<br>在插入指针的时候，注意操作的顺序，例如：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">p.<span class="built_in">next</span> = x</span><br><span class="line">x.<span class="built_in">next</span> = p.<span class="built_in">next</span></span><br></pre></td></tr></table></figure>
-<p>上面的语句出现了自己指向自己的情况，交换两行就可以了<br>删除链表节点的时候，也一定要记得手动释放内存空间。</p>
-</li>
-<li><p>利用哨兵简化实现难度</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">cur = self.head</span><br></pre></td></tr></table></figure></li>
-<li><p>重点留意边界条件处理</p>
-</li>
-</ul>
-<ol>
-<li>链表为空的时候</li>
-<li>链表只包含一个节点的情况</li>
-<li>链表只包含头尾节点</li>
-</ol>
-<ul>
-<li>举例绘图，辅助思考<br><img src="/images/link_node_exaples.png" alt="direct"></li>
-</ul>
-<h2 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h2><p>LRU 的实现？</p>
-<p>字符串是通过单链表来存储的，那如何判断一个回文字符呢？</p>
-<p>解决思路：</p>
-<p>法一：</p>
-<p>使用快慢指针找到中点，然后将后半链表 reversed，然后一个指针在头部，一个指针在中部，逐个比较。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">is_palindrome</span>(<span class="params">head</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> head:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> head.<span class="built_in">next</span> == <span class="literal">None</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    slow = reverse_node(find_middle_node(head))</span><br><span class="line">    traverse(slow)</span><br><span class="line">    traverse(head)</span><br><span class="line">    <span class="keyword">while</span> slow:</span><br><span class="line">        <span class="keyword">if</span> head.data != slow.data:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        slow = slow.<span class="built_in">next</span></span><br><span class="line">        head = head.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_middle_node</span>(<span class="params">head</span>):</span></span><br><span class="line">    fast, slow = head, head</span><br><span class="line">    <span class="keyword">while</span> fast.<span class="built_in">next</span> <span class="keyword">and</span> fast.<span class="built_in">next</span>.<span class="built_in">next</span>:</span><br><span class="line">        fast = fast.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line">        slow = slow.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> slow</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reverse_node</span>(<span class="params">head</span>):</span></span><br><span class="line">    p, rev = head, <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> p:</span><br><span class="line">        rev, rev.<span class="built_in">next</span>, p = p, rev, p.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rev</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">node</span>):</span></span><br><span class="line">    cur = node</span><br><span class="line">    <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">        <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">        cur = cur.<span class="built_in">next</span></span><br><span class="line">    <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    my_str = <span class="string">&quot;1012101&quot;</span></span><br><span class="line">    c = Chain()</span><br><span class="line">    <span class="keyword">for</span> v <span class="keyword">in</span> my_str:</span><br><span class="line">        c.append(v)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(is_palindrome(c.head))</span><br></pre></td></tr></table></figure>
-
-<h2 id="链表练习题目"><a href="#链表练习题目" class="headerlink" title="链表练习题目"></a>链表练习题目</h2><h3 id="反转链表"><a href="#反转链表" class="headerlink" title="反转链表"></a>反转链表</h3><p>206 - <a href="https://leetcode-cn.com/problems/reverse-linked-list/">https://leetcode-cn.com/problems/reverse-linked-list/</a></p>
-<p>解题思路：<br>p = p.next 循环， 将 head.next 的引用指向前一个节点即可</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">reverseList</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        res, p = <span class="literal">None</span>, head</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> p:</span><br><span class="line">            res, res.<span class="built_in">next</span>, p = p, res, p.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> res</span><br></pre></td></tr></table></figure>
-
-<h3 id="环状链表判断"><a href="#环状链表判断" class="headerlink" title="环状链表判断"></a>环状链表判断</h3><p>解题思路：使用快慢指针，如果两个指针相遇了说明是环状链表</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">hasCycle</span>(<span class="params">self, head: <span class="type">Optional</span>[ListNode]</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> head == <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        i = head</span><br><span class="line">        j = head</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> j != <span class="literal">None</span> <span class="keyword">and</span> j.<span class="built_in">next</span> != <span class="literal">None</span>:</span><br><span class="line">            i = i.<span class="built_in">next</span></span><br><span class="line">            j = j.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> i == j:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="合并两个有序链表"><a href="#合并两个有序链表" class="headerlink" title="合并两个有序链表"></a>合并两个有序链表</h3><p>21 - <a href="https://leetcode-cn.com/problems/merge-two-sorted-lists/">https://leetcode-cn.com/problems/merge-two-sorted-lists/</a></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">mergeTwoLists</span>(<span class="params">self, l1: ListNode, l2: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">            <span class="keyword">if</span> l1 <span class="keyword">and</span> l2:</span><br><span class="line">                <span class="keyword">if</span> l1.val &gt; l2.val: l1, l2 = l2, l1</span><br><span class="line">                l1.<span class="built_in">next</span> = self.mergeTwoLists(l1.<span class="built_in">next</span>, l2)</span><br><span class="line">            <span class="keyword">return</span> l1 <span class="keyword">or</span> l2</span><br></pre></td></tr></table></figure>
-
-<h3 id="删除链表的到处第-N-个节点"><a href="#删除链表的到处第-N-个节点" class="headerlink" title="删除链表的到处第 N 个节点"></a>删除链表的到处第 N 个节点</h3><p>19 - <a href="https://leetcode-cn.com/problems/remove-nth-node-from-end-of-list/">https://leetcode-cn.com/problems/remove-nth-node-from-end-of-list/</a></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ListNode</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, val=<span class="number">0</span>, <span class="built_in">next</span>=<span class="literal">None</span></span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">removeNthFromEnd</span>(<span class="params">head: ListNode, n: <span class="built_in">int</span></span>) -&gt; ListNode:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">getLength</span>(<span class="params">head: ListNode</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        length = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> head:</span><br><span class="line">            length += <span class="number">1</span></span><br><span class="line">            head = head.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> length</span><br><span class="line"></span><br><span class="line">    dummy = ListNode(<span class="number">0</span>, head)</span><br><span class="line">    length = getLength(head)</span><br><span class="line">    cur = dummy</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, length - n + <span class="number">1</span>):</span><br><span class="line">        cur = cur.<span class="built_in">next</span></span><br><span class="line">    cur.<span class="built_in">next</span> = cur.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> dummy.<span class="built_in">next</span></span><br></pre></td></tr></table></figure>
-<p>876 - <a href="https://leetcode-cn.com/problems/middle-of-the-linked-list/">https://leetcode-cn.com/problems/middle-of-the-linked-list/</a></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">middleNode</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        </span><br><span class="line">        n, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> cur:</span><br><span class="line">            n += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        k, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> k &lt; n // <span class="number">2</span>:</span><br><span class="line">            k += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> cur</span><br></pre></td></tr></table></figure>
-
-<h1 id="链表实现源码"><a href="#链表实现源码" class="headerlink" title="链表实现源码"></a>链表实现源码</h1><p><a href="https://github.com/tyronemaxi/algorithm/tree/main/chain">https://github.com/tyronemaxi/algorithm/tree/main/chain</a></p>
-]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>什么是栈、栈的使用场景？</title>
     <url>/posts/da81f8d9/</url>
     <content><![CDATA[<h1 id="如何理解栈？"><a href="#如何理解栈？" class="headerlink" title="如何理解栈？"></a>如何理解栈？</h1><blockquote>
@@ -1909,6 +1917,154 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 </ul>
 <p>3.遍历完所有字符串后，判断 <code>stack_opt</code> 是否为空，重复执行最基本计算操作，直到为空。</p>
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 基本运算器</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 最小原子计算器</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">cal</span>(<span class="params">self, A, B, opt</span>):</span></span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(A) + <span class="built_in">int</span>(B)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) - <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) * <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;/&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) / <span class="built_in">int</span>(A)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">basic_cal</span>(<span class="params">self, stack_num, stack_opt</span>):</span></span><br><span class="line">        opt = stack_opt.pop()</span><br><span class="line">        A = stack_num.pop()</span><br><span class="line">        B = stack_num.pop()</span><br><span class="line">        res = self.cal(A, B, opt)</span><br><span class="line">        stack_num.append(res)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">self, s:<span class="built_in">str</span></span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="comment"># stack_num &amp;&amp; stack_opt</span></span><br><span class="line">        stack_num, stack_opt = [], []</span><br><span class="line">        priority = &#123;</span><br><span class="line">            <span class="string">&#x27;(&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;)&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;+&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;-&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;*&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">            <span class="string">&#x27;/&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">        &#125;</span><br><span class="line">        length = <span class="built_in">len</span>(s)</span><br><span class="line">        i = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> i &lt; length:</span><br><span class="line">            <span class="keyword">if</span> i == <span class="string">&quot; &quot;</span>:</span><br><span class="line">                i += <span class="number">1</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                start = i</span><br><span class="line">                <span class="keyword">while</span> i+<span class="number">1</span> &lt; length <span class="keyword">and</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i+<span class="number">1</span>] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                    i = i+<span class="number">1</span></span><br><span class="line">                num = <span class="built_in">int</span>(s[start: i+<span class="number">1</span>])</span><br><span class="line">                stack_num.append(num)</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;)&#x27;</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt[-<span class="number">1</span>] != <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.pop()</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt <span class="keyword">and</span> priority[s[i]] &lt;= priority[stack_opt[-<span class="number">1</span>]]:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line"></span><br><span class="line">            i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 进行全部计算</span></span><br><span class="line">        <span class="keyword">while</span> stack_opt:</span><br><span class="line">            self.basic_cal(stack_num, stack_opt)</span><br><span class="line">        val = stack_num[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">int</span>(val)</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>为什么使用链表&amp;&amp;实现</title>
+    <url>/posts/2c2cd033/</url>
+    <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
+<p>从一个经典的<strong>链表</strong>应用场景：<strong>LRU 缓存淘汰算法</strong>说开去。</p>
+</blockquote>
+<blockquote>
+<p><strong>缓存</strong>是为了解决高低速存储之间的差距而引入的技术。</p>
+</blockquote>
+<p>链表和数组对比：</p>
+<p><img src="https://static001.geekbang.org/resource/image/4f/68/4f63e92598ec2551069a0eef69db7168.jpg" alt="img"></p>
+<p>缓存的大小有限，当缓存被打满的时候，就需要<strong>清理或者保留某些数据</strong>，这一部分就需要缓存淘汰策略来决定。</p>
+<p><strong>常见的策略有三种:</strong></p>
+<ul>
+<li><strong>先进先出策略 FIFO (First In, First Out)</strong></li>
+<li><strong>最少使用策略（Least Frequently Used）</strong></li>
+<li><strong>最近最少使用策略（Least Recently Used）</strong></li>
+</ul>
+<p>这些策略就和我们清理房间采取的策略一致</p>
+<p>那么如何采用 <strong>链表</strong>，来实现 <strong>LRU缓存淘汰策略</strong>呢 ？</p>
+<h2 id="链表简介"><a href="#链表简介" class="headerlink" title="链表简介"></a>链表简介</h2><p>首先解释一个 <strong>链表</strong> 的数据结构</p>
+<blockquote>
+<p>与数组结构不同的是，<strong>链表不需要连续的内存空间来存储</strong>，<strong>它是通过<code>指针</code>将一组零散的内存块串联起来使用</strong>。</p>
+</blockquote>
+<p>用一张图直观的解释：</p>
+<p><img src="https://static001.geekbang.org/resource/image/d5/cd/d5d5bee4be28326ba3c28373808a62cd.jpg" alt="img"></p>
+<h3 id="单链表"><a href="#单链表" class="headerlink" title="单链表"></a>单链表</h3><p><img src="https://static001.geekbang.org/resource/image/b9/eb/b93e7ade9bb927baad1348d9a806ddeb.jpg" alt="img"></p>
+<p><strong>单链表</strong>是通过一个个<strong>节点（Node）</strong>组成的，每个节点包含了两个部分：</p>
+<ul>
+<li>存储数据的 <code>data</code></li>
+<li>存储指针的<code>next</code>, 用于指向下一个 node</li>
+</ul>
+<p>特点：</p>
+<ul>
+<li>数据的<strong>插入</strong>和<strong>删除</strong>非常迅速（无序）—— 时间复杂度 O(1)</li>
+<li>数据的<strong>查找</strong>时间复杂度是 O(n)</li>
+</ul>
+<p><img src="https://static001.geekbang.org/resource/image/45/17/452e943788bdeea462d364389bd08a17.jpg" alt="img"></p>
+<h3 id="单链表的实现"><a href="#单链表的实现" class="headerlink" title="单链表的实现"></a>单链表的实现</h3><ul>
+<li>查找 - find()</li>
+<li>删除 - remove()</li>
+<li>链表元素添加<ul>
+<li>头部添加元素 - add</li>
+<li>尾部添加元素 - append</li>
+<li>插入某个元素 - insert</li>
+</ul>
+</li>
+<li>链表元素展示 - traverse()</li>
+<li>链表长度 - <code> __len__</code></li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LinkedList</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    单链表的实现</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> -<span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            cur_data = cur.data</span><br><span class="line">            <span class="keyword">if</span> cur_data == data:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        pre = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> -<span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="keyword">if</span> cur == self.head:</span><br><span class="line">                    self.head = self.head.<span class="built_in">next</span></span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">                pre.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">            pre = cur</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        node.<span class="built_in">next</span> = self.head</span><br><span class="line">        self.head = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self.head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != <span class="literal">None</span>:</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">insert</span>(<span class="params">self, index, data</span>):</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span>:</span><br><span class="line">            self.add(data)</span><br><span class="line">        <span class="keyword">elif</span> index &gt; self.__len__():</span><br><span class="line">            self.append(data)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self.head</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(index -<span class="number">1</span>):</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            node = Node(data)</span><br><span class="line">            node.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">self</span>):</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        cur = self.head</span><br><span class="line">        <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> count</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    items = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]</span><br><span class="line">    chain = LinkedList()</span><br><span class="line">    <span class="keyword">for</span> value <span class="keyword">in</span> items:</span><br><span class="line">        node = Node(value)</span><br><span class="line">        chain.append(value)</span><br><span class="line"></span><br><span class="line">    chain.traverse()</span><br><span class="line"></span><br><span class="line">    chain.append(<span class="number">6</span>)</span><br><span class="line"></span><br><span class="line">    chain.traverse()</span><br><span class="line"></span><br><span class="line">    chain.remove(<span class="number">3</span>)</span><br><span class="line">    chain.remove(<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">    chain.traverse()</span><br><span class="line">    chain.insert(<span class="number">1</span>, <span class="number">100</span>)</span><br><span class="line">    chain.traverse()</span><br><span class="line">    <span class="built_in">print</span>(chain.find(<span class="number">5</span>), chain.find(<span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">len</span>(chain))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="循环链表"><a href="#循环链表" class="headerlink" title="循环链表"></a>循环链表</h3><blockquote>
+<p><strong>循环链表是一种特殊的单链表。它和单链表的唯一区别就是在尾节点</strong>。<br><strong>循环链表的尾结点指针指向链表的头节点。</strong></p>
+</blockquote>
+<p><img src="/images/linknode.png" alt="direct"><br>这种数据结构比较适合处理具有环形结构特点的数据。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">CircleLink</span>(<span class="params">SingleChain</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>(CircleLink, self).__init__()</span><br><span class="line">        self._head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            node.<span class="built_in">next</span> = node</span><br><span class="line">            self._head = node</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            self._head = node</span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = Node(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            self._head = node</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">travel</span>(<span class="params">self</span>):</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;-**&#123;&#125;&quot;</span>.<span class="built_in">format</span>(cur.data), end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;-**&#123;&#125;&quot;</span>.<span class="built_in">format</span>(cur.data), end=<span class="string">&#x27;&#x27;</span>)  <span class="comment"># 由于是 cur.next 判断的，故 cur 指向最后一个节点</span></span><br><span class="line">        <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        cur = self._head</span><br><span class="line">        index = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                <span class="keyword">return</span> index</span><br><span class="line">            index += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">if</span> cur.data == data:  <span class="comment"># 最后一个</span></span><br><span class="line">            <span class="keyword">return</span> self.__len__()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        <span class="keyword">if</span> cur.<span class="built_in">next</span> == self._head:</span><br><span class="line">            self._head = <span class="literal">None</span></span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        pre = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            <span class="keyword">if</span> cur.data == data:</span><br><span class="line">                pre.<span class="built_in">next</span> = cur.<span class="built_in">next</span></span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            pre = cur</span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 退出循环, cur指向尾结点</span></span><br><span class="line">        <span class="keyword">if</span> cur.data == data:</span><br><span class="line">            <span class="comment"># 链表中只有一个结点</span></span><br><span class="line">            pre.<span class="built_in">next</span> = self._head</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        <span class="keyword">while</span> cur.<span class="built_in">next</span> != self._head:</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> count + <span class="number">1</span>  <span class="comment"># 未计算最后一个 Node</span></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="双向链表"><a href="#双向链表" class="headerlink" title="双向链表"></a>双向链表</h2><blockquote>
+<p>双向链表，顾名思义，它支持两个方向，每个节点分为三个部分：</p>
+<ul>
+<li>prev</li>
+<li>data</li>
+<li>next</li>
+</ul>
+<p>双向链表可以支持 O(1) 时间复杂度的情况下找到前驱节点，双向链表在某些情况下的 插入、删除等操作都要比单链表简单、高效。</p>
+</blockquote>
+<h3 id="删除操作"><a href="#删除操作" class="headerlink" title="删除操作"></a>删除操作</h3><ul>
+<li><p>删除节点中“值等于某个给定值” 的节点</p>
+<p>对于这种情况，不管是单链表还是双链表，为了查找到值等于给定值的节点，都需要从头节点开始一个个依次遍历对比，找到后删除，时间复杂度为 O(n)</p>
+</li>
+<li><p>删除给定指针指向的节点</p>
+<p>对于单链表来说，删除指定的节点时，还需要知道前驱节点，那么就会存在遍历的操作，时间复杂度为 O(n)。</p>
+<p>对于双向链表来说，是存在 prev 指针的，那么时间复杂度相对于是 O(1)</p>
+</li>
+</ul>
+<h3 id="插入操作"><a href="#插入操作" class="headerlink" title="插入操作"></a>插入操作</h3><ul>
+<li>对于在某个节点前插入指定节点，时间复杂度是 O(1)</li>
+</ul>
+<h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>对于一个有序链表来说，双向链表可以通过记录上次查找的位置 pos，根据要查找的值与 p 的大小关系，决定是往前还是往后查找，平均时间复杂度为 O(log(n))</p>
+<p><img src="https://static001.geekbang.org/resource/image/cb/0b/cbc8ab20276e2f9312030c313a9ef70b.jpg" alt="img"></p>
+<h3 id="双向链表实现"><a href="#双向链表实现" class="headerlink" title="双向链表实现"></a>双向链表实现</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> chain.single_chain <span class="keyword">import</span> SingleChain</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 双向链表</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">XNode</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.prev = <span class="literal">None</span></span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 双向链表</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DoubleLink</span>(<span class="params">SingleChain</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>(DoubleLink, self).__init__()</span><br><span class="line">        self._head = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = XNode(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self._head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            node.<span class="built_in">next</span> = self._head</span><br><span class="line">            self._head.prev = node</span><br><span class="line">            self._head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">append</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        node = XNode(data)</span><br><span class="line">        <span class="keyword">if</span> self._head <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self._head = node</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">while</span> cur.<span class="built_in">next</span> <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">                cur = cur.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            cur.<span class="built_in">next</span> = node</span><br><span class="line">            node.prev = cur</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">insert</span>(<span class="params">self, index, data</span>):</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span>:</span><br><span class="line">            self.add(data)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">elif</span> index &gt;= self.__len__():</span><br><span class="line">            self.append(data)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="comment"># status 1: 空</span></span><br><span class="line">            cur = self._head</span><br><span class="line">            <span class="keyword">if</span> cur <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                self.add(data)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># status 2: 只有一个节点</span></span><br><span class="line">            <span class="keyword">if</span> cur.<span class="built_in">next</span> <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">if</span> index &lt;= <span class="number">0</span>:</span><br><span class="line">                    self.add(data)</span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line">                <span class="keyword">if</span> index &gt;= self.__len__():</span><br><span class="line">                    self.append(data)</span><br><span class="line">                    <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># status 多个节点</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                count = <span class="number">0</span></span><br><span class="line">                node = XNode(data)</span><br><span class="line">                cur = self._head</span><br><span class="line">                <span class="keyword">while</span> count &lt; index:</span><br><span class="line">                    cur = cur.<span class="built_in">next</span></span><br><span class="line">                    count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">                node.<span class="built_in">next</span> = cur</span><br><span class="line">                node.prev = cur.prev</span><br><span class="line">                cur.prev.<span class="built_in">next</span> = node</span><br><span class="line">                cur.prev = node</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>链表包括：</p>
+<ul>
+<li>单向链表</li>
+<li>双向链表</li>
+<li>循环链表</li>
+</ul>
+<p>和数组相比，<strong>链表存储的数据是不连续的存储空间，数据之间采用指针引用方式连接。</strong><br>链表各适合插入、删除操作频繁的场景，查询的时间复杂度较高。</p>
+<h3 id="链表实现注意点"><a href="#链表实现注意点" class="headerlink" title="链表实现注意点"></a>链表实现注意点</h3><ul>
+<li><p>理解指针或引用含义</p>
+<blockquote>
+<p>将某个变量赋值给指针，实际上就是将这个变量的地址赋值给指针，或者反过来说，指针中存储了这个变量的内存地址，指向了这个变量，通过指针就能找到这个变量</p>
+</blockquote>
+</li>
+<li><p>警惕指针丢失和内存泄露<br>在插入指针的时候，注意操作的顺序，例如：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">p.<span class="built_in">next</span> = x</span><br><span class="line">x.<span class="built_in">next</span> = p.<span class="built_in">next</span></span><br></pre></td></tr></table></figure>
+<p>上面的语句出现了自己指向自己的情况，交换两行就可以了<br>删除链表节点的时候，也一定要记得手动释放内存空间。</p>
+</li>
+<li><p>利用哨兵简化实现难度</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">cur = self.head</span><br></pre></td></tr></table></figure></li>
+<li><p>重点留意边界条件处理</p>
+</li>
+</ul>
+<ol>
+<li>链表为空的时候</li>
+<li>链表只包含一个节点的情况</li>
+<li>链表只包含头尾节点</li>
+</ol>
+<ul>
+<li>举例绘图，辅助思考<br><img src="/images/link_node_exaples.png" alt="direct"></li>
+</ul>
+<h2 id="思考题"><a href="#思考题" class="headerlink" title="思考题"></a>思考题</h2><p>LRU 的实现？</p>
+<p>字符串是通过单链表来存储的，那如何判断一个回文字符呢？</p>
+<p>解决思路：</p>
+<p>法一：</p>
+<p>使用快慢指针找到中点，然后将后半链表 reversed，然后一个指针在头部，一个指针在中部，逐个比较。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">is_palindrome</span>(<span class="params">head</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> head:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> head.<span class="built_in">next</span> == <span class="literal">None</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    slow = reverse_node(find_middle_node(head))</span><br><span class="line">    traverse(slow)</span><br><span class="line">    traverse(head)</span><br><span class="line">    <span class="keyword">while</span> slow:</span><br><span class="line">        <span class="keyword">if</span> head.data != slow.data:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        slow = slow.<span class="built_in">next</span></span><br><span class="line">        head = head.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_middle_node</span>(<span class="params">head</span>):</span></span><br><span class="line">    fast, slow = head, head</span><br><span class="line">    <span class="keyword">while</span> fast.<span class="built_in">next</span> <span class="keyword">and</span> fast.<span class="built_in">next</span>.<span class="built_in">next</span>:</span><br><span class="line">        fast = fast.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line">        slow = slow.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> slow</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reverse_node</span>(<span class="params">head</span>):</span></span><br><span class="line">    p, rev = head, <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> p:</span><br><span class="line">        rev, rev.<span class="built_in">next</span>, p = p, rev, p.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rev</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">traverse</span>(<span class="params">node</span>):</span></span><br><span class="line">    cur = node</span><br><span class="line">    <span class="keyword">while</span> cur != <span class="literal">None</span>:</span><br><span class="line">        <span class="built_in">print</span>(cur.data, end=<span class="string">&#x27;-***-&#x27;</span>)</span><br><span class="line">        cur = cur.<span class="built_in">next</span></span><br><span class="line">    <span class="built_in">print</span>()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    my_str = <span class="string">&quot;1012101&quot;</span></span><br><span class="line">    c = Chain()</span><br><span class="line">    <span class="keyword">for</span> v <span class="keyword">in</span> my_str:</span><br><span class="line">        c.append(v)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(is_palindrome(c.head))</span><br></pre></td></tr></table></figure>
+
+<h2 id="链表练习题目"><a href="#链表练习题目" class="headerlink" title="链表练习题目"></a>链表练习题目</h2><h3 id="反转链表"><a href="#反转链表" class="headerlink" title="反转链表"></a>反转链表</h3><p>206 - <a href="https://leetcode-cn.com/problems/reverse-linked-list/">https://leetcode-cn.com/problems/reverse-linked-list/</a></p>
+<p>解题思路：<br>p = p.next 循环， 将 head.next 的引用指向前一个节点即可</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">reverseList</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        res, p = <span class="literal">None</span>, head</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> p:</span><br><span class="line">            res, res.<span class="built_in">next</span>, p = p, res, p.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> res</span><br></pre></td></tr></table></figure>
+
+<h3 id="环状链表判断"><a href="#环状链表判断" class="headerlink" title="环状链表判断"></a>环状链表判断</h3><p>解题思路：使用快慢指针，如果两个指针相遇了说明是环状链表</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">hasCycle</span>(<span class="params">self, head: <span class="type">Optional</span>[ListNode]</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> head == <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        i = head</span><br><span class="line">        j = head</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> j != <span class="literal">None</span> <span class="keyword">and</span> j.<span class="built_in">next</span> != <span class="literal">None</span>:</span><br><span class="line">            i = i.<span class="built_in">next</span></span><br><span class="line">            j = j.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> i == j:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="合并两个有序链表"><a href="#合并两个有序链表" class="headerlink" title="合并两个有序链表"></a>合并两个有序链表</h3><p>21 - <a href="https://leetcode-cn.com/problems/merge-two-sorted-lists/">https://leetcode-cn.com/problems/merge-two-sorted-lists/</a></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">mergeTwoLists</span>(<span class="params">self, l1: ListNode, l2: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">            <span class="keyword">if</span> l1 <span class="keyword">and</span> l2:</span><br><span class="line">                <span class="keyword">if</span> l1.val &gt; l2.val: l1, l2 = l2, l1</span><br><span class="line">                l1.<span class="built_in">next</span> = self.mergeTwoLists(l1.<span class="built_in">next</span>, l2)</span><br><span class="line">            <span class="keyword">return</span> l1 <span class="keyword">or</span> l2</span><br></pre></td></tr></table></figure>
+
+<h3 id="删除链表的到处第-N-个节点"><a href="#删除链表的到处第-N-个节点" class="headerlink" title="删除链表的到处第 N 个节点"></a>删除链表的到处第 N 个节点</h3><p>19 - <a href="https://leetcode-cn.com/problems/remove-nth-node-from-end-of-list/">https://leetcode-cn.com/problems/remove-nth-node-from-end-of-list/</a></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ListNode</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, val=<span class="number">0</span>, <span class="built_in">next</span>=<span class="literal">None</span></span>):</span></span><br><span class="line">        self.data = data</span><br><span class="line">        self.<span class="built_in">next</span> = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">removeNthFromEnd</span>(<span class="params">head: ListNode, n: <span class="built_in">int</span></span>) -&gt; ListNode:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">getLength</span>(<span class="params">head: ListNode</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        length = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> head:</span><br><span class="line">            length += <span class="number">1</span></span><br><span class="line">            head = head.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> length</span><br><span class="line"></span><br><span class="line">    dummy = ListNode(<span class="number">0</span>, head)</span><br><span class="line">    length = getLength(head)</span><br><span class="line">    cur = dummy</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, length - n + <span class="number">1</span>):</span><br><span class="line">        cur = cur.<span class="built_in">next</span></span><br><span class="line">    cur.<span class="built_in">next</span> = cur.<span class="built_in">next</span>.<span class="built_in">next</span></span><br><span class="line">    <span class="keyword">return</span> dummy.<span class="built_in">next</span></span><br></pre></td></tr></table></figure>
+<p>876 - <a href="https://leetcode-cn.com/problems/middle-of-the-linked-list/">https://leetcode-cn.com/problems/middle-of-the-linked-list/</a></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">middleNode</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        </span><br><span class="line">        n, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> cur:</span><br><span class="line">            n += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        k, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> k &lt; n // <span class="number">2</span>:</span><br><span class="line">            k += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> cur</span><br></pre></td></tr></table></figure>
+
+<h1 id="链表实现源码"><a href="#链表实现源码" class="headerlink" title="链表实现源码"></a>链表实现源码</h1><p><a href="https://github.com/tyronemaxi/algorithm/tree/main/chain">https://github.com/tyronemaxi/algorithm/tree/main/chain</a></p>
+]]></content>
       <categories>
         <category>数据结构与算法</category>
       </categories>
