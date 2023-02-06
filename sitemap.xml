@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://www.tianzhichao.com/posts/ec5b3295/</loc>
+    <loc>https://www.tianzhichao.com/posts/ea12054a/</loc>
     
     <lastmod>2023-02-06</lastmod>
     
@@ -11,7 +11,7 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/posts/ea12054a/</loc>
+    <loc>https://www.tianzhichao.com/posts/ec5b3295/</loc>
     
     <lastmod>2023-02-06</lastmod>
     
@@ -270,13 +270,6 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/docker/</loc>
-    <lastmod>2023-02-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://www.tianzhichao.com/tags/HTTP/</loc>
     <lastmod>2023-02-06</lastmod>
     <changefreq>weekly</changefreq>
@@ -284,7 +277,28 @@
   </url>
   
   <url>
+    <loc>https://www.tianzhichao.com/tags/docker/</loc>
+    <lastmod>2023-02-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.tianzhichao.com/tags/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/</loc>
+    <lastmod>2023-02-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://www.tianzhichao.com/tags/MySQL/</loc>
+    <lastmod>2023-02-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.tianzhichao.com/tags/linux/</loc>
     <lastmod>2023-02-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -299,20 +313,6 @@
   
   <url>
     <loc>https://www.tianzhichao.com/tags/Redis/</loc>
-    <lastmod>2023-02-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/tags/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/</loc>
-    <lastmod>2023-02-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/tags/linux/</loc>
     <lastmod>2023-02-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -342,13 +342,6 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/docker/</loc>
-    <lastmod>2023-02-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://www.tianzhichao.com/categories/HTTP/</loc>
     <lastmod>2023-02-06</lastmod>
     <changefreq>weekly</changefreq>
@@ -356,7 +349,28 @@
   </url>
   
   <url>
+    <loc>https://www.tianzhichao.com/categories/docker/</loc>
+    <lastmod>2023-02-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.tianzhichao.com/categories/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/</loc>
+    <lastmod>2023-02-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://www.tianzhichao.com/categories/MySQL/</loc>
+    <lastmod>2023-02-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.tianzhichao.com/categories/linux/</loc>
     <lastmod>2023-02-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -371,20 +385,6 @@
   
   <url>
     <loc>https://www.tianzhichao.com/categories/redis/</loc>
-    <lastmod>2023-02-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/categories/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/</loc>
-    <lastmod>2023-02-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/categories/linux/</loc>
     <lastmod>2023-02-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
