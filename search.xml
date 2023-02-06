@@ -1475,6 +1475,51 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>GIL 解释及探究</title>
+    <url>/posts/723b604d/</url>
+    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
+<blockquote>
+<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
+</blockquote>
+<blockquote>
+<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
+</blockquote>
+<ul>
+<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
+<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
+<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
+</ul>
+<p>常见的 Python 解释器还有：</p>
+<ul>
+<li>CPython</li>
+<li>IPython</li>
+<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
+<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
+<li>IronPython: .Net 平台</li>
+</ul>
+<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
+<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
+<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
+<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
+<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
+<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
+<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
+<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
+<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
+<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
+<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
+<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>linux shell 脚本</title>
     <url>/posts/77fe4966/</url>
     <content><![CDATA[<h1 id="Shell"><a href="#Shell" class="headerlink" title="Shell"></a>Shell</h1><h1 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h1><p>什么是 shell ?</p>
@@ -2019,51 +2064,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </categories>
       <tags>
         <tag>linux</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GIL 解释及探究</title>
-    <url>/posts/723b604d/</url>
-    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
-<blockquote>
-<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
-</blockquote>
-<blockquote>
-<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
-</blockquote>
-<ul>
-<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
-<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
-<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
-</ul>
-<p>常见的 Python 解释器还有：</p>
-<ul>
-<li>CPython</li>
-<li>IPython</li>
-<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
-<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
-<li>IronPython: .Net 平台</li>
-</ul>
-<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
-<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
-<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
-<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
-<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
-<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
-<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
-<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
-<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
-<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
-<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
-<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
       </tags>
   </entry>
   <entry>
@@ -2634,6 +2634,187 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </categories>
       <tags>
         <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>RESTful API 最佳实践</title>
+    <url>/posts/ea12054a/</url>
+    <content><![CDATA[<h1 id="RESTful-API-最佳实践"><a href="#RESTful-API-最佳实践" class="headerlink" title="RESTful API 最佳实践"></a>RESTful API 最佳实践</h1><img src="https://betimdrenica.files.wordpress.com/2015/03/api2.png?w=300&h=176" alt="api2" style="zoom:100%;" />
+
+<h2 id="API-的关键要求"><a href="#API-的关键要求" class="headerlink" title="API 的关键要求"></a>API 的关键要求</h2><ul>
+<li>网络标准的使用</li>
+<li>对开发人员友好，并能通过浏览器地址栏进行探索</li>
+<li>简单、直观和一致，使用简单且愉快</li>
+<li>足够的灵活性</li>
+<li>高效的使用</li>
+</ul>
+<h2 id="RESTful-API"><a href="#RESTful-API" class="headerlink" title="RESTful API"></a>RESTful API</h2><h3 id="Media-Type"><a href="#Media-Type" class="headerlink" title="Media Type"></a>Media Type</h3><p><strong>默认媒体类型为 JSON</strong></p>
+<blockquote>
+<p>由于 HTTP 的最新势头和遵循标准，JSON 是最受欢迎的，因此应该明确成为默认的媒体类型</p>
+<p>XML 的有点是复杂的场景和历史（SOAP），XML 不是 API  的最佳选择。它冗长，难以解析，难以阅读，其数据模型与大多数编程语言的数据模型不兼容。</p>
+</blockquote>
+<h2 id="HTTP-动词"><a href="#HTTP-动词" class="headerlink" title="HTTP 动词"></a>HTTP 动词</h2><p>RESTful 关键原则是将一系列 API 资源通过 <strong>域名+资源名称 + HTTP methods</strong></p>
+<p>逻辑资源应该<strong>从 API 消费者的角度</strong>来进行考虑：<strong>使用有意义的名词s, 而不是动词</strong>，需要明确的是：名词是事物，动词是你对它所做的。</p>
+<p>定义资源后，对于每种的资源的不同操作映射为对应的 HTTP 请求方法：</p>
+<ul>
+<li>GET —— 获取资源信息(SELECT)</li>
+<li>POST —— 创建新的资源(CREATE)</li>
+<li>PUT —— 更新资源(UPDATE)</li>
+<li>PATCH —— 更新部分资源(UPDATE)</li>
+<li>DELETE —— 删除部分资源(DELETE)</li>
+</ul>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /tickets - 检索票证列表</span><br><span class="line">GET /tickets/12 - 检索特定票证</span><br><span class="line">POST /tickets - 创建一个新票</span><br><span class="line">PUT /tickets/12 - 更新票 #12</span><br><span class="line">PATCH /tickets/12 - 部分更新票 #12</span><br><span class="line">DELETE /tickets/12 - 删除票 #12</span><br></pre></td></tr></table></figure>
+
+<p>不适合 CRUD 操作的世界应该怎么办？</p>
+<ul>
+<li><strong>组合操作使其看起来像资源的字段。</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">POST /template/apply # 应用一个模版</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>将其视为符合 RESTful 原则的子资源。</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /zoos/id/animals # 获取某一个 动物园的 动物</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>无法确定正确的 RESTful 结构的，区别记录即可，无需强制使用。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /search?text=&quot;搜索&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="无处不在的-SSL"><a href="#无处不在的-SSL" class="headerlink" title="无处不在的 SSL"></a>无处不在的 SSL</h2><blockquote>
+<p>SSL 证书是一个数字证书，用于认证网站的身份并启用加密连接。SSL 代表安全套接字层，这是一个安全协议，可在 Web 服务器和 Web 浏览器之间创建加密链接。</p>
+</blockquote>
+<p><strong>始终使用 SSL —— 出于安全考虑。</strong></p>
+<p>始终使用 SSL 的另外一个优势是有保证的加密通信简化了身份验证工作——您可以使用简单的访问令牌，而不必签署每个 API 请求。</p>
+<h2 id="API-接口文档"><a href="#API-接口文档" class="headerlink" title="API 接口文档"></a>API 接口文档</h2><p><strong>API 的好坏取决于它的文档</strong>。这些文档应该很容易找到并且可以公开访问。大多数开发人员在尝试任何集成工作之前都会查看文档。</p>
+<p><strong>文档应显示完整请求/响应周期的示例。</strong></p>
+<p>一旦你发布了一个公共 API，就应该发布通知信息，告知关注者变更消息。</p>
+<p>例如 Apifox、yapi 等接口文档软件</p>
+<h2 id="版本控制"><a href="#版本控制" class="headerlink" title="版本控制"></a>版本控制</h2><p><strong>始终对您的 API 进行版本控制。</strong>版本控制可帮助您更快地迭代并防止无效请求到达更新的端点。它还有助于平滑任何主要的 API 版本转换。</p>
+<p>关于 API 版本应包含在 URL 中还是 header 中？有广泛的争论。</p>
+<p>本人比较喜欢将版本控制置于 URL 中</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /api/v1/zoos</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="结果过滤、排序和搜索"><a href="#结果过滤、排序和搜索" class="headerlink" title="结果过滤、排序和搜索"></a>结果过滤、排序和搜索</h2><p><strong>最好使基本资源 URL 尽可能精简。</strong></p>
+<p><strong>复杂的结果过滤器、排序要求和高级搜索（当仅限于单一类型的资源时）都可以作为基本 URL</strong>  </p>
+<p><strong>之上的查询参数轻松实现。</strong></p>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /tickets?state=open</span><br><span class="line">GET /tickets?order_by=create_time:desc,apply_time:desc</span><br></pre></td></tr></table></figure>
+
+<h2 id="JSON-采用-request-body-输入"><a href="#JSON-采用-request-body-输入" class="headerlink" title="JSON  采用 request body 输入"></a>JSON  采用 request body 输入</h2><ul>
+<li>POST</li>
+<li>PUT</li>
+<li>PATCH</li>
+</ul>
+<p>上述方法采用 request body 传输数据</p>
+<h3 id="字段名称的-snake-case-与-camelCase"><a href="#字段名称的-snake-case-与-camelCase" class="headerlink" title="字段名称的 snake_case 与 camelCase"></a>字段名称的 snake_case 与 camelCase</h3><p>根据 2010 年对 camelCase 和 snake_case （PDF）的眼动追踪研究，**snake_case 比 camelCase 更容易阅读 20%**这种对可读性的影响会影响 API 的可探索性和文档中的示例。</p>
+<h2 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h2><p>json 返回数据中，会包含一些分页数据；</p>
+<blockquote>
+<p>The right way to include pagination details today is using the <a href="https://tools.ietf.org/html/rfc8288">Link header introduced by RFC 8288</a>.</p>
+</blockquote>
+<p>以下是正确使用 Link 标头的示例，来自 GitHub:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Link: &lt;https://api.github.com/user/repos?page=3&amp;per_page=100&gt;; rel=&quot;next&quot;, &lt;https://api.github.com/user/repos?page=50&amp;per_page=100&gt;; rel=&quot;last&quot;</span><br></pre></td></tr></table></figure>
+
+<p>许多 API 确实需要额外的分页信息，例如可用结果总数的计数。需要发送计数的 API 可以使用自定义 HTTP 标头，如 <code>X-Total-Count</code>。</p>
+<h2 id="更新和限制资源应该返回资源表示"><a href="#更新和限制资源应该返回资源表示" class="headerlink" title="更新和限制资源应该返回资源表示"></a>更新和限制资源应该返回资源表示</h2><p>PUT、POST 或 PATCH 调用可能会修改不属于所提供参数的基础资源字段（例如：created_at 或 updated_at 时间戳）。为防止 API 使用者必须再次点击 API 以获得更新的表示，让 API 返回更新（或创建）的表示作为响应的一部分。</p>
+<p>如果 POST 导致创建，请使用 HTTP 201 状态码并包含指向新资源 URL 的 Location 标头。</p>
+<p>除了将新创建的资源表示作为响应主体之外，还应该包含这两个内容。</p>
+<h2 id="默认情况下，不使用-envelope-特殊情况下使用"><a href="#默认情况下，不使用-envelope-特殊情况下使用" class="headerlink" title="默认情况下，不使用 envelope, 特殊情况下使用"></a>默认情况下，不使用 envelope, 特殊情况下使用</h2><p>许多情况下：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data&quot;</span>：&#123;</span><br><span class="line">  	<span class="attr">&quot;id&quot;</span>: <span class="number">123</span>,</span><br><span class="line">  	<span class="attr">&quot;name&quot;</span>: <span class="string">&quot;John&quot;</span></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>理由：</p>
+<ul>
+<li>包含额外的元数据或分页信息，一些 REST 客户端不允许轻松访问 HTTP 标头，而 JSONP 请求无法访问 HTTP 标头。然而，随着 CORS 和 RFC 5988 等 Link 标头等标准被迅速采用，封装开始变得不必要了。</li>
+</ul>
+<h2 id="速率限制"><a href="#速率限制" class="headerlink" title="速率限制"></a>速率限制</h2><p>为防止滥用，标准做法是向 API 添加某种速率限制。</p>
+<blockquote>
+<p>To prevent abuse, it is standard practice to add some sort of rate limiting to an API. <a href="http://tools.ietf.org/html/rfc6585">RFC 6585</a> introduced a HTTP status code <a href="http://tools.ietf.org/html/rfc6585#section-4">429 Too Many Requests</a> to accommodate this.</p>
+<p>However, it can be very useful to notify the consumer of their limits before they actually hit it. This is an area that currently lacks standards but has a number of <a href="http://stackoverflow.com/questions/16022624/examples-of-http-api-rate-limiting-http-response-headers">popular conventions using HTTP response headers</a>.</p>
+<p>At a minimum, include the following headers:</p>
+<ul>
+<li>X-Rate-Limit-Limit - The number of allowed requests in the current period</li>
+<li>X-Rate-Limit-Remaining - The number of remaining requests in the current period</li>
+<li>X-Rate-Limit-Reset - The number of seconds left in the current period</li>
+</ul>
+</blockquote>
+<h2 id="Authentication"><a href="#Authentication" class="headerlink" title="Authentication"></a>Authentication</h2><p>RESTful API 应该是无状态的。</p>
+<p>基于 SSL 身份验证凭据可以简化为随机生成的访问令牌，该令牌在 HTTP 基本身份验证的用户名字段中传送。</p>
+<ul>
+<li>session</li>
+<li>jwt</li>
+<li>access_token</li>
+<li>OAuth 2</li>
+</ul>
+<h2 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h2><p>HTTP 内置缓存框架</p>
+<ul>
+<li>ETag</li>
+<li>Last-Modified</li>
+</ul>
+<h2 id="Error-Handler"><a href="#Error-Handler" class="headerlink" title="Error Handler"></a>Error Handler</h2><p>类似 HTML 错误页面向访问者显示有用的错误信息一样，API 应该以已知的可使用格式提供有用的错误信息。错误的表示应该与任何资源的表示没有区别，只是具有自己的一组字段。</p>
+<ul>
+<li>API 应返回合理的 HTTP 状态代码。</li>
+</ul>
+<p>API 错误通常分为两种类型：</p>
+<ul>
+<li>客户端问题的 400 系列状态代码</li>
+<li>服务器问题的 500 系列状态代码</li>
+</ul>
+<p>对于具体的 400 系列和 500 系列状态代码，应带有可使用的 JSON 错误表示。</p>
+<p>JSON 错误正文应具有：</p>
+<ul>
+<li>错误信息</li>
+<li>唯一的错误代码</li>
+<li>以及可能的详细描述</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;code&quot;</span> : <span class="number">1234</span>,</span><br><span class="line">  <span class="attr">&quot;message&quot;</span> : <span class="string">&quot;Something bad happened :(&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;description&quot;</span> : <span class="string">&quot;More details about the error here&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="HTTP-status-codes"><a href="#HTTP-status-codes" class="headerlink" title="HTTP status codes"></a>HTTP status codes</h2><blockquote>
+<ul>
+<li>200 OK - Response to a successful GET, PUT, PATCH or DELETE. Can also be used for a POST that doesn’t result in a creation.</li>
+<li>201 Created - Response to a POST that results in a creation. Should be combined with a <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location header</a> pointing to the location of the new resource</li>
+<li>204 No Content - Response to a successful request that won’t be returning a body (like a DELETE request)</li>
+<li>304 Not Modified - Used when HTTP caching headers are in play</li>
+<li>400 Bad Request - The request is malformed, such as if the body does not parse</li>
+<li>401 Unauthorized - When no or invalid authentication details are provided. Also useful to trigger an auth popup if the API is used from a browser</li>
+<li>403 Forbidden - When authentication succeeded but authenticated user doesn’t have access to the resource</li>
+<li>404 Not Found - When a non-existent resource is requested</li>
+<li>405 Method Not Allowed - When an HTTP method is being requested that isn’t allowed for the authenticated user</li>
+<li>410 Gone - Indicates that the resource at this end point is no longer available. Useful as a blanket response for old API versions</li>
+<li>415 Unsupported Media Type - If incorrect content type was provided as part of the request</li>
+<li>422 Unprocessable Entity - Used for validation errors</li>
+<li>429 Too Many Requests - When a request is rejected due to rate limiting</li>
+</ul>
+</blockquote>
+<ul>
+<li>200 OK - 对成功的 GET、PUT、PATCH 或 DELETE 的响应。也可用于不会导致创建的 POST。</li>
+<li>201 已创建- 对导致创建的 POST 的响应。应与指向新资源位置的<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location 标头结合</a></li>
+<li>204 No Content - 对不会返回正文的成功请求的响应（如 DELETE 请求）</li>
+<li>304 Not Modified - 在使用 HTTP 缓存标头时使用</li>
+<li>400 Bad Request - 请求格式错误，比如请求体没有解析</li>
+<li>401 Unauthorized - 当没有提供或提供无效的身份验证详细信息时。如果从浏览器使用 API，也可用于触发身份验证弹出窗口</li>
+<li>403 Forbidden - 当身份验证成功但经过身份验证的用户无权访问资源时</li>
+<li>404 Not Found - 当请求不存在的资源时</li>
+<li>405 Method Not Allowed - 当请求的 HTTP 方法不允许经过身份验证的用户使用时</li>
+<li>410 Gone - 表示此端点的资源不再可用。作为对旧 API 版本的全面响应很有用</li>
+<li>415 Unsupported Media Type - 如果作为请求的一部分提供了不正确的内容类型</li>
+<li>422 Unprocessable Entity - 用于验证错误</li>
+<li>429 Too Many Requests - 当请求由于速率限制而被拒绝时</li>
+</ul>
+<h2 id="In-Summary"><a href="#In-Summary" class="headerlink" title="In Summary"></a>In Summary</h2><p>API 是开发人员的用户界面。努力确保它不仅功能齐全而且使用起来愉快。</p>
+<p>由于开发语言有异，只有最适合的 API 规范，没有最好的 API 规范</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Best Practices for Designing a Pragmatic RESTful API:<a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api</a></p>
+<p>Idel restful api : <a href="https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/">https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/</a></p>
+<p><a href="https://www.ruanyifeng.com/blog/2014/05/restful_api.html">https://www.ruanyifeng.com/blog/2014/05/restful_api.html</a></p>
+]]></content>
+      <categories>
+        <category>HTTP</category>
+      </categories>
+      <tags>
+        <tag>HTTP</tag>
       </tags>
   </entry>
   <entry>
