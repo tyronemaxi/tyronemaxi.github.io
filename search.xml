@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>Python 内存管理，垃圾回收，缓存重用机制</title>
-    <url>/posts/bd0fa4a9/</url>
+    <url>/posts/ec5b3295/</url>
     <content><![CDATA[<h1 id="一文搞定Python-的-内存管理-垃圾回收-缓存重用机制"><a href="#一文搞定Python-的-内存管理-垃圾回收-缓存重用机制" class="headerlink" title="一文搞定Python 的 内存管理, 垃圾回收, 缓存重用机制"></a>一文搞定Python 的 <code>内存管理</code>, <code>垃圾回收</code>, <code>缓存重用机制</code></h1><blockquote>
 <p>鉴于 Python 的语言特性，详细的梳理记录下这三方面的知识</p>
 </blockquote>
@@ -466,6 +466,167 @@
       </tags>
   </entry>
   <entry>
+    <title>MySQL 索引总结 -</title>
+    <url>/posts/6e16c56e/</url>
+    <content><![CDATA[<h1 id="什么是-索引？"><a href="#什么是-索引？" class="headerlink" title="什么是 索引？"></a>什么是 <strong>索引</strong>？</h1><p><strong>索引（ MySQL 中也叫做<code>键(key)</code>）</strong> 是<strong>存储引擎</strong>用于<strong>快速找到记录</strong>的一种<strong>数据结构</strong>。本文主要学习的是基于 InnoDB 存储引擎。<br>索引对于良好的性能非常关键，对于较大的数据量来说，索引的创建愈发重要。</p>
+<h1 id="索引的类型"><a href="#索引的类型" class="headerlink" title="索引的类型"></a>索引的类型</h1><blockquote>
+<p>索引有很多种类型，可以为不同的场景提供更好的性能。</p>
+</blockquote>
+<h2 id="从存储结构上分"><a href="#从存储结构上分" class="headerlink" title="从存储结构上分"></a>从存储结构上分</h2><ul>
+<li>Btree 索引 （B+tree、B-tree）</li>
+<li>哈希索引</li>
+<li>full-index 全文索引</li>
+<li>RTree</li>
+</ul>
+<h2 id="从应用层次上划分"><a href="#从应用层次上划分" class="headerlink" title="从应用层次上划分"></a>从应用层次上划分</h2><ul>
+<li>普通索引：即一个索引只包含单个列，一个表可以有多个单列索引</li>
+<li>唯一索引：索引列的值必须唯一，但允许有空值</li>
+<li>复合索引：一个索引包含多个列</li>
+</ul>
+<h2 id="从表记录的存储形式上来划分"><a href="#从表记录的存储形式上来划分" class="headerlink" title="从表记录的存储形式上来划分"></a>从表记录的存储形式上来划分</h2><ul>
+<li>聚簇索引：表记录的排列顺序和索引的排列顺序一致</li>
+<li>非聚簇索引：表记录的排列顺序和索引的排列顺序不一致</li>
+</ul>
+<h1 id="聚簇索引和非聚簇索引"><a href="#聚簇索引和非聚簇索引" class="headerlink" title="聚簇索引和非聚簇索引"></a>聚簇索引和非聚簇索引</h1><blockquote>
+<p>在 InnoDB 中，表数据文件本身就是按照 B+Tree 组织的一个索引结构。<br>聚簇索引就是按照每张表的主键构造一颗 B+ 树，同时叶子节点中存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。<br>一般建表会用一个自增主键做聚簇索引，没有的话 MySQL 会默认创建<br>在日常的开发任务中，根据实际情况自行添加的索引都是辅助索引，辅助索引就是一个为了需要找主键索引的二级索引，先找到主键索引再通过主键索引找到数据。</p>
+</blockquote>
+<h2 id="聚簇索引"><a href="#聚簇索引" class="headerlink" title="聚簇索引"></a>聚簇索引</h2><blockquote>
+<p>聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。</p>
+</blockquote>
+<p>聚簇索引就是按照每张表的主键构建一颗 B+ 树，同时叶子节点存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。这个特性决定了索引组织表中的数据也是索引的一部分，每张表只能拥有一个聚簇索引。<br><img src="../../images/mysql/%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95.png" alt="direct"></p>
+<h2 id="聚簇索引的优点"><a href="#聚簇索引的优点" class="headerlink" title="聚簇索引的优点"></a>聚簇索引的优点</h2><ul>
+<li>数据访问更快，因为**聚簇索引是将索引和数据保存在同一个 B+ 树中，因此从聚簇索引中获取数据比非聚簇索引更快。</li>
+<li>聚簇索引对于主键的排序查找和范围查找速度更快。</li>
+<li>使用覆盖索引扫描的查询可以直接使用页节点中的主键值</li>
+</ul>
+<h2 id="聚簇索引的缺点"><a href="#聚簇索引的缺点" class="headerlink" title="聚簇索引的缺点"></a>聚簇索引的缺点</h2><ul>
+<li></li>
+<li>插入速度严重依赖插入顺序，按照主键的顺序插入是最快的方式。一般定义一个自增的 ID 列作为主键，但是如果不是按照主键顺序加载数据，那么在jia</li>
+<li>更新主键的代价很高，因为将会导致被更新的行移动，一般对于 InnoDB 表，定义主键不可更新</li>
+<li>二级索引访问需要两次索引查找，第一次找到主键值，第二次根据主键值找到行数据。</li>
+</ul>
+<h1 id="非聚簇索引"><a href="#非聚簇索引" class="headerlink" title="非聚簇索引"></a>非聚簇索引</h1><p>在聚簇索引之上创建的索引称之为辅助索引，辅助索引访问数据总是需要二次查找。辅助索引叶子节点存放的不再是行的物理位置，而是主键值。<br>通过辅助索引找到主键值，再通过主键值找到数据行的数据页，再通过数据页中的 Page Directory 找到数据行。</p>
+<p>InnoDB 辅助索引的叶子节点并不包含行记录的全部数据，叶子节点包含键值外，还包含了相应行数据的聚簇索引键。</p>
+<h2 id="B-Tree-索引"><a href="#B-Tree-索引" class="headerlink" title="B-Tree 索引"></a>B-Tree 索引</h2><blockquote>
+<p>特点：<strong>每一个叶子节点都包含指向下一个叶子节点的指针</strong>，从而方便叶子节点的范围遍历</p>
+</blockquote>
+<p>B-Tree 通常意味着所有的值都是按照顺序存储的，并且每一个叶子页到根的距离相同。<br><img src="../../images/mysql/B+Tree%E7%B4%A2%E5%BC%95.png" alt="img.png"></p>
+<h2 id="B-Tree-索引检索数据的原理"><a href="#B-Tree-索引检索数据的原理" class="headerlink" title="B-Tree 索引检索数据的原理"></a>B-Tree 索引检索数据的原理</h2><p>存储引擎不再需要进行全表扫描来获取需要的数据，取而代之的是<strong>从索引的根节点开始进行搜索</strong>。<br>根节点的槽中存放了指向子节点的指针，存储引擎根据这些指针向下层查找。这些指针<strong>实际上定义了子节点页中值的上限和下限</strong>，通过比较<strong>节点页中的值和要查找的值</strong>可以找到合适的指针进入下层子节点。<br>最终存储引擎的查找只会有两种情况：<strong>1. 找到对应的值。2. 记录不存在。</strong></p>
+<p><strong>叶子节点指针指向的是被索引的数据，而不是其他节点页。</strong></p>
+<p>树的深度和表的大小直接相关</p>
+<p>B-Tree 对索引列是顺序组织存储的，所以很适合查找范围数据。</p>
+<p>B-Tree 索引适用于<strong>全值键、键值范围或键前缀</strong>查找。键前缀查找只适用于最左前缀查找</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE People (</span><br><span class="line">    last_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;姓&#x27;,</span><br><span class="line">    first_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;名&#x27;,</span><br><span class="line">    dob date not null DEFAULT &#x27;&#x27; comment &#x27;出生日期&#x27;,</span><br><span class="line">    gender enum(0, 1) not null comment &#x27;&#x27;,</span><br><span class="line">    key(last_name, first_name, dob)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">INSERT INTO People values (&#x27;Cuba&#x27;, &#x27;Allen&#x27;, &#x27;1960-01-01&#x27;),</span><br><span class="line">(&#x27;Angelina&#x27;, &#x27;Astaire&#x27;, &#x27;1980-03-04&#x27;),</span><br><span class="line">(&#x27;Julla&#x27;, &#x27;Barrymore&#x27;, &#x27;2000-05-16&#x27;),</span><br><span class="line">(&#x27;Christian&#x27;, &#x27;Akroyd&#x27;, &#x27;1958-12-07&#x27;),</span><br><span class="line">(&#x27;Akroyd&#x27;, &#x27;Klrsten&#x27;, &#x27;1978-11-02&#x27;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="../../images/mysql/BTree%E5%8F%B6%E5%AD%90%E7%BB%93%E7%82%B9.png" alt="direct"></p>
+<h2 id="B-Tree-索引的查询类型"><a href="#B-Tree-索引的查询类型" class="headerlink" title="B-Tree 索引的查询类型"></a>B-Tree 索引的查询类型</h2><blockquote>
+<p>explain 分析 SQL 的执行计划<br>需要重点关注 type、rows、filtered、extra。<br>type 由上至下，效率越来越高</p>
+<ul>
+<li>ALL 全表扫描</li>
+<li>index 索引全扫描</li>
+<li>range 索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</li>
+<li>ref 使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录，常出现在关联查询中</li>
+<li>eq_ref 类似 ref,区别在于使用的是唯一索引，使用主键的关联查询</li>
+<li>const/system 单条记录，系统会把匹配行中的其它列作为常数处理，如主键或唯一索引查询</li>
+<li>null MySQL 不访问任何表或索引，直接返回结果</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>虽然上至下，效率越来越高，但是根据cost模型，假设有两个索引<code>idx1(a, b, c)</code>,<code>idx2(a, c)</code>，SQL为<code>select * from t where a = 1 and b in (1, 2) order by c;</code>如果走idx1，那么是type为range，如果走idx2，那么type是ref；当需要扫描的行数，使用idx2大约是idx1的5倍以上时，会用idx1，否则会用idx2</p>
+</blockquote>
+<blockquote>
+<p><strong>Extra</strong></p>
+</blockquote>
+<blockquote>
+<ul>
+<li>Using filesort：MySQL需要额外的一次传递，以找出如何按排序顺序检索行。通过根据联接类型浏览所有行并为所有匹配WHERE子句的行保存排序关键字和行的指针来完成排序。然后关键字被排序，并按排序顺序检索行。</li>
+<li><strong>Using temporary：使用了临时表保存中间结果，性能特别差，需要重点优化</strong></li>
+<li>Using index：表示相应的 select 操作中使用了覆盖索引（Coveing Index）,避免访问了表的数据行，效率不错！如果同时出现 using where，意味着无法直接通过索引查找来查询到符合条件的数据。</li>
+<li>Using index condition：MySQL5.6之后新增的ICP，using index condtion就是使用了ICP（索引下推），在存储引擎层进行数据过滤，而不是在服务层过滤，利用索引现有的数据减少回表的数据。</li>
+</ul>
+</blockquote>
+<ul>
+<li><strong>全值匹配</strong><pre><code>**全值匹配指的是和索引中所有列进行匹配**
+</code></pre>
+例如:<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br><span class="line">```  </span><br><span class="line">output:</span><br><span class="line">```markdown</span><br><span class="line">id            | 1</span><br><span class="line">select_type   | SIMPLE</span><br><span class="line">table         | People</span><br><span class="line">partitions    | &lt;null&gt;</span><br><span class="line">type          | ref</span><br><span class="line">possible_keys | last_name</span><br><span class="line">key           | last_name</span><br><span class="line">key_len       | 107</span><br><span class="line">ref           | const,const,const</span><br><span class="line">rows          | 1</span><br><span class="line">filtered      | 100.0</span><br><span class="line">Extra         | &lt;null&gt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>这里的 type 为 ref, <strong>ref 表示使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录</strong>，常出现在关联查询中</p>
+<ul>
+<li><p><strong>匹配索引最左前缀</strong><br>  查找所有姓为 <code>Allen</code> 的人，例如 <code>explain select * from People where last_name=&#39;Cuba&#39;\G;</code><br>output:</p>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure></li>
+<li><p><strong>匹配列前缀</strong><br>  查找只<strong>匹配某一列的值的开头部分</strong>，只使用到了索引的第一列。<br>例如 <code>explain select * from People where last_name like &#39;C%&#39;\G;</code></p>
+</li>
+</ul>
+<p>output:</p>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+
+<p>这里的 type 为 range, key 为 last_name, <strong>range 表示索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</strong></p>
+<ul>
+<li><p>匹配范围值<br>  可用于查找姓在 <code>Angelina</code> 和 <code>Julla</code> 之间的人<br>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name between &#x27;Angelina&#x27; and &#x27;Julla&#x27;;</span><br></pre></td></tr></table></figure>
+<p>output:</p>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 3</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using where; Using index</span></span><br></pre></td></tr></table></figure>
+<p>这里 key 使用为 last_name, type 为 range 范围查询。</p>
+</li>
+<li><p><strong>精确匹配某一列并范围匹配另一列, 即第一列全匹配，第二列 first_name 范围匹配</strong><br>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name between &#x27;Allen&#x27; and &#x27;zxxx&#x27;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 104</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+<p>这里索引用到了 last_name, type 为 range 范围查询。</p>
+</li>
+<li><p><strong>只访问索引的查询</strong><br>B-Tree 通常可以支持 “只访问索引的查询”，即查询只需要访问索引，无需访问数据行。<br>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name=&#x27;Allen&#x27;;</span><br></pre></td></tr></table></figure></li>
+<li><p>索引也可以用到 order by 排序操作，order by 子句满足前面列出的几种查询类型。</p>
+</li>
+</ul>
+<h2 id="B-Tree-索引的限制"><a href="#B-Tree-索引的限制" class="headerlink" title="B-Tree 索引的限制"></a>B-Tree 索引的限制</h2><ul>
+<li><strong>需要满足最左原则</strong>，即若不是按照索引的最左列开始查找的话，无法使用索引；<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where first_name=&#x27;Allen&#x27;\G;</span><br><span class="line"></span><br><span class="line">explain select * from People</span><br><span class="line">where dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
+output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ALL</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key<span class="emphasis">_len       | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 7</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using where</span></span><br></pre></td></tr></table></figure></li>
+<li>不能跳过索引中的列。例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
+output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+这样只是使用到了索引 <code>last_name</code>，<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | const,const,const</span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
+<p>通过 ref 的 <code>const, const, const</code> 可以知道，前者只用到了 <code>last_name</code> index，而后者都用到了<br>这里可以看到 type 类型为 ALL 表示全表扫描；</p>
+<ul>
+<li>若查询中有<strong>某个列的范围查询，则右边所有列都无法使用索引优化查找</strong>。<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name like &#x27;A%&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
+output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
+<h1 id="索引的优点"><a href="#索引的优点" class="headerlink" title="索引的优点"></a>索引的优点</h1></li>
+<li><strong>索引大大减少了服务器需要扫描的数据量</strong></li>
+<li><strong>索引可以帮助服务器避免排序和临时表</strong></li>
+<li>索引可以将随机 I/O 变为顺序 I/O</li>
+<li>索引对于 InnoDB (对索引支持行级锁) 非常重要，因为它可以让查询锁更少的元祖。<br>在 MySQL 5.1 和更新的版本中，InnoDB 可以在服务器端过滤掉行后就释放锁，但在早期的 MySQL 版本中，InnoDB 直到事务提交时才会解锁。对不需要的元组的加锁，会增加锁的开销，降低并发性。<br>InnoDB 仅对需要访问的元组加锁，而<strong>索引能够减少 InnoDB 访问的元组数</strong>。但是只有在存储引擎层过滤掉那些不需要的数据才能达到这种目的。</li>
+<li>关于 InnoDB、索引和锁：InnoDB在二级索引上使用共享锁（读锁），但是访问主键索引需要排他锁（写锁）</li>
+</ul>
+<h1 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h1><ul>
+<li><strong>由于索引的存在，在进行`INSERT、UPDATE、DELETE 时，需要进行数据的更新修改，会降低更新表的速度</strong>。MySQL 不仅要保存数据，还要保存索引文件。</li>
+<li><strong>建立索引会占用磁盘空间的索引文件。当数据量比较大的表及组合索引较多时，索引文件会膨胀的很快</strong></li>
+<li>如果某个数据列包含许多重复的内容，建立索引就没有实际效果。</li>
+<li>对于数据量非常小的表，全表扫描更高效。</li>
+</ul>
+<p>综上：建立一个<code>好</code>的索引是非常考究的，需要根据业务和实际场景不断的优化。</p>
+<h1 id="索引的使用"><a href="#索引的使用" class="headerlink" title="索引的使用"></a>索引的使用</h1><h2 id="普通索引"><a href="#普通索引" class="headerlink" title="普通索引"></a>普通索引</h2><p>这类索引是最基本的索引，普通索引的唯一任务就是加快对数据的访问速度。<br>这类索引应该只为最经常出现在查询条件（where column = ）或 排序条件（order by column）中的数据列创建索引。</p>
+<ul>
+<li>创建<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE table_name ADD INDEX index_name (column)</span><br></pre></td></tr></table></figure>
+<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2>普通索引允许被索引的数据列包含重复的值，而唯一索引列的值必须唯一，但允许有空值如果是组合索引，则列值的组合必须唯一</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE UNIQUE INDEX idx_xxx ON my_table (column)</span><br></pre></td></tr></table></figure>
+
+<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>它是一种特殊的唯一索引，不允许有空值。一个表只能有一个主键。</p>
+<p>一般在创建主键的时候，会同时创建。</p>
+<h2 id="组合索引"><a href="#组合索引" class="headerlink" title="组合索引"></a>组合索引</h2><p>组合索引也可称为联合索引，为表的多个列创建索引；<br>为了进一步榨取 MySQL 的效率，就要考虑建立组合索引。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE my_table ADD INDEX idx_name_city_age (name, city, age)</span><br></pre></td></tr></table></figure>
+<p>建立这样的组合索引，其实是相当于分别建立了下面三组组合索引：<br><code>username, city, age</code><br><code>username, city</code><br><code>username</code></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>「 高性能的索引 」</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>聊一聊 MySQL 事务</title>
     <url>/posts/26a608fc/</url>
     <content><![CDATA[<h1 id="InnoDB-Architecture"><a href="#InnoDB-Architecture" class="headerlink" title="InnoDB Architecture"></a>InnoDB Architecture</h1><blockquote>
@@ -630,167 +791,6 @@
 <li>幻读（Phantom Read）:<br><strong>一个事务的两次查询中夹杂着插入事务的操作，数据量不一致</strong></li>
 </ul>
 <h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>理解事务的特性，原子性，一致性，持久性，隔离性，可以在使用中，更好的定位到问题，更好的设计业务系统。</p>
-]]></content>
-      <categories>
-        <category>MySQL</category>
-      </categories>
-      <tags>
-        <tag>MySQL</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL 索引总结 -</title>
-    <url>/posts/6e16c56e/</url>
-    <content><![CDATA[<h1 id="什么是-索引？"><a href="#什么是-索引？" class="headerlink" title="什么是 索引？"></a>什么是 <strong>索引</strong>？</h1><p><strong>索引（ MySQL 中也叫做<code>键(key)</code>）</strong> 是<strong>存储引擎</strong>用于<strong>快速找到记录</strong>的一种<strong>数据结构</strong>。本文主要学习的是基于 InnoDB 存储引擎。<br>索引对于良好的性能非常关键，对于较大的数据量来说，索引的创建愈发重要。</p>
-<h1 id="索引的类型"><a href="#索引的类型" class="headerlink" title="索引的类型"></a>索引的类型</h1><blockquote>
-<p>索引有很多种类型，可以为不同的场景提供更好的性能。</p>
-</blockquote>
-<h2 id="从存储结构上分"><a href="#从存储结构上分" class="headerlink" title="从存储结构上分"></a>从存储结构上分</h2><ul>
-<li>Btree 索引 （B+tree、B-tree）</li>
-<li>哈希索引</li>
-<li>full-index 全文索引</li>
-<li>RTree</li>
-</ul>
-<h2 id="从应用层次上划分"><a href="#从应用层次上划分" class="headerlink" title="从应用层次上划分"></a>从应用层次上划分</h2><ul>
-<li>普通索引：即一个索引只包含单个列，一个表可以有多个单列索引</li>
-<li>唯一索引：索引列的值必须唯一，但允许有空值</li>
-<li>复合索引：一个索引包含多个列</li>
-</ul>
-<h2 id="从表记录的存储形式上来划分"><a href="#从表记录的存储形式上来划分" class="headerlink" title="从表记录的存储形式上来划分"></a>从表记录的存储形式上来划分</h2><ul>
-<li>聚簇索引：表记录的排列顺序和索引的排列顺序一致</li>
-<li>非聚簇索引：表记录的排列顺序和索引的排列顺序不一致</li>
-</ul>
-<h1 id="聚簇索引和非聚簇索引"><a href="#聚簇索引和非聚簇索引" class="headerlink" title="聚簇索引和非聚簇索引"></a>聚簇索引和非聚簇索引</h1><blockquote>
-<p>在 InnoDB 中，表数据文件本身就是按照 B+Tree 组织的一个索引结构。<br>聚簇索引就是按照每张表的主键构造一颗 B+ 树，同时叶子节点中存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。<br>一般建表会用一个自增主键做聚簇索引，没有的话 MySQL 会默认创建<br>在日常的开发任务中，根据实际情况自行添加的索引都是辅助索引，辅助索引就是一个为了需要找主键索引的二级索引，先找到主键索引再通过主键索引找到数据。</p>
-</blockquote>
-<h2 id="聚簇索引"><a href="#聚簇索引" class="headerlink" title="聚簇索引"></a>聚簇索引</h2><blockquote>
-<p>聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。</p>
-</blockquote>
-<p>聚簇索引就是按照每张表的主键构建一颗 B+ 树，同时叶子节点存放的就是整张表的行记录数据，也将聚簇索引的叶子节点称为数据页。这个特性决定了索引组织表中的数据也是索引的一部分，每张表只能拥有一个聚簇索引。<br><img src="../../images/mysql/%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95.png" alt="direct"></p>
-<h2 id="聚簇索引的优点"><a href="#聚簇索引的优点" class="headerlink" title="聚簇索引的优点"></a>聚簇索引的优点</h2><ul>
-<li>数据访问更快，因为**聚簇索引是将索引和数据保存在同一个 B+ 树中，因此从聚簇索引中获取数据比非聚簇索引更快。</li>
-<li>聚簇索引对于主键的排序查找和范围查找速度更快。</li>
-<li>使用覆盖索引扫描的查询可以直接使用页节点中的主键值</li>
-</ul>
-<h2 id="聚簇索引的缺点"><a href="#聚簇索引的缺点" class="headerlink" title="聚簇索引的缺点"></a>聚簇索引的缺点</h2><ul>
-<li></li>
-<li>插入速度严重依赖插入顺序，按照主键的顺序插入是最快的方式。一般定义一个自增的 ID 列作为主键，但是如果不是按照主键顺序加载数据，那么在jia</li>
-<li>更新主键的代价很高，因为将会导致被更新的行移动，一般对于 InnoDB 表，定义主键不可更新</li>
-<li>二级索引访问需要两次索引查找，第一次找到主键值，第二次根据主键值找到行数据。</li>
-</ul>
-<h1 id="非聚簇索引"><a href="#非聚簇索引" class="headerlink" title="非聚簇索引"></a>非聚簇索引</h1><p>在聚簇索引之上创建的索引称之为辅助索引，辅助索引访问数据总是需要二次查找。辅助索引叶子节点存放的不再是行的物理位置，而是主键值。<br>通过辅助索引找到主键值，再通过主键值找到数据行的数据页，再通过数据页中的 Page Directory 找到数据行。</p>
-<p>InnoDB 辅助索引的叶子节点并不包含行记录的全部数据，叶子节点包含键值外，还包含了相应行数据的聚簇索引键。</p>
-<h2 id="B-Tree-索引"><a href="#B-Tree-索引" class="headerlink" title="B-Tree 索引"></a>B-Tree 索引</h2><blockquote>
-<p>特点：<strong>每一个叶子节点都包含指向下一个叶子节点的指针</strong>，从而方便叶子节点的范围遍历</p>
-</blockquote>
-<p>B-Tree 通常意味着所有的值都是按照顺序存储的，并且每一个叶子页到根的距离相同。<br><img src="../../images/mysql/B+Tree%E7%B4%A2%E5%BC%95.png" alt="img.png"></p>
-<h2 id="B-Tree-索引检索数据的原理"><a href="#B-Tree-索引检索数据的原理" class="headerlink" title="B-Tree 索引检索数据的原理"></a>B-Tree 索引检索数据的原理</h2><p>存储引擎不再需要进行全表扫描来获取需要的数据，取而代之的是<strong>从索引的根节点开始进行搜索</strong>。<br>根节点的槽中存放了指向子节点的指针，存储引擎根据这些指针向下层查找。这些指针<strong>实际上定义了子节点页中值的上限和下限</strong>，通过比较<strong>节点页中的值和要查找的值</strong>可以找到合适的指针进入下层子节点。<br>最终存储引擎的查找只会有两种情况：<strong>1. 找到对应的值。2. 记录不存在。</strong></p>
-<p><strong>叶子节点指针指向的是被索引的数据，而不是其他节点页。</strong></p>
-<p>树的深度和表的大小直接相关</p>
-<p>B-Tree 对索引列是顺序组织存储的，所以很适合查找范围数据。</p>
-<p>B-Tree 索引适用于<strong>全值键、键值范围或键前缀</strong>查找。键前缀查找只适用于最左前缀查找</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE People (</span><br><span class="line">    last_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;姓&#x27;,</span><br><span class="line">    first_name varchar(50) not null DEFAULT &#x27;&#x27; comment &#x27;名&#x27;,</span><br><span class="line">    dob date not null DEFAULT &#x27;&#x27; comment &#x27;出生日期&#x27;,</span><br><span class="line">    gender enum(0, 1) not null comment &#x27;&#x27;,</span><br><span class="line">    key(last_name, first_name, dob)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">INSERT INTO People values (&#x27;Cuba&#x27;, &#x27;Allen&#x27;, &#x27;1960-01-01&#x27;),</span><br><span class="line">(&#x27;Angelina&#x27;, &#x27;Astaire&#x27;, &#x27;1980-03-04&#x27;),</span><br><span class="line">(&#x27;Julla&#x27;, &#x27;Barrymore&#x27;, &#x27;2000-05-16&#x27;),</span><br><span class="line">(&#x27;Christian&#x27;, &#x27;Akroyd&#x27;, &#x27;1958-12-07&#x27;),</span><br><span class="line">(&#x27;Akroyd&#x27;, &#x27;Klrsten&#x27;, &#x27;1978-11-02&#x27;)</span><br></pre></td></tr></table></figure>
-
-<p><img src="../../images/mysql/BTree%E5%8F%B6%E5%AD%90%E7%BB%93%E7%82%B9.png" alt="direct"></p>
-<h2 id="B-Tree-索引的查询类型"><a href="#B-Tree-索引的查询类型" class="headerlink" title="B-Tree 索引的查询类型"></a>B-Tree 索引的查询类型</h2><blockquote>
-<p>explain 分析 SQL 的执行计划<br>需要重点关注 type、rows、filtered、extra。<br>type 由上至下，效率越来越高</p>
-<ul>
-<li>ALL 全表扫描</li>
-<li>index 索引全扫描</li>
-<li>range 索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</li>
-<li>ref 使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录，常出现在关联查询中</li>
-<li>eq_ref 类似 ref,区别在于使用的是唯一索引，使用主键的关联查询</li>
-<li>const/system 单条记录，系统会把匹配行中的其它列作为常数处理，如主键或唯一索引查询</li>
-<li>null MySQL 不访问任何表或索引，直接返回结果</li>
-</ul>
-</blockquote>
-<blockquote>
-<p>虽然上至下，效率越来越高，但是根据cost模型，假设有两个索引<code>idx1(a, b, c)</code>,<code>idx2(a, c)</code>，SQL为<code>select * from t where a = 1 and b in (1, 2) order by c;</code>如果走idx1，那么是type为range，如果走idx2，那么type是ref；当需要扫描的行数，使用idx2大约是idx1的5倍以上时，会用idx1，否则会用idx2</p>
-</blockquote>
-<blockquote>
-<p><strong>Extra</strong></p>
-</blockquote>
-<blockquote>
-<ul>
-<li>Using filesort：MySQL需要额外的一次传递，以找出如何按排序顺序检索行。通过根据联接类型浏览所有行并为所有匹配WHERE子句的行保存排序关键字和行的指针来完成排序。然后关键字被排序，并按排序顺序检索行。</li>
-<li><strong>Using temporary：使用了临时表保存中间结果，性能特别差，需要重点优化</strong></li>
-<li>Using index：表示相应的 select 操作中使用了覆盖索引（Coveing Index）,避免访问了表的数据行，效率不错！如果同时出现 using where，意味着无法直接通过索引查找来查询到符合条件的数据。</li>
-<li>Using index condition：MySQL5.6之后新增的ICP，using index condtion就是使用了ICP（索引下推），在存储引擎层进行数据过滤，而不是在服务层过滤，利用索引现有的数据减少回表的数据。</li>
-</ul>
-</blockquote>
-<ul>
-<li><strong>全值匹配</strong><pre><code>**全值匹配指的是和索引中所有列进行匹配**
-</code></pre>
-例如:<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br><span class="line">```  </span><br><span class="line">output:</span><br><span class="line">```markdown</span><br><span class="line">id            | 1</span><br><span class="line">select_type   | SIMPLE</span><br><span class="line">table         | People</span><br><span class="line">partitions    | &lt;null&gt;</span><br><span class="line">type          | ref</span><br><span class="line">possible_keys | last_name</span><br><span class="line">key           | last_name</span><br><span class="line">key_len       | 107</span><br><span class="line">ref           | const,const,const</span><br><span class="line">rows          | 1</span><br><span class="line">filtered      | 100.0</span><br><span class="line">Extra         | &lt;null&gt;</span><br></pre></td></tr></table></figure></li>
-</ul>
-<p>这里的 type 为 ref, <strong>ref 表示使用非唯一索引扫描或唯一索引前缀扫描，返回单条记录</strong>，常出现在关联查询中</p>
-<ul>
-<li><p><strong>匹配索引最左前缀</strong><br>  查找所有姓为 <code>Allen</code> 的人，例如 <code>explain select * from People where last_name=&#39;Cuba&#39;\G;</code><br>output:</p>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure></li>
-<li><p><strong>匹配列前缀</strong><br>  查找只<strong>匹配某一列的值的开头部分</strong>，只使用到了索引的第一列。<br>例如 <code>explain select * from People where last_name like &#39;C%&#39;\G;</code></p>
-</li>
-</ul>
-<p>output:</p>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-
-<p>这里的 type 为 range, key 为 last_name, <strong>range 表示索引范围扫描，常用语&lt;,&lt;=,&gt;,=&gt;,between, in like 等操作</strong></p>
-<ul>
-<li><p>匹配范围值<br>  可用于查找姓在 <code>Angelina</code> 和 <code>Julla</code> 之间的人<br>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name between &#x27;Angelina&#x27; and &#x27;Julla&#x27;;</span><br></pre></td></tr></table></figure>
-<p>output:</p>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 3</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using where; Using index</span></span><br></pre></td></tr></table></figure>
-<p>这里 key 使用为 last_name, type 为 range 范围查询。</p>
-</li>
-<li><p><strong>精确匹配某一列并范围匹配另一列, 即第一列全匹配，第二列 first_name 范围匹配</strong><br>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name between &#x27;Allen&#x27; and &#x27;zxxx&#x27;;</span><br></pre></td></tr></table></figure>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 104</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-<p>这里索引用到了 last_name, type 为 range 范围查询。</p>
-</li>
-<li><p><strong>只访问索引的查询</strong><br>B-Tree 通常可以支持 “只访问索引的查询”，即查询只需要访问索引，无需访问数据行。<br>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select last_name from People</span><br><span class="line">where last_name=&#x27;Allen&#x27;;</span><br></pre></td></tr></table></figure></li>
-<li><p>索引也可以用到 order by 排序操作，order by 子句满足前面列出的几种查询类型。</p>
-</li>
-</ul>
-<h2 id="B-Tree-索引的限制"><a href="#B-Tree-索引的限制" class="headerlink" title="B-Tree 索引的限制"></a>B-Tree 索引的限制</h2><ul>
-<li><strong>需要满足最左原则</strong>，即若不是按照索引的最左列开始查找的话，无法使用索引；<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where first_name=&#x27;Allen&#x27;\G;</span><br><span class="line"></span><br><span class="line">explain select * from People</span><br><span class="line">where dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
-output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ALL</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span><br><span class="line">key<span class="emphasis">_len       | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 7</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using where</span></span><br></pre></td></tr></table></figure></li>
-<li>不能跳过索引中的列。例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
-output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 52</span></span><br><span class="line"><span class="emphasis">ref           | const</span></span><br><span class="line"><span class="emphasis">rows          | 2</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-这样只是使用到了索引 <code>last_name</code>，<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name=&#x27;Allen&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure></li>
-</ul>
-<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | ref</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | const,const,const</span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 100.0</span></span><br><span class="line"><span class="emphasis">Extra         | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
-<p>通过 ref 的 <code>const, const, const</code> 可以知道，前者只用到了 <code>last_name</code> index，而后者都用到了<br>这里可以看到 type 类型为 ALL 表示全表扫描；</p>
-<ul>
-<li>若查询中有<strong>某个列的范围查询，则右边所有列都无法使用索引优化查找</strong>。<br>例如：<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">explain select * from People</span><br><span class="line">where last_name=&#x27;Cuba&#x27; and first_name like &#x27;A%&#x27; and dob=&#x27;1960-01-01&#x27;\G;</span><br></pre></td></tr></table></figure>
-output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line">id            | 1</span><br><span class="line">select<span class="emphasis">_type   | SIMPLE</span></span><br><span class="line"><span class="emphasis">table         | People</span></span><br><span class="line"><span class="emphasis">partitions    | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">type          | range</span></span><br><span class="line"><span class="emphasis">possible_</span>keys | last<span class="emphasis">_name</span></span><br><span class="line"><span class="emphasis">key           | last_</span>name</span><br><span class="line">key<span class="emphasis">_len       | 107</span></span><br><span class="line"><span class="emphasis">ref           | <span class="xml"><span class="tag">&lt;<span class="name">null</span>&gt;</span></span></span></span><br><span class="line"><span class="emphasis">rows          | 1</span></span><br><span class="line"><span class="emphasis">filtered      | 14.29</span></span><br><span class="line"><span class="emphasis">Extra         | Using index condition</span></span><br></pre></td></tr></table></figure>
-<h1 id="索引的优点"><a href="#索引的优点" class="headerlink" title="索引的优点"></a>索引的优点</h1></li>
-<li><strong>索引大大减少了服务器需要扫描的数据量</strong></li>
-<li><strong>索引可以帮助服务器避免排序和临时表</strong></li>
-<li>索引可以将随机 I/O 变为顺序 I/O</li>
-<li>索引对于 InnoDB (对索引支持行级锁) 非常重要，因为它可以让查询锁更少的元祖。<br>在 MySQL 5.1 和更新的版本中，InnoDB 可以在服务器端过滤掉行后就释放锁，但在早期的 MySQL 版本中，InnoDB 直到事务提交时才会解锁。对不需要的元组的加锁，会增加锁的开销，降低并发性。<br>InnoDB 仅对需要访问的元组加锁，而<strong>索引能够减少 InnoDB 访问的元组数</strong>。但是只有在存储引擎层过滤掉那些不需要的数据才能达到这种目的。</li>
-<li>关于 InnoDB、索引和锁：InnoDB在二级索引上使用共享锁（读锁），但是访问主键索引需要排他锁（写锁）</li>
-</ul>
-<h1 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h1><ul>
-<li><strong>由于索引的存在，在进行`INSERT、UPDATE、DELETE 时，需要进行数据的更新修改，会降低更新表的速度</strong>。MySQL 不仅要保存数据，还要保存索引文件。</li>
-<li><strong>建立索引会占用磁盘空间的索引文件。当数据量比较大的表及组合索引较多时，索引文件会膨胀的很快</strong></li>
-<li>如果某个数据列包含许多重复的内容，建立索引就没有实际效果。</li>
-<li>对于数据量非常小的表，全表扫描更高效。</li>
-</ul>
-<p>综上：建立一个<code>好</code>的索引是非常考究的，需要根据业务和实际场景不断的优化。</p>
-<h1 id="索引的使用"><a href="#索引的使用" class="headerlink" title="索引的使用"></a>索引的使用</h1><h2 id="普通索引"><a href="#普通索引" class="headerlink" title="普通索引"></a>普通索引</h2><p>这类索引是最基本的索引，普通索引的唯一任务就是加快对数据的访问速度。<br>这类索引应该只为最经常出现在查询条件（where column = ）或 排序条件（order by column）中的数据列创建索引。</p>
-<ul>
-<li>创建<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE table_name ADD INDEX index_name (column)</span><br></pre></td></tr></table></figure>
-<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2>普通索引允许被索引的数据列包含重复的值，而唯一索引列的值必须唯一，但允许有空值如果是组合索引，则列值的组合必须唯一</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE UNIQUE INDEX idx_xxx ON my_table (column)</span><br></pre></td></tr></table></figure>
-
-<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>它是一种特殊的唯一索引，不允许有空值。一个表只能有一个主键。</p>
-<p>一般在创建主键的时候，会同时创建。</p>
-<h2 id="组合索引"><a href="#组合索引" class="headerlink" title="组合索引"></a>组合索引</h2><p>组合索引也可称为联合索引，为表的多个列创建索引；<br>为了进一步榨取 MySQL 的效率，就要考虑建立组合索引。</p>
-<p>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE my_table ADD INDEX idx_name_city_age (name, city, age)</span><br></pre></td></tr></table></figure>
-<p>建立这样的组合索引，其实是相当于分别建立了下面三组组合索引：<br><code>username, city, age</code><br><code>username, city</code><br><code>username</code></p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>「 高性能的索引 」</p>
 ]]></content>
       <categories>
         <category>MySQL</category>
@@ -1475,51 +1475,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>GIL 解释及探究</title>
-    <url>/posts/723b604d/</url>
-    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
-<blockquote>
-<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
-</blockquote>
-<blockquote>
-<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
-</blockquote>
-<ul>
-<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
-<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
-<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
-</ul>
-<p>常见的 Python 解释器还有：</p>
-<ul>
-<li>CPython</li>
-<li>IPython</li>
-<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
-<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
-<li>IronPython: .Net 平台</li>
-</ul>
-<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
-<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
-<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
-<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
-<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
-<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
-<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
-<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
-<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
-<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
-<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
-<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>linux shell 脚本</title>
     <url>/posts/77fe4966/</url>
     <content><![CDATA[<h1 id="Shell"><a href="#Shell" class="headerlink" title="Shell"></a>Shell</h1><h1 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h1><p>什么是 shell ?</p>
@@ -2067,6 +2022,232 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>GIL 解释及探究</title>
+    <url>/posts/723b604d/</url>
+    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
+<blockquote>
+<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
+</blockquote>
+<blockquote>
+<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
+</blockquote>
+<ul>
+<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
+<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
+<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
+</ul>
+<p>常见的 Python 解释器还有：</p>
+<ul>
+<li>CPython</li>
+<li>IPython</li>
+<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
+<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
+<li>IronPython: .Net 平台</li>
+</ul>
+<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
+<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
+<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
+<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
+<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
+<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
+<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
+<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
+<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
+<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
+<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
+<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>RESTful API 最佳实践</title>
+    <url>/posts/ea12054a/</url>
+    <content><![CDATA[<h1 id="RESTful-API-最佳实践"><a href="#RESTful-API-最佳实践" class="headerlink" title="RESTful API 最佳实践"></a>RESTful API 最佳实践</h1><img src="https://betimdrenica.files.wordpress.com/2015/03/api2.png?w=300&h=176" alt="api2" style="zoom:100%;" />
+
+<h2 id="API-的关键要求"><a href="#API-的关键要求" class="headerlink" title="API 的关键要求"></a>API 的关键要求</h2><ul>
+<li>网络标准的使用</li>
+<li>对开发人员友好，并能通过浏览器地址栏进行探索</li>
+<li>简单、直观和一致，使用简单且愉快</li>
+<li>足够的灵活性</li>
+<li>高效的使用</li>
+</ul>
+<h2 id="RESTful-API"><a href="#RESTful-API" class="headerlink" title="RESTful API"></a>RESTful API</h2><h3 id="Media-Type"><a href="#Media-Type" class="headerlink" title="Media Type"></a>Media Type</h3><p><strong>默认媒体类型为 JSON</strong></p>
+<blockquote>
+<p>由于 HTTP 的最新势头和遵循标准，JSON 是最受欢迎的，因此应该明确成为默认的媒体类型</p>
+<p>XML 的有点是复杂的场景和历史（SOAP），XML 不是 API  的最佳选择。它冗长，难以解析，难以阅读，其数据模型与大多数编程语言的数据模型不兼容。</p>
+</blockquote>
+<h2 id="HTTP-动词"><a href="#HTTP-动词" class="headerlink" title="HTTP 动词"></a>HTTP 动词</h2><p>RESTful 关键原则是将一系列 API 资源通过 <strong>域名+资源名称 + HTTP methods</strong></p>
+<p>逻辑资源应该<strong>从 API 消费者的角度</strong>来进行考虑：<strong>使用有意义的名词s, 而不是动词</strong>，需要明确的是：名词是事物，动词是你对它所做的。</p>
+<p>定义资源后，对于每种的资源的不同操作映射为对应的 HTTP 请求方法：</p>
+<ul>
+<li>GET —— 获取资源信息(SELECT)</li>
+<li>POST —— 创建新的资源(CREATE)</li>
+<li>PUT —— 更新资源(UPDATE)</li>
+<li>PATCH —— 更新部分资源(UPDATE)</li>
+<li>DELETE —— 删除部分资源(DELETE)</li>
+</ul>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /tickets - 检索票证列表</span><br><span class="line">GET /tickets/12 - 检索特定票证</span><br><span class="line">POST /tickets - 创建一个新票</span><br><span class="line">PUT /tickets/12 - 更新票 #12</span><br><span class="line">PATCH /tickets/12 - 部分更新票 #12</span><br><span class="line">DELETE /tickets/12 - 删除票 #12</span><br></pre></td></tr></table></figure>
+
+<p>不适合 CRUD 操作的世界应该怎么办？</p>
+<ul>
+<li><strong>组合操作使其看起来像资源的字段。</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">POST /template/apply # 应用一个模版</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>将其视为符合 RESTful 原则的子资源。</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /zoos/id/animals # 获取某一个 动物园的 动物</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>无法确定正确的 RESTful 结构的，区别记录即可，无需强制使用。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /search?text=&quot;搜索&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="无处不在的-SSL"><a href="#无处不在的-SSL" class="headerlink" title="无处不在的 SSL"></a>无处不在的 SSL</h2><blockquote>
+<p>SSL 证书是一个数字证书，用于认证网站的身份并启用加密连接。SSL 代表安全套接字层，这是一个安全协议，可在 Web 服务器和 Web 浏览器之间创建加密链接。</p>
+</blockquote>
+<p><strong>始终使用 SSL —— 出于安全考虑。</strong></p>
+<p>始终使用 SSL 的另外一个优势是有保证的加密通信简化了身份验证工作——您可以使用简单的访问令牌，而不必签署每个 API 请求。</p>
+<h2 id="API-接口文档"><a href="#API-接口文档" class="headerlink" title="API 接口文档"></a>API 接口文档</h2><p><strong>API 的好坏取决于它的文档</strong>。这些文档应该很容易找到并且可以公开访问。大多数开发人员在尝试任何集成工作之前都会查看文档。</p>
+<p><strong>文档应显示完整请求/响应周期的示例。</strong></p>
+<p>一旦你发布了一个公共 API，就应该发布通知信息，告知关注者变更消息。</p>
+<p>例如 Apifox、yapi 等接口文档软件</p>
+<h2 id="版本控制"><a href="#版本控制" class="headerlink" title="版本控制"></a>版本控制</h2><p><strong>始终对您的 API 进行版本控制。</strong>版本控制可帮助您更快地迭代并防止无效请求到达更新的端点。它还有助于平滑任何主要的 API 版本转换。</p>
+<p>关于 API 版本应包含在 URL 中还是 header 中？有广泛的争论。</p>
+<p>本人比较喜欢将版本控制置于 URL 中</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /api/v1/zoos</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="结果过滤、排序和搜索"><a href="#结果过滤、排序和搜索" class="headerlink" title="结果过滤、排序和搜索"></a>结果过滤、排序和搜索</h2><p><strong>最好使基本资源 URL 尽可能精简。</strong></p>
+<p><strong>复杂的结果过滤器、排序要求和高级搜索（当仅限于单一类型的资源时）都可以作为基本 URL</strong>  </p>
+<p><strong>之上的查询参数轻松实现。</strong></p>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /tickets?state=open</span><br><span class="line">GET /tickets?order_by=create_time:desc,apply_time:desc</span><br></pre></td></tr></table></figure>
+
+<h2 id="JSON-采用-request-body-输入"><a href="#JSON-采用-request-body-输入" class="headerlink" title="JSON  采用 request body 输入"></a>JSON  采用 request body 输入</h2><ul>
+<li>POST</li>
+<li>PUT</li>
+<li>PATCH</li>
+</ul>
+<p>上述方法采用 request body 传输数据</p>
+<h3 id="字段名称的-snake-case-与-camelCase"><a href="#字段名称的-snake-case-与-camelCase" class="headerlink" title="字段名称的 snake_case 与 camelCase"></a>字段名称的 snake_case 与 camelCase</h3><p>根据 2010 年对 camelCase 和 snake_case （PDF）的眼动追踪研究，**snake_case 比 camelCase 更容易阅读 20%**这种对可读性的影响会影响 API 的可探索性和文档中的示例。</p>
+<h2 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h2><p>json 返回数据中，会包含一些分页数据；</p>
+<blockquote>
+<p>The right way to include pagination details today is using the <a href="https://tools.ietf.org/html/rfc8288">Link header introduced by RFC 8288</a>.</p>
+</blockquote>
+<p>以下是正确使用 Link 标头的示例，来自 GitHub:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Link: &lt;https://api.github.com/user/repos?page=3&amp;per_page=100&gt;; rel=&quot;next&quot;, &lt;https://api.github.com/user/repos?page=50&amp;per_page=100&gt;; rel=&quot;last&quot;</span><br></pre></td></tr></table></figure>
+
+<p>许多 API 确实需要额外的分页信息，例如可用结果总数的计数。需要发送计数的 API 可以使用自定义 HTTP 标头，如 <code>X-Total-Count</code>。</p>
+<h2 id="更新和限制资源应该返回资源表示"><a href="#更新和限制资源应该返回资源表示" class="headerlink" title="更新和限制资源应该返回资源表示"></a>更新和限制资源应该返回资源表示</h2><p>PUT、POST 或 PATCH 调用可能会修改不属于所提供参数的基础资源字段（例如：created_at 或 updated_at 时间戳）。为防止 API 使用者必须再次点击 API 以获得更新的表示，让 API 返回更新（或创建）的表示作为响应的一部分。</p>
+<p>如果 POST 导致创建，请使用 HTTP 201 状态码并包含指向新资源 URL 的 Location 标头。</p>
+<p>除了将新创建的资源表示作为响应主体之外，还应该包含这两个内容。</p>
+<h2 id="默认情况下，不使用-envelope-特殊情况下使用"><a href="#默认情况下，不使用-envelope-特殊情况下使用" class="headerlink" title="默认情况下，不使用 envelope, 特殊情况下使用"></a>默认情况下，不使用 envelope, 特殊情况下使用</h2><p>许多情况下：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data&quot;</span>：&#123;</span><br><span class="line">  	<span class="attr">&quot;id&quot;</span>: <span class="number">123</span>,</span><br><span class="line">  	<span class="attr">&quot;name&quot;</span>: <span class="string">&quot;John&quot;</span></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>理由：</p>
+<ul>
+<li>包含额外的元数据或分页信息，一些 REST 客户端不允许轻松访问 HTTP 标头，而 JSONP 请求无法访问 HTTP 标头。然而，随着 CORS 和 RFC 5988 等 Link 标头等标准被迅速采用，封装开始变得不必要了。</li>
+</ul>
+<h2 id="速率限制"><a href="#速率限制" class="headerlink" title="速率限制"></a>速率限制</h2><p>为防止滥用，标准做法是向 API 添加某种速率限制。</p>
+<blockquote>
+<p>To prevent abuse, it is standard practice to add some sort of rate limiting to an API. <a href="http://tools.ietf.org/html/rfc6585">RFC 6585</a> introduced a HTTP status code <a href="http://tools.ietf.org/html/rfc6585#section-4">429 Too Many Requests</a> to accommodate this.</p>
+<p>However, it can be very useful to notify the consumer of their limits before they actually hit it. This is an area that currently lacks standards but has a number of <a href="http://stackoverflow.com/questions/16022624/examples-of-http-api-rate-limiting-http-response-headers">popular conventions using HTTP response headers</a>.</p>
+<p>At a minimum, include the following headers:</p>
+<ul>
+<li>X-Rate-Limit-Limit - The number of allowed requests in the current period</li>
+<li>X-Rate-Limit-Remaining - The number of remaining requests in the current period</li>
+<li>X-Rate-Limit-Reset - The number of seconds left in the current period</li>
+</ul>
+</blockquote>
+<h2 id="Authentication"><a href="#Authentication" class="headerlink" title="Authentication"></a>Authentication</h2><p>RESTful API 应该是无状态的。</p>
+<p>基于 SSL 身份验证凭据可以简化为随机生成的访问令牌，该令牌在 HTTP 基本身份验证的用户名字段中传送。</p>
+<ul>
+<li>session</li>
+<li>jwt</li>
+<li>access_token</li>
+<li>OAuth 2</li>
+</ul>
+<h2 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h2><p>HTTP 内置缓存框架</p>
+<ul>
+<li>ETag</li>
+<li>Last-Modified</li>
+</ul>
+<h2 id="Error-Handler"><a href="#Error-Handler" class="headerlink" title="Error Handler"></a>Error Handler</h2><p>类似 HTML 错误页面向访问者显示有用的错误信息一样，API 应该以已知的可使用格式提供有用的错误信息。错误的表示应该与任何资源的表示没有区别，只是具有自己的一组字段。</p>
+<ul>
+<li>API 应返回合理的 HTTP 状态代码。</li>
+</ul>
+<p>API 错误通常分为两种类型：</p>
+<ul>
+<li>客户端问题的 400 系列状态代码</li>
+<li>服务器问题的 500 系列状态代码</li>
+</ul>
+<p>对于具体的 400 系列和 500 系列状态代码，应带有可使用的 JSON 错误表示。</p>
+<p>JSON 错误正文应具有：</p>
+<ul>
+<li>错误信息</li>
+<li>唯一的错误代码</li>
+<li>以及可能的详细描述</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;code&quot;</span> : <span class="number">1234</span>,</span><br><span class="line">  <span class="attr">&quot;message&quot;</span> : <span class="string">&quot;Something bad happened :(&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;description&quot;</span> : <span class="string">&quot;More details about the error here&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="HTTP-status-codes"><a href="#HTTP-status-codes" class="headerlink" title="HTTP status codes"></a>HTTP status codes</h2><blockquote>
+<ul>
+<li>200 OK - Response to a successful GET, PUT, PATCH or DELETE. Can also be used for a POST that doesn’t result in a creation.</li>
+<li>201 Created - Response to a POST that results in a creation. Should be combined with a <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location header</a> pointing to the location of the new resource</li>
+<li>204 No Content - Response to a successful request that won’t be returning a body (like a DELETE request)</li>
+<li>304 Not Modified - Used when HTTP caching headers are in play</li>
+<li>400 Bad Request - The request is malformed, such as if the body does not parse</li>
+<li>401 Unauthorized - When no or invalid authentication details are provided. Also useful to trigger an auth popup if the API is used from a browser</li>
+<li>403 Forbidden - When authentication succeeded but authenticated user doesn’t have access to the resource</li>
+<li>404 Not Found - When a non-existent resource is requested</li>
+<li>405 Method Not Allowed - When an HTTP method is being requested that isn’t allowed for the authenticated user</li>
+<li>410 Gone - Indicates that the resource at this end point is no longer available. Useful as a blanket response for old API versions</li>
+<li>415 Unsupported Media Type - If incorrect content type was provided as part of the request</li>
+<li>422 Unprocessable Entity - Used for validation errors</li>
+<li>429 Too Many Requests - When a request is rejected due to rate limiting</li>
+</ul>
+</blockquote>
+<ul>
+<li>200 OK - 对成功的 GET、PUT、PATCH 或 DELETE 的响应。也可用于不会导致创建的 POST。</li>
+<li>201 已创建- 对导致创建的 POST 的响应。应与指向新资源位置的<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location 标头结合</a></li>
+<li>204 No Content - 对不会返回正文的成功请求的响应（如 DELETE 请求）</li>
+<li>304 Not Modified - 在使用 HTTP 缓存标头时使用</li>
+<li>400 Bad Request - 请求格式错误，比如请求体没有解析</li>
+<li>401 Unauthorized - 当没有提供或提供无效的身份验证详细信息时。如果从浏览器使用 API，也可用于触发身份验证弹出窗口</li>
+<li>403 Forbidden - 当身份验证成功但经过身份验证的用户无权访问资源时</li>
+<li>404 Not Found - 当请求不存在的资源时</li>
+<li>405 Method Not Allowed - 当请求的 HTTP 方法不允许经过身份验证的用户使用时</li>
+<li>410 Gone - 表示此端点的资源不再可用。作为对旧 API 版本的全面响应很有用</li>
+<li>415 Unsupported Media Type - 如果作为请求的一部分提供了不正确的内容类型</li>
+<li>422 Unprocessable Entity - 用于验证错误</li>
+<li>429 Too Many Requests - 当请求由于速率限制而被拒绝时</li>
+</ul>
+<h2 id="In-Summary"><a href="#In-Summary" class="headerlink" title="In Summary"></a>In Summary</h2><p>API 是开发人员的用户界面。努力确保它不仅功能齐全而且使用起来愉快。</p>
+<p>由于开发语言有异，只有最适合的 API 规范，没有最好的 API 规范</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Best Practices for Designing a Pragmatic RESTful API:<a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api</a></p>
+<p>Idel restful api : <a href="https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/">https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/</a></p>
+<p><a href="https://www.ruanyifeng.com/blog/2014/05/restful_api.html">https://www.ruanyifeng.com/blog/2014/05/restful_api.html</a></p>
+]]></content>
+      <categories>
+        <category>HTTP</category>
+      </categories>
+      <tags>
+        <tag>HTTP</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Redis 高可用方案</title>
     <url>/posts/7c68620a/</url>
     <content><![CDATA[<h1 id="Redis-高可用方案"><a href="#Redis-高可用方案" class="headerlink" title="Redis 高可用方案"></a>Redis 高可用方案</h1><p>Redis 高可用方式主要有以下四种：</p>
@@ -2378,6 +2559,92 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>docker 与容器技术畅谈</title>
+    <url>/posts/bc91ee72/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
+<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
+</blockquote>
+<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
+<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
+<p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
+<p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
+<p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
+<p>那么为什么 docker 技术为何在短短几个月就风靡全世界了？</p>
+<ul>
+<li><strong>实则正是 <code>docker image</code></strong></li>
+</ul>
+<p>对于 Paas 项目而言，将项目运行的文件打包是一件极其麻烦的事情，对于每种语言，每种框架，每个版本都需要维护一个打好的包。</p>
+<p><strong>docker image 可以基于你所需要的系统文件，构建一个可以基于云端环境运行的压缩包。</strong></p>
+<h2 id="容器化技术的发展"><a href="#容器化技术的发展" class="headerlink" title="容器化技术的发展"></a>容器化技术的发展</h2><p>在以上的文章中，介绍了 docker 技术为何火热的原因。<br>对于一个大型的业务应用来说，从前端，后端，到数据库系统，文件系统等，往往是需要多个容器的，那么就存在着，如何能够优雅的在云端环境有序地运行。<br>于是，docker 公司便开发出了一个<code>容器编排化的工具</code>, <strong>docker Swarm</strong> 项目</p>
+<p>与此同时，Mesos 社区也开发出了一个类似的工具<code>Marathon</code>, 它虽然不能像 Swarm 那样提供原生的 Docker API, 但是其却拥有一个独特的核心竞争力：</p>
+<ul>
+<li><strong>超大规模集群的管理经验</strong></li>
+</ul>
+<p>也就在这个时候，google 公司根据公司多年的发展经验和借助成熟的内部项目<code>Borg</code>系统，宣布了 <code>Kubernetes</code> 项目的诞生。<br>而也是仅仅在两年之前，各个国内外的互联网厂商开始将自己的项目接入 k8s，宣布了 k8s 时代的到来。</p>
+<p>本文仅仅讨论 <code>docker 容器化技术</code>，对于<code>容器化编排</code>不做过多的介绍。</p>
+<h1 id="容器到底是怎么一回事？"><a href="#容器到底是怎么一回事？" class="headerlink" title="容器到底是怎么一回事？"></a>容器到底是怎么一回事？</h1><p>在上述的文章中，已经简单介绍了几个概念:</p>
+<ul>
+<li><code>虚拟器</code></li>
+<li><code>容器</code></li>
+<li><code>容器化技术</code></li>
+<li><code>镜像</code></li>
+</ul>
+<p>我们可以总结一下：<strong>容器其实就是一种沙盒技术，使用 <code>Cgroups</code>和<code>Namespace</code> 技术，将你的应用通过限制和隔离的技术在指定的环境中，良好的运行起来</strong></p>
+<p>先说结论，容器其实就是一种<code>特殊的进程</code>而已</p>
+<h2 id="隔离技术-Namespace"><a href="#隔离技术-Namespace" class="headerlink" title="隔离技术 - Namespace"></a>隔离技术 - Namespace</h2><blockquote>
+<p>那么隔离技术是如何实现的？</p>
+</blockquote>
+<p>首先创建一个容器：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker run -it --name=ubuntu-test ubuntu:18.04 /bin/sh</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ps</span></span><br><span class="line">  PID TTY          TIME CMD</span><br><span class="line">    1 pts/0    00:00:00 sh</span><br><span class="line">    7 pts/0    00:00:00 ps</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
+<p>我们可以看到这个容器中，一共有两个进程，通过 ps 可以看到 sh ,就是这个容器内部的第 1 号进程（PID=1）。</p>
+<p>这是为什么呢？</p>
+<p>本来，当我们在宿主机上运行了一个 /bin/sh 程序的时候，我们的操作系统都会给其分配一个进程编号，例如 PID=100。但是通过 <code>docker run</code> 命令时，docker<br>就会在当前的进程时，调整其 namespace 相关参数，将其变为在这个 docker 中的 1 号进程。</p>
+<p>这种技术就是<strong>Linux 里面的 Namespace 机制</strong>。</p>
+<p>我们知道，在 Linux 系统中创建进程的系统调用是 clone():</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, SIGCHID, NUll);</span><br></pre></td></tr></table></figure>
+
+<p>通过指定 <code>CLONE_NEWPID</code> 参数，而每个 <code>Namespace</code>里的应用进程，都会认为自己是当前容器里的第一号进程。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, CLONE_NEWPID | SIGCHLD, NULL)</span><br></pre></td></tr></table></figure>
+
+<p>在 Linux 操作系统中，还提供了 <code>Mount</code>、<code>UTS</code>、<code>IPC</code>、<code>Network</code>、<code>User</code> 这些 Namespace，用来对<code>各种不同的进程</code>上下文进行”障眼法”操作。</p>
+<h2 id="限制技术-Cgroups"><a href="#限制技术-Cgroups" class="headerlink" title="限制技术 - Cgroups"></a>限制技术 - Cgroups</h2><blockquote>
+<p>Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等<br>在 Linux 中，Cgroups 给用户暴露出来的操作接口是<strong>文件系统</strong>，即它以文件和目录的方式组织在操作系统的 /sys/fs/cgroup 路径下。</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># mount -t cgroup</span></span></span><br><span class="line">cpuset on /sys/fs/cgroup/cpuset type cgroup (ro,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cpu on /sys/fs/cgroup/cpu type cgroup (ro,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cpuacct on /sys/fs/cgroup/cpuacct type cgroup (ro,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">blkio on /sys/fs/cgroup/blkio type cgroup (ro,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">memory on /sys/fs/cgroup/memory type cgroup (ro,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">devices on /sys/fs/cgroup/devices type cgroup (ro,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">freezer on /sys/fs/cgroup/freezer type cgroup (ro,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">net_cls on /sys/fs/cgroup/net_cls type cgroup (ro,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">perf_event on /sys/fs/cgroup/perf_event type cgroup (ro,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">net_prio on /sys/fs/cgroup/net_prio type cgroup (ro,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">hugetlb on /sys/fs/cgroup/hugetlb type cgroup (ro,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">pids on /sys/fs/cgroup/pids type cgroup (ro,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">rdma on /sys/fs/cgroup/rdma type cgroup (ro,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (ro,nosuid,nodev,noexec,relatime,name=systemd)</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
+<p>其中，例如 <code>cpuset</code>、<code>cpu</code>、<code>memory</code> 这样的子目录，也叫子系统。这些都是可以被 <code>Cgroups</code> 进行限制的资源种类。</p>
+<p>现在我们看一下子系统中关于 CPU 的相关配置文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ls /sys/fs/cgroup/cpu</span></span><br><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release</span><br><span class="line">cgroup.procs	       cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat	 tasks</span><br></pre></td></tr></table></figure>
+<p>这些输出配置中，可以看到 <code>cpu.cfs_period_us</code> 和 <code>cpu.cfs_quota_us</code>，这两个参数需要组合使用，可以用来限制进程在长度<code>cfs_period</code>的一段时间内，<br>只能被分配到总量为 <code>cfs_quota</code> 的 CPU 时间。</p>
+<p>另开一个终端，输入:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">while : ; do : ; done &amp;</span><br><span class="line"></span><br><span class="line">23223</span><br></pre></td></tr></table></figure>
+<p>键入：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top</span><br><span class="line"><span class="meta">%</span><span class="bash">Cpu0 :100.0 us, 0.0 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
+<p>可以看到 CPU 的使用率已经 100% 了， quota 还没有任何限制（-1）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span> </span><br><span class="line">-1</span><br><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_period_us</span> </span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
+<p>在现在的默认配置中，在 100 ms 中的 cpu 时间中，使用 100ms 的 CPU 时间，也就是 100 %。<br>现在调整为 20%:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span></span><br></pre></td></tr></table></figure>
+<p>然后将限制的进程 PID 写入 container 组里的 tasks 文件:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 23223 &gt; /sys/fs/cgroup/cpu/container/tasks</span> </span><br></pre></td></tr></table></figure>
+<p>然后使用 <code>top</code> 指令查看:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash">Cpu0 : 20.3 us, 0.0 sy, 0.0 ni, 79.7 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
+<p>现在可以看到已经为 <code>20%</code> 左右了<br>其他关于 <code>blkio</code>，<code>cpuset</code>，<code>memory</code> 可以自行尝试</p>
+<h3 id="docker-运行时的限制参数"><a href="#docker-运行时的限制参数" class="headerlink" title="docker 运行时的限制参数"></a>docker 运行时的限制参数</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -it --cpu-period=100000 --cpu-quota=20000 ubuntu:18.04 /bin/bash</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置就会将对应的值写入到 docker-container 的配置文件中，这个 Docker 容器，只能使用到 20% 的 CPU 带宽。</p>
+<h3 id="虚拟机和容器对比"><a href="#虚拟机和容器对比" class="headerlink" title="虚拟机和容器对比"></a>虚拟机和容器对比</h3><img src="/images/虚拟机和容器对比图.png" width = "500" height = "300" alt="" align=center />
+
+<p>虚拟机的工作原理，通过硬件虚拟化功能，模拟出了运行一个操作系统需要的各种硬件，例如 CPU、内存、I/O 设备等等。<br>docker 项目帮助用户启动的，还是原来的应用进程，但是 Docker 会为它们加上了各种各样的 Namespace 参数。</p>
+<p>所以，”敏捷” 和 “高性能” 是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。</p>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Cookie &amp;&amp; Session &amp;&amp; JWT 使用总结</title>
     <url>/posts/ea9b1fcc/</url>
     <content><![CDATA[<h1 id="认证-授权-凭证"><a href="#认证-授权-凭证" class="headerlink" title="认证-授权-凭证"></a>认证-授权-凭证</h1><h2 id="什么是认证"><a href="#什么是认证" class="headerlink" title="什么是认证"></a>什么是认证</h2><p><strong>认证就是验证当前用户的身份</strong>：<br>互联网中的认证：</p>
@@ -2551,273 +2818,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>docker 与容器技术畅谈</title>
-    <url>/posts/bc91ee72/</url>
-    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
-<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
-</blockquote>
-<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
-<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
-<p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
-<p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
-<p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
-<p>那么为什么 docker 技术为何在短短几个月就风靡全世界了？</p>
-<ul>
-<li><strong>实则正是 <code>docker image</code></strong></li>
-</ul>
-<p>对于 Paas 项目而言，将项目运行的文件打包是一件极其麻烦的事情，对于每种语言，每种框架，每个版本都需要维护一个打好的包。</p>
-<p><strong>docker image 可以基于你所需要的系统文件，构建一个可以基于云端环境运行的压缩包。</strong></p>
-<h2 id="容器化技术的发展"><a href="#容器化技术的发展" class="headerlink" title="容器化技术的发展"></a>容器化技术的发展</h2><p>在以上的文章中，介绍了 docker 技术为何火热的原因。<br>对于一个大型的业务应用来说，从前端，后端，到数据库系统，文件系统等，往往是需要多个容器的，那么就存在着，如何能够优雅的在云端环境有序地运行。<br>于是，docker 公司便开发出了一个<code>容器编排化的工具</code>, <strong>docker Swarm</strong> 项目</p>
-<p>与此同时，Mesos 社区也开发出了一个类似的工具<code>Marathon</code>, 它虽然不能像 Swarm 那样提供原生的 Docker API, 但是其却拥有一个独特的核心竞争力：</p>
-<ul>
-<li><strong>超大规模集群的管理经验</strong></li>
-</ul>
-<p>也就在这个时候，google 公司根据公司多年的发展经验和借助成熟的内部项目<code>Borg</code>系统，宣布了 <code>Kubernetes</code> 项目的诞生。<br>而也是仅仅在两年之前，各个国内外的互联网厂商开始将自己的项目接入 k8s，宣布了 k8s 时代的到来。</p>
-<p>本文仅仅讨论 <code>docker 容器化技术</code>，对于<code>容器化编排</code>不做过多的介绍。</p>
-<h1 id="容器到底是怎么一回事？"><a href="#容器到底是怎么一回事？" class="headerlink" title="容器到底是怎么一回事？"></a>容器到底是怎么一回事？</h1><p>在上述的文章中，已经简单介绍了几个概念:</p>
-<ul>
-<li><code>虚拟器</code></li>
-<li><code>容器</code></li>
-<li><code>容器化技术</code></li>
-<li><code>镜像</code></li>
-</ul>
-<p>我们可以总结一下：<strong>容器其实就是一种沙盒技术，使用 <code>Cgroups</code>和<code>Namespace</code> 技术，将你的应用通过限制和隔离的技术在指定的环境中，良好的运行起来</strong></p>
-<p>先说结论，容器其实就是一种<code>特殊的进程</code>而已</p>
-<h2 id="隔离技术-Namespace"><a href="#隔离技术-Namespace" class="headerlink" title="隔离技术 - Namespace"></a>隔离技术 - Namespace</h2><blockquote>
-<p>那么隔离技术是如何实现的？</p>
-</blockquote>
-<p>首先创建一个容器：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker run -it --name=ubuntu-test ubuntu:18.04 /bin/sh</span><br></pre></td></tr></table></figure>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ps</span></span><br><span class="line">  PID TTY          TIME CMD</span><br><span class="line">    1 pts/0    00:00:00 sh</span><br><span class="line">    7 pts/0    00:00:00 ps</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
-<p>我们可以看到这个容器中，一共有两个进程，通过 ps 可以看到 sh ,就是这个容器内部的第 1 号进程（PID=1）。</p>
-<p>这是为什么呢？</p>
-<p>本来，当我们在宿主机上运行了一个 /bin/sh 程序的时候，我们的操作系统都会给其分配一个进程编号，例如 PID=100。但是通过 <code>docker run</code> 命令时，docker<br>就会在当前的进程时，调整其 namespace 相关参数，将其变为在这个 docker 中的 1 号进程。</p>
-<p>这种技术就是<strong>Linux 里面的 Namespace 机制</strong>。</p>
-<p>我们知道，在 Linux 系统中创建进程的系统调用是 clone():</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, SIGCHID, NUll);</span><br></pre></td></tr></table></figure>
-
-<p>通过指定 <code>CLONE_NEWPID</code> 参数，而每个 <code>Namespace</code>里的应用进程，都会认为自己是当前容器里的第一号进程。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, CLONE_NEWPID | SIGCHLD, NULL)</span><br></pre></td></tr></table></figure>
-
-<p>在 Linux 操作系统中，还提供了 <code>Mount</code>、<code>UTS</code>、<code>IPC</code>、<code>Network</code>、<code>User</code> 这些 Namespace，用来对<code>各种不同的进程</code>上下文进行”障眼法”操作。</p>
-<h2 id="限制技术-Cgroups"><a href="#限制技术-Cgroups" class="headerlink" title="限制技术 - Cgroups"></a>限制技术 - Cgroups</h2><blockquote>
-<p>Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等<br>在 Linux 中，Cgroups 给用户暴露出来的操作接口是<strong>文件系统</strong>，即它以文件和目录的方式组织在操作系统的 /sys/fs/cgroup 路径下。</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># mount -t cgroup</span></span></span><br><span class="line">cpuset on /sys/fs/cgroup/cpuset type cgroup (ro,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cpu on /sys/fs/cgroup/cpu type cgroup (ro,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cpuacct on /sys/fs/cgroup/cpuacct type cgroup (ro,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">blkio on /sys/fs/cgroup/blkio type cgroup (ro,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">memory on /sys/fs/cgroup/memory type cgroup (ro,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">devices on /sys/fs/cgroup/devices type cgroup (ro,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">freezer on /sys/fs/cgroup/freezer type cgroup (ro,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">net_cls on /sys/fs/cgroup/net_cls type cgroup (ro,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">perf_event on /sys/fs/cgroup/perf_event type cgroup (ro,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">net_prio on /sys/fs/cgroup/net_prio type cgroup (ro,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">hugetlb on /sys/fs/cgroup/hugetlb type cgroup (ro,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">pids on /sys/fs/cgroup/pids type cgroup (ro,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">rdma on /sys/fs/cgroup/rdma type cgroup (ro,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (ro,nosuid,nodev,noexec,relatime,name=systemd)</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
-<p>其中，例如 <code>cpuset</code>、<code>cpu</code>、<code>memory</code> 这样的子目录，也叫子系统。这些都是可以被 <code>Cgroups</code> 进行限制的资源种类。</p>
-<p>现在我们看一下子系统中关于 CPU 的相关配置文件</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ls /sys/fs/cgroup/cpu</span></span><br><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release</span><br><span class="line">cgroup.procs	       cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat	 tasks</span><br></pre></td></tr></table></figure>
-<p>这些输出配置中，可以看到 <code>cpu.cfs_period_us</code> 和 <code>cpu.cfs_quota_us</code>，这两个参数需要组合使用，可以用来限制进程在长度<code>cfs_period</code>的一段时间内，<br>只能被分配到总量为 <code>cfs_quota</code> 的 CPU 时间。</p>
-<p>另开一个终端，输入:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">while : ; do : ; done &amp;</span><br><span class="line"></span><br><span class="line">23223</span><br></pre></td></tr></table></figure>
-<p>键入：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top</span><br><span class="line"><span class="meta">%</span><span class="bash">Cpu0 :100.0 us, 0.0 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
-<p>可以看到 CPU 的使用率已经 100% 了， quota 还没有任何限制（-1）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span> </span><br><span class="line">-1</span><br><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_period_us</span> </span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
-<p>在现在的默认配置中，在 100 ms 中的 cpu 时间中，使用 100ms 的 CPU 时间，也就是 100 %。<br>现在调整为 20%:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span></span><br></pre></td></tr></table></figure>
-<p>然后将限制的进程 PID 写入 container 组里的 tasks 文件:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 23223 &gt; /sys/fs/cgroup/cpu/container/tasks</span> </span><br></pre></td></tr></table></figure>
-<p>然后使用 <code>top</code> 指令查看:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash">Cpu0 : 20.3 us, 0.0 sy, 0.0 ni, 79.7 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
-<p>现在可以看到已经为 <code>20%</code> 左右了<br>其他关于 <code>blkio</code>，<code>cpuset</code>，<code>memory</code> 可以自行尝试</p>
-<h3 id="docker-运行时的限制参数"><a href="#docker-运行时的限制参数" class="headerlink" title="docker 运行时的限制参数"></a>docker 运行时的限制参数</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -it --cpu-period=100000 --cpu-quota=20000 ubuntu:18.04 /bin/bash</span></span><br></pre></td></tr></table></figure>
-
-<p>这个配置就会将对应的值写入到 docker-container 的配置文件中，这个 Docker 容器，只能使用到 20% 的 CPU 带宽。</p>
-<h3 id="虚拟机和容器对比"><a href="#虚拟机和容器对比" class="headerlink" title="虚拟机和容器对比"></a>虚拟机和容器对比</h3><img src="/images/虚拟机和容器对比图.png" width = "500" height = "300" alt="" align=center />
-
-<p>虚拟机的工作原理，通过硬件虚拟化功能，模拟出了运行一个操作系统需要的各种硬件，例如 CPU、内存、I/O 设备等等。<br>docker 项目帮助用户启动的，还是原来的应用进程，但是 Docker 会为它们加上了各种各样的 Namespace 参数。</p>
-<p>所以，”敏捷” 和 “高性能” 是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。</p>
-]]></content>
-      <categories>
-        <category>docker</category>
-      </categories>
-      <tags>
-        <tag>docker</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>RESTful API 最佳实践</title>
-    <url>/posts/ea12054a/</url>
-    <content><![CDATA[<h1 id="RESTful-API-最佳实践"><a href="#RESTful-API-最佳实践" class="headerlink" title="RESTful API 最佳实践"></a>RESTful API 最佳实践</h1><img src="https://betimdrenica.files.wordpress.com/2015/03/api2.png?w=300&h=176" alt="api2" style="zoom:100%;" />
-
-<h2 id="API-的关键要求"><a href="#API-的关键要求" class="headerlink" title="API 的关键要求"></a>API 的关键要求</h2><ul>
-<li>网络标准的使用</li>
-<li>对开发人员友好，并能通过浏览器地址栏进行探索</li>
-<li>简单、直观和一致，使用简单且愉快</li>
-<li>足够的灵活性</li>
-<li>高效的使用</li>
-</ul>
-<h2 id="RESTful-API"><a href="#RESTful-API" class="headerlink" title="RESTful API"></a>RESTful API</h2><h3 id="Media-Type"><a href="#Media-Type" class="headerlink" title="Media Type"></a>Media Type</h3><p><strong>默认媒体类型为 JSON</strong></p>
-<blockquote>
-<p>由于 HTTP 的最新势头和遵循标准，JSON 是最受欢迎的，因此应该明确成为默认的媒体类型</p>
-<p>XML 的有点是复杂的场景和历史（SOAP），XML 不是 API  的最佳选择。它冗长，难以解析，难以阅读，其数据模型与大多数编程语言的数据模型不兼容。</p>
-</blockquote>
-<h2 id="HTTP-动词"><a href="#HTTP-动词" class="headerlink" title="HTTP 动词"></a>HTTP 动词</h2><p>RESTful 关键原则是将一系列 API 资源通过 <strong>域名+资源名称 + HTTP methods</strong></p>
-<p>逻辑资源应该<strong>从 API 消费者的角度</strong>来进行考虑：<strong>使用有意义的名词s, 而不是动词</strong>，需要明确的是：名词是事物，动词是你对它所做的。</p>
-<p>定义资源后，对于每种的资源的不同操作映射为对应的 HTTP 请求方法：</p>
-<ul>
-<li>GET —— 获取资源信息(SELECT)</li>
-<li>POST —— 创建新的资源(CREATE)</li>
-<li>PUT —— 更新资源(UPDATE)</li>
-<li>PATCH —— 更新部分资源(UPDATE)</li>
-<li>DELETE —— 删除部分资源(DELETE)</li>
-</ul>
-<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /tickets - 检索票证列表</span><br><span class="line">GET /tickets/12 - 检索特定票证</span><br><span class="line">POST /tickets - 创建一个新票</span><br><span class="line">PUT /tickets/12 - 更新票 #12</span><br><span class="line">PATCH /tickets/12 - 部分更新票 #12</span><br><span class="line">DELETE /tickets/12 - 删除票 #12</span><br></pre></td></tr></table></figure>
-
-<p>不适合 CRUD 操作的世界应该怎么办？</p>
-<ul>
-<li><strong>组合操作使其看起来像资源的字段。</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">POST /template/apply # 应用一个模版</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><strong>将其视为符合 RESTful 原则的子资源。</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /zoos/id/animals # 获取某一个 动物园的 动物</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>无法确定正确的 RESTful 结构的，区别记录即可，无需强制使用。</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /search?text=&quot;搜索&quot;</span><br></pre></td></tr></table></figure>
-
-<h2 id="无处不在的-SSL"><a href="#无处不在的-SSL" class="headerlink" title="无处不在的 SSL"></a>无处不在的 SSL</h2><blockquote>
-<p>SSL 证书是一个数字证书，用于认证网站的身份并启用加密连接。SSL 代表安全套接字层，这是一个安全协议，可在 Web 服务器和 Web 浏览器之间创建加密链接。</p>
-</blockquote>
-<p><strong>始终使用 SSL —— 出于安全考虑。</strong></p>
-<p>始终使用 SSL 的另外一个优势是有保证的加密通信简化了身份验证工作——您可以使用简单的访问令牌，而不必签署每个 API 请求。</p>
-<h2 id="API-接口文档"><a href="#API-接口文档" class="headerlink" title="API 接口文档"></a>API 接口文档</h2><p><strong>API 的好坏取决于它的文档</strong>。这些文档应该很容易找到并且可以公开访问。大多数开发人员在尝试任何集成工作之前都会查看文档。</p>
-<p><strong>文档应显示完整请求/响应周期的示例。</strong></p>
-<p>一旦你发布了一个公共 API，就应该发布通知信息，告知关注者变更消息。</p>
-<p>例如 Apifox、yapi 等接口文档软件</p>
-<h2 id="版本控制"><a href="#版本控制" class="headerlink" title="版本控制"></a>版本控制</h2><p><strong>始终对您的 API 进行版本控制。</strong>版本控制可帮助您更快地迭代并防止无效请求到达更新的端点。它还有助于平滑任何主要的 API 版本转换。</p>
-<p>关于 API 版本应包含在 URL 中还是 header 中？有广泛的争论。</p>
-<p>本人比较喜欢将版本控制置于 URL 中</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /api/v1/zoos</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="结果过滤、排序和搜索"><a href="#结果过滤、排序和搜索" class="headerlink" title="结果过滤、排序和搜索"></a>结果过滤、排序和搜索</h2><p><strong>最好使基本资源 URL 尽可能精简。</strong></p>
-<p><strong>复杂的结果过滤器、排序要求和高级搜索（当仅限于单一类型的资源时）都可以作为基本 URL</strong>  </p>
-<p><strong>之上的查询参数轻松实现。</strong></p>
-<p>例如：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /tickets?state=open</span><br><span class="line">GET /tickets?order_by=create_time:desc,apply_time:desc</span><br></pre></td></tr></table></figure>
-
-<h2 id="JSON-采用-request-body-输入"><a href="#JSON-采用-request-body-输入" class="headerlink" title="JSON  采用 request body 输入"></a>JSON  采用 request body 输入</h2><ul>
-<li>POST</li>
-<li>PUT</li>
-<li>PATCH</li>
-</ul>
-<p>上述方法采用 request body 传输数据</p>
-<h3 id="字段名称的-snake-case-与-camelCase"><a href="#字段名称的-snake-case-与-camelCase" class="headerlink" title="字段名称的 snake_case 与 camelCase"></a>字段名称的 snake_case 与 camelCase</h3><p>根据 2010 年对 camelCase 和 snake_case （PDF）的眼动追踪研究，**snake_case 比 camelCase 更容易阅读 20%**这种对可读性的影响会影响 API 的可探索性和文档中的示例。</p>
-<h2 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h2><p>json 返回数据中，会包含一些分页数据；</p>
-<blockquote>
-<p>The right way to include pagination details today is using the <a href="https://tools.ietf.org/html/rfc8288">Link header introduced by RFC 8288</a>.</p>
-</blockquote>
-<p>以下是正确使用 Link 标头的示例，来自 GitHub:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Link: &lt;https://api.github.com/user/repos?page=3&amp;per_page=100&gt;; rel=&quot;next&quot;, &lt;https://api.github.com/user/repos?page=50&amp;per_page=100&gt;; rel=&quot;last&quot;</span><br></pre></td></tr></table></figure>
-
-<p>许多 API 确实需要额外的分页信息，例如可用结果总数的计数。需要发送计数的 API 可以使用自定义 HTTP 标头，如 <code>X-Total-Count</code>。</p>
-<h2 id="更新和限制资源应该返回资源表示"><a href="#更新和限制资源应该返回资源表示" class="headerlink" title="更新和限制资源应该返回资源表示"></a>更新和限制资源应该返回资源表示</h2><p>PUT、POST 或 PATCH 调用可能会修改不属于所提供参数的基础资源字段（例如：created_at 或 updated_at 时间戳）。为防止 API 使用者必须再次点击 API 以获得更新的表示，让 API 返回更新（或创建）的表示作为响应的一部分。</p>
-<p>如果 POST 导致创建，请使用 HTTP 201 状态码并包含指向新资源 URL 的 Location 标头。</p>
-<p>除了将新创建的资源表示作为响应主体之外，还应该包含这两个内容。</p>
-<h2 id="默认情况下，不使用-envelope-特殊情况下使用"><a href="#默认情况下，不使用-envelope-特殊情况下使用" class="headerlink" title="默认情况下，不使用 envelope, 特殊情况下使用"></a>默认情况下，不使用 envelope, 特殊情况下使用</h2><p>许多情况下：</p>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data&quot;</span>：&#123;</span><br><span class="line">  	<span class="attr">&quot;id&quot;</span>: <span class="number">123</span>,</span><br><span class="line">  	<span class="attr">&quot;name&quot;</span>: <span class="string">&quot;John&quot;</span></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>理由：</p>
-<ul>
-<li>包含额外的元数据或分页信息，一些 REST 客户端不允许轻松访问 HTTP 标头，而 JSONP 请求无法访问 HTTP 标头。然而，随着 CORS 和 RFC 5988 等 Link 标头等标准被迅速采用，封装开始变得不必要了。</li>
-</ul>
-<h2 id="速率限制"><a href="#速率限制" class="headerlink" title="速率限制"></a>速率限制</h2><p>为防止滥用，标准做法是向 API 添加某种速率限制。</p>
-<blockquote>
-<p>To prevent abuse, it is standard practice to add some sort of rate limiting to an API. <a href="http://tools.ietf.org/html/rfc6585">RFC 6585</a> introduced a HTTP status code <a href="http://tools.ietf.org/html/rfc6585#section-4">429 Too Many Requests</a> to accommodate this.</p>
-<p>However, it can be very useful to notify the consumer of their limits before they actually hit it. This is an area that currently lacks standards but has a number of <a href="http://stackoverflow.com/questions/16022624/examples-of-http-api-rate-limiting-http-response-headers">popular conventions using HTTP response headers</a>.</p>
-<p>At a minimum, include the following headers:</p>
-<ul>
-<li>X-Rate-Limit-Limit - The number of allowed requests in the current period</li>
-<li>X-Rate-Limit-Remaining - The number of remaining requests in the current period</li>
-<li>X-Rate-Limit-Reset - The number of seconds left in the current period</li>
-</ul>
-</blockquote>
-<h2 id="Authentication"><a href="#Authentication" class="headerlink" title="Authentication"></a>Authentication</h2><p>RESTful API 应该是无状态的。</p>
-<p>基于 SSL 身份验证凭据可以简化为随机生成的访问令牌，该令牌在 HTTP 基本身份验证的用户名字段中传送。</p>
-<ul>
-<li>session</li>
-<li>jwt</li>
-<li>access_token</li>
-<li>OAuth 2</li>
-</ul>
-<h2 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h2><p>HTTP 内置缓存框架</p>
-<ul>
-<li>ETag</li>
-<li>Last-Modified</li>
-</ul>
-<h2 id="Error-Handler"><a href="#Error-Handler" class="headerlink" title="Error Handler"></a>Error Handler</h2><p>类似 HTML 错误页面向访问者显示有用的错误信息一样，API 应该以已知的可使用格式提供有用的错误信息。错误的表示应该与任何资源的表示没有区别，只是具有自己的一组字段。</p>
-<ul>
-<li>API 应返回合理的 HTTP 状态代码。</li>
-</ul>
-<p>API 错误通常分为两种类型：</p>
-<ul>
-<li>客户端问题的 400 系列状态代码</li>
-<li>服务器问题的 500 系列状态代码</li>
-</ul>
-<p>对于具体的 400 系列和 500 系列状态代码，应带有可使用的 JSON 错误表示。</p>
-<p>JSON 错误正文应具有：</p>
-<ul>
-<li>错误信息</li>
-<li>唯一的错误代码</li>
-<li>以及可能的详细描述</li>
-</ul>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;code&quot;</span> : <span class="number">1234</span>,</span><br><span class="line">  <span class="attr">&quot;message&quot;</span> : <span class="string">&quot;Something bad happened :(&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;description&quot;</span> : <span class="string">&quot;More details about the error here&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="HTTP-status-codes"><a href="#HTTP-status-codes" class="headerlink" title="HTTP status codes"></a>HTTP status codes</h2><blockquote>
-<ul>
-<li>200 OK - Response to a successful GET, PUT, PATCH or DELETE. Can also be used for a POST that doesn’t result in a creation.</li>
-<li>201 Created - Response to a POST that results in a creation. Should be combined with a <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location header</a> pointing to the location of the new resource</li>
-<li>204 No Content - Response to a successful request that won’t be returning a body (like a DELETE request)</li>
-<li>304 Not Modified - Used when HTTP caching headers are in play</li>
-<li>400 Bad Request - The request is malformed, such as if the body does not parse</li>
-<li>401 Unauthorized - When no or invalid authentication details are provided. Also useful to trigger an auth popup if the API is used from a browser</li>
-<li>403 Forbidden - When authentication succeeded but authenticated user doesn’t have access to the resource</li>
-<li>404 Not Found - When a non-existent resource is requested</li>
-<li>405 Method Not Allowed - When an HTTP method is being requested that isn’t allowed for the authenticated user</li>
-<li>410 Gone - Indicates that the resource at this end point is no longer available. Useful as a blanket response for old API versions</li>
-<li>415 Unsupported Media Type - If incorrect content type was provided as part of the request</li>
-<li>422 Unprocessable Entity - Used for validation errors</li>
-<li>429 Too Many Requests - When a request is rejected due to rate limiting</li>
-</ul>
-</blockquote>
-<ul>
-<li>200 OK - 对成功的 GET、PUT、PATCH 或 DELETE 的响应。也可用于不会导致创建的 POST。</li>
-<li>201 已创建- 对导致创建的 POST 的响应。应与指向新资源位置的<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location 标头结合</a></li>
-<li>204 No Content - 对不会返回正文的成功请求的响应（如 DELETE 请求）</li>
-<li>304 Not Modified - 在使用 HTTP 缓存标头时使用</li>
-<li>400 Bad Request - 请求格式错误，比如请求体没有解析</li>
-<li>401 Unauthorized - 当没有提供或提供无效的身份验证详细信息时。如果从浏览器使用 API，也可用于触发身份验证弹出窗口</li>
-<li>403 Forbidden - 当身份验证成功但经过身份验证的用户无权访问资源时</li>
-<li>404 Not Found - 当请求不存在的资源时</li>
-<li>405 Method Not Allowed - 当请求的 HTTP 方法不允许经过身份验证的用户使用时</li>
-<li>410 Gone - 表示此端点的资源不再可用。作为对旧 API 版本的全面响应很有用</li>
-<li>415 Unsupported Media Type - 如果作为请求的一部分提供了不正确的内容类型</li>
-<li>422 Unprocessable Entity - 用于验证错误</li>
-<li>429 Too Many Requests - 当请求由于速率限制而被拒绝时</li>
-</ul>
-<h2 id="In-Summary"><a href="#In-Summary" class="headerlink" title="In Summary"></a>In Summary</h2><p>API 是开发人员的用户界面。努力确保它不仅功能齐全而且使用起来愉快。</p>
-<p>由于开发语言有异，只有最适合的 API 规范，没有最好的 API 规范</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Best Practices for Designing a Pragmatic RESTful API:<a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api</a></p>
-<p>Idel restful api : <a href="https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/">https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/</a></p>
-<p><a href="https://www.ruanyifeng.com/blog/2014/05/restful_api.html">https://www.ruanyifeng.com/blog/2014/05/restful_api.html</a></p>
-]]></content>
-      <categories>
-        <category>HTTP</category>
-      </categories>
-      <tags>
-        <tag>HTTP</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>为什么使用链表&amp;&amp;实现</title>
     <url>/posts/2c2cd033/</url>
     <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
@@ -2966,6 +2966,45 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>如何玩转二分法查找？</title>
+    <url>/posts/975ea5bf/</url>
+    <content><![CDATA[<h1 id="什么是二分查找？"><a href="#什么是二分查找？" class="headerlink" title="什么是二分查找？"></a>什么是二分查找？</h1><p>二分查找（Binary Search）算法，也叫做<strong>折半查找算法</strong></p>
+<h1 id="二分思想"><a href="#二分思想" class="headerlink" title="二分思想"></a>二分思想</h1><p>典型的猜数游戏，随机在 0-99 中选中一个数让人去猜，猜的过程中，每猜一次，就会告诉对方大了还是小了，直到猜中为止。<br><img src="../../images/algorithm/guessNum.png" alt="direct"><br>在这个游戏中，7 次就猜出来了。<br>如果是 0 - 999 的数字，最多也就要 10 次就能猜中。</p>
+<p><strong>二分查找针对的是一个有序的数据集合，查找思想有点类似分治思想。每次都通过跟区间的中间元素对比，将待查找的区间缩小为之前的一半，直到找到要查找的元素，或者区间被缩小为 0</strong></p>
+<h1 id="二分查找的时间复杂度"><a href="#二分查找的时间复杂度" class="headerlink" title="二分查找的时间复杂度"></a>二分查找的时间复杂度</h1><p>二分查找是一种非常高效的查找算法，**时间复杂度为 O(logn)。<br>被查找区间的大小变化为：n, n/2, n/4, n/8, ……, n/2^k ……<br>已知通过 <code>n/2^k=1</code> 得到 k=log2n。所以时间复杂度就为：<code>O(logn)</code></p>
+<p>logn 是一个非常恐怖的数量级，即便 n 非常非常大，对应的 logn 也很小。2^32 次大约是 42 亿，但是利用二分查找，最多需要比较 32 次。</p>
+<h1 id="二分查找的递归与非递归实现"><a href="#二分查找的递归与非递归实现" class="headerlink" title="二分查找的递归与非递归实现"></a>二分查找的递归与非递归实现</h1><h2 id="非递归"><a href="#非递归" class="headerlink" title="非递归"></a>非递归</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">binary_search</span>(<span class="params">arr: <span class="built_in">list</span>, guess: <span class="built_in">int</span></span>):</span></span><br><span class="line">    low = <span class="number">0</span></span><br><span class="line">    high = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> low &lt;= high:</span><br><span class="line">        mid = low + ((high - low) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &lt; guess:</span><br><span class="line">            low = mid + <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> arr[mid] &gt; guess:</span><br><span class="line">            high = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> mid</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>]</span><br><span class="line">    index = binary_search(arr, <span class="number">9</span>)</span><br><span class="line">    <span class="built_in">print</span>(index)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>三个注意点：</p>
+<ul>
+<li>循环退出条件<br>low &lt;= high，而不是 low &lt; high</li>
+<li>mid 取值<br>实际上，<code>mid=(low+high)/2</code> 的写法是有问题的。如果 low 和 high 比较大的话，两者之和就会溢出。<br>改进的方法是将 mid 的计算方式写成 low+(high-low)/2。<br>性能优化到极致的话，可以改写成位运算<code>low+((high-low)&gt;&gt;1)</code>。</li>
+<li>low 和 high 的更新<br><code>low=mid+1</code> 和 <code>high=mid-1</code>。如果直接写成 low=mid 或者 high=mid，就可能发生死循环。</li>
+</ul>
+<h2 id="递归实现"><a href="#递归实现" class="headerlink" title="递归实现"></a>递归实现</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">half_search</span>(<span class="params">arr, key, left, right</span>):</span></span><br><span class="line">    <span class="keyword">if</span> left &gt; right:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">    mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">    <span class="keyword">if</span> key == arr[mid]:</span><br><span class="line">        <span class="keyword">return</span> mid</span><br><span class="line">    <span class="keyword">elif</span> key &gt; arr[mid]:</span><br><span class="line">        <span class="keyword">return</span> half_search(arr, key, mid + <span class="number">1</span>, right)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> half_search(arr, key, left, mid - <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h1 id="二分查找应用场景的局限性"><a href="#二分查找应用场景的局限性" class="headerlink" title="二分查找应用场景的局限性"></a>二分查找应用场景的局限性</h1><p>在以上的分析中，二分查找的时间复杂度为 <code>O(logn)</code>，查找数据的效率非常高。</p>
+<ul>
+<li><strong>二分查找依赖的是顺序表结构，简单点说就是数组</strong></li>
+<li><strong>二分查找针对的是有序数组</strong></li>
+<li><strong>数据量过小或者过大也不适合二分查找</strong></li>
+</ul>
+<h1 id="二分查找的变形问题"><a href="#二分查找的变形问题" class="headerlink" title="二分查找的变形问题"></a>二分查找的变形问题</h1><h2 id="查找第一个值等于给定值的元素"><a href="#查找第一个值等于给定值的元素" class="headerlink" title="查找第一个值等于给定值的元素"></a>查找第一个值等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查找第一个给定值</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt; value:</span><br><span class="line">            right = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> arr[mid] &lt; value:</span><br><span class="line">            left = mid + <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="number">0</span> <span class="keyword">or</span> arr[mid-<span class="number">1</span>] != value:  <span class="comment"># 若为 arr 的第一个元素或者前一个数不是 value</span></span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                right = mid - <span class="number">1</span>  <span class="comment"># 前移</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p><strong>以上的代码中还是分为三种情况，即<code>=,&gt;,&lt;</code>,但是当 = 的时候，为了找到是列表中第一个找到的元素，需要向前比较，当前一个数不等于目标值时，则为第一个</strong></p>
+<h2 id="查找最后一个值等于给定值的元素"><a href="#查找最后一个值等于给定值的元素" class="headerlink" title="查找最后一个值等于给定值的元素"></a>查找最后一个值等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">final_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt; value:</span><br><span class="line">            right = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> arr[mid] &lt; value:</span><br><span class="line">            left = mid + <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="built_in">len</span>(arr) - <span class="number">1</span> <span class="keyword">or</span> arr[mid+<span class="number">1</span>] != value:  <span class="comment"># 若为 arr 的最后一个元素或者后一个数不是 value</span></span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                left = mid + <span class="number">1</span>  <span class="comment"># 后移</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br></pre></td></tr></table></figure>
+<h2 id="查找第一个大于等于给定值的元素"><a href="#查找第一个大于等于给定值的元素" class="headerlink" title="查找第一个大于等于给定值的元素"></a>查找第一个大于等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查找第一个大于等于给定值的元素</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first_greater_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt;= value:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="number">0</span> <span class="keyword">or</span> arr[mid - <span class="number">1</span>] &lt; value:</span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                right = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            left = mid + <span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>如果 a[mid] 小于我们要查找的值 value, 那要查找的值肯定在 [mid+1, right] 之间，所以 left = mid + 1<br>对于 a[mid] 大于等于给定着 value 的情况，判断是否是第一个大于等于给定值的情况：mid=0 或者 前一个数小于要查找的值。</p>
+<h2 id="查找最后一个小于等于给定值的元素"><a href="#查找最后一个小于等于给定值的元素" class="headerlink" title="查找最后一个小于等于给定值的元素"></a>查找最后一个小于等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first_greater_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt; value:</span><br><span class="line">            right = mid - <span class="number">1</span>     </span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="built_in">len</span>(arr) - <span class="number">1</span> <span class="keyword">or</span> arr[mid + <span class="number">1</span>] &gt; value:</span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br></pre></td></tr></table></figure>
+<h1 id="问题思考"><a href="#问题思考" class="headerlink" title="问题思考"></a>问题思考</h1><p>如何在 1000 W 个整数中快速查找某个整数？</p>
+<p>如果我们内存限制是 100 MB,每个数据的大小是 8 字节，最简单的办法就是将数据存储在数组中，内存占用差不多是 80 MB,符合内存的限制。<br>可以先对这 1000 W 的数据从小到大排序，然后再利用二分查找随发，就可以快速地查找想要的数据了。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1>]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>什么是栈、栈的使用场景？</title>
     <url>/posts/da81f8d9/</url>
     <content><![CDATA[<h1 id="如何理解栈？"><a href="#如何理解栈？" class="headerlink" title="如何理解栈？"></a>如何理解栈？</h1><blockquote>
@@ -3075,45 +3114,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 </ul>
 <p>3.遍历完所有字符串后，判断 <code>stack_opt</code> 是否为空，重复执行最基本计算操作，直到为空。</p>
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 基本运算器</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 最小原子计算器</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">cal</span>(<span class="params">self, A, B, opt</span>):</span></span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(A) + <span class="built_in">int</span>(B)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) - <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) * <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;/&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) / <span class="built_in">int</span>(A)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">basic_cal</span>(<span class="params">self, stack_num, stack_opt</span>):</span></span><br><span class="line">        opt = stack_opt.pop()</span><br><span class="line">        A = stack_num.pop()</span><br><span class="line">        B = stack_num.pop()</span><br><span class="line">        res = self.cal(A, B, opt)</span><br><span class="line">        stack_num.append(res)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">self, s:<span class="built_in">str</span></span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="comment"># stack_num &amp;&amp; stack_opt</span></span><br><span class="line">        stack_num, stack_opt = [], []</span><br><span class="line">        priority = &#123;</span><br><span class="line">            <span class="string">&#x27;(&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;)&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;+&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;-&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;*&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">            <span class="string">&#x27;/&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">        &#125;</span><br><span class="line">        length = <span class="built_in">len</span>(s)</span><br><span class="line">        i = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> i &lt; length:</span><br><span class="line">            <span class="keyword">if</span> i == <span class="string">&quot; &quot;</span>:</span><br><span class="line">                i += <span class="number">1</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                start = i</span><br><span class="line">                <span class="keyword">while</span> i+<span class="number">1</span> &lt; length <span class="keyword">and</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i+<span class="number">1</span>] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                    i = i+<span class="number">1</span></span><br><span class="line">                num = <span class="built_in">int</span>(s[start: i+<span class="number">1</span>])</span><br><span class="line">                stack_num.append(num)</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;)&#x27;</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt[-<span class="number">1</span>] != <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.pop()</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt <span class="keyword">and</span> priority[s[i]] &lt;= priority[stack_opt[-<span class="number">1</span>]]:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line"></span><br><span class="line">            i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 进行全部计算</span></span><br><span class="line">        <span class="keyword">while</span> stack_opt:</span><br><span class="line">            self.basic_cal(stack_num, stack_opt)</span><br><span class="line">        val = stack_num[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">int</span>(val)</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>如何玩转二分法查找？</title>
-    <url>/posts/975ea5bf/</url>
-    <content><![CDATA[<h1 id="什么是二分查找？"><a href="#什么是二分查找？" class="headerlink" title="什么是二分查找？"></a>什么是二分查找？</h1><p>二分查找（Binary Search）算法，也叫做<strong>折半查找算法</strong></p>
-<h1 id="二分思想"><a href="#二分思想" class="headerlink" title="二分思想"></a>二分思想</h1><p>典型的猜数游戏，随机在 0-99 中选中一个数让人去猜，猜的过程中，每猜一次，就会告诉对方大了还是小了，直到猜中为止。<br><img src="../../images/algorithm/guessNum.png" alt="direct"><br>在这个游戏中，7 次就猜出来了。<br>如果是 0 - 999 的数字，最多也就要 10 次就能猜中。</p>
-<p><strong>二分查找针对的是一个有序的数据集合，查找思想有点类似分治思想。每次都通过跟区间的中间元素对比，将待查找的区间缩小为之前的一半，直到找到要查找的元素，或者区间被缩小为 0</strong></p>
-<h1 id="二分查找的时间复杂度"><a href="#二分查找的时间复杂度" class="headerlink" title="二分查找的时间复杂度"></a>二分查找的时间复杂度</h1><p>二分查找是一种非常高效的查找算法，**时间复杂度为 O(logn)。<br>被查找区间的大小变化为：n, n/2, n/4, n/8, ……, n/2^k ……<br>已知通过 <code>n/2^k=1</code> 得到 k=log2n。所以时间复杂度就为：<code>O(logn)</code></p>
-<p>logn 是一个非常恐怖的数量级，即便 n 非常非常大，对应的 logn 也很小。2^32 次大约是 42 亿，但是利用二分查找，最多需要比较 32 次。</p>
-<h1 id="二分查找的递归与非递归实现"><a href="#二分查找的递归与非递归实现" class="headerlink" title="二分查找的递归与非递归实现"></a>二分查找的递归与非递归实现</h1><h2 id="非递归"><a href="#非递归" class="headerlink" title="非递归"></a>非递归</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">binary_search</span>(<span class="params">arr: <span class="built_in">list</span>, guess: <span class="built_in">int</span></span>):</span></span><br><span class="line">    low = <span class="number">0</span></span><br><span class="line">    high = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> low &lt;= high:</span><br><span class="line">        mid = low + ((high - low) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &lt; guess:</span><br><span class="line">            low = mid + <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> arr[mid] &gt; guess:</span><br><span class="line">            high = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> mid</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>]</span><br><span class="line">    index = binary_search(arr, <span class="number">9</span>)</span><br><span class="line">    <span class="built_in">print</span>(index)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>三个注意点：</p>
-<ul>
-<li>循环退出条件<br>low &lt;= high，而不是 low &lt; high</li>
-<li>mid 取值<br>实际上，<code>mid=(low+high)/2</code> 的写法是有问题的。如果 low 和 high 比较大的话，两者之和就会溢出。<br>改进的方法是将 mid 的计算方式写成 low+(high-low)/2。<br>性能优化到极致的话，可以改写成位运算<code>low+((high-low)&gt;&gt;1)</code>。</li>
-<li>low 和 high 的更新<br><code>low=mid+1</code> 和 <code>high=mid-1</code>。如果直接写成 low=mid 或者 high=mid，就可能发生死循环。</li>
-</ul>
-<h2 id="递归实现"><a href="#递归实现" class="headerlink" title="递归实现"></a>递归实现</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">half_search</span>(<span class="params">arr, key, left, right</span>):</span></span><br><span class="line">    <span class="keyword">if</span> left &gt; right:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">    mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">    <span class="keyword">if</span> key == arr[mid]:</span><br><span class="line">        <span class="keyword">return</span> mid</span><br><span class="line">    <span class="keyword">elif</span> key &gt; arr[mid]:</span><br><span class="line">        <span class="keyword">return</span> half_search(arr, key, mid + <span class="number">1</span>, right)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> half_search(arr, key, left, mid - <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
-
-<h1 id="二分查找应用场景的局限性"><a href="#二分查找应用场景的局限性" class="headerlink" title="二分查找应用场景的局限性"></a>二分查找应用场景的局限性</h1><p>在以上的分析中，二分查找的时间复杂度为 <code>O(logn)</code>，查找数据的效率非常高。</p>
-<ul>
-<li><strong>二分查找依赖的是顺序表结构，简单点说就是数组</strong></li>
-<li><strong>二分查找针对的是有序数组</strong></li>
-<li><strong>数据量过小或者过大也不适合二分查找</strong></li>
-</ul>
-<h1 id="二分查找的变形问题"><a href="#二分查找的变形问题" class="headerlink" title="二分查找的变形问题"></a>二分查找的变形问题</h1><h2 id="查找第一个值等于给定值的元素"><a href="#查找第一个值等于给定值的元素" class="headerlink" title="查找第一个值等于给定值的元素"></a>查找第一个值等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查找第一个给定值</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt; value:</span><br><span class="line">            right = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> arr[mid] &lt; value:</span><br><span class="line">            left = mid + <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="number">0</span> <span class="keyword">or</span> arr[mid-<span class="number">1</span>] != value:  <span class="comment"># 若为 arr 的第一个元素或者前一个数不是 value</span></span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                right = mid - <span class="number">1</span>  <span class="comment"># 前移</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br></pre></td></tr></table></figure>
-<p><strong>以上的代码中还是分为三种情况，即<code>=,&gt;,&lt;</code>,但是当 = 的时候，为了找到是列表中第一个找到的元素，需要向前比较，当前一个数不等于目标值时，则为第一个</strong></p>
-<h2 id="查找最后一个值等于给定值的元素"><a href="#查找最后一个值等于给定值的元素" class="headerlink" title="查找最后一个值等于给定值的元素"></a>查找最后一个值等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">final_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt; value:</span><br><span class="line">            right = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> arr[mid] &lt; value:</span><br><span class="line">            left = mid + <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="built_in">len</span>(arr) - <span class="number">1</span> <span class="keyword">or</span> arr[mid+<span class="number">1</span>] != value:  <span class="comment"># 若为 arr 的最后一个元素或者后一个数不是 value</span></span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                left = mid + <span class="number">1</span>  <span class="comment"># 后移</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br></pre></td></tr></table></figure>
-<h2 id="查找第一个大于等于给定值的元素"><a href="#查找第一个大于等于给定值的元素" class="headerlink" title="查找第一个大于等于给定值的元素"></a>查找第一个大于等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查找第一个大于等于给定值的元素</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first_greater_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt;= value:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="number">0</span> <span class="keyword">or</span> arr[mid - <span class="number">1</span>] &lt; value:</span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                right = mid - <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            left = mid + <span class="number">1</span></span><br></pre></td></tr></table></figure>
-<p>如果 a[mid] 小于我们要查找的值 value, 那要查找的值肯定在 [mid+1, right] 之间，所以 left = mid + 1<br>对于 a[mid] 大于等于给定着 value 的情况，判断是否是第一个大于等于给定值的情况：mid=0 或者 前一个数小于要查找的值。</p>
-<h2 id="查找最后一个小于等于给定值的元素"><a href="#查找最后一个小于等于给定值的元素" class="headerlink" title="查找最后一个小于等于给定值的元素"></a>查找最后一个小于等于给定值的元素</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first_greater_search</span>(<span class="params">arr, value</span>):</span></span><br><span class="line">    left = <span class="number">0</span></span><br><span class="line">    right = <span class="built_in">len</span>(arr) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> left &lt;= right:</span><br><span class="line">        mid = (left + (right - left) &gt;&gt; <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">if</span> arr[mid] &gt; value:</span><br><span class="line">            right = mid - <span class="number">1</span>     </span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> mid == <span class="built_in">len</span>(arr) - <span class="number">1</span> <span class="keyword">or</span> arr[mid + <span class="number">1</span>] &gt; value:</span><br><span class="line">                <span class="keyword">return</span> mid</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span></span><br></pre></td></tr></table></figure>
-<h1 id="问题思考"><a href="#问题思考" class="headerlink" title="问题思考"></a>问题思考</h1><p>如何在 1000 W 个整数中快速查找某个整数？</p>
-<p>如果我们内存限制是 100 MB,每个数据的大小是 8 字节，最简单的办法就是将数据存储在数组中，内存占用差不多是 80 MB,符合内存的限制。<br>可以先对这 1000 W 的数据从小到大排序，然后再利用二分查找随发，就可以快速地查找想要的数据了。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1>]]></content>
       <categories>
         <category>数据结构与算法</category>
       </categories>
