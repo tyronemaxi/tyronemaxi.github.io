@@ -182,6 +182,193 @@
       </tags>
   </entry>
   <entry>
+    <title>Python 内存管理，垃圾回收，缓存重用机制</title>
+    <url>/posts/ec5b3295/</url>
+    <content><![CDATA[<h1 id="一文搞定Python-的-内存管理-垃圾回收-缓存重用机制"><a href="#一文搞定Python-的-内存管理-垃圾回收-缓存重用机制" class="headerlink" title="一文搞定Python 的 内存管理, 垃圾回收, 缓存重用机制"></a>一文搞定Python 的 <code>内存管理</code>, <code>垃圾回收</code>, <code>缓存重用机制</code></h1><blockquote>
+<p>鉴于 Python 的语言特性，详细的梳理记录下这三方面的知识</p>
+</blockquote>
+<span id="more"></span>
+<h2 id="详谈-python-的内存管理"><a href="#详谈-python-的内存管理" class="headerlink" title="详谈 python 的内存管理"></a>详谈 python 的内存管理</h2><blockquote>
+<p>python 作为一门高级语言，调用相关变量时，无需实现声明，变量无需指定类型，python 解释器会自动帮你回收，这一切都由<br><code>python 内存管理器</code>承担了复杂的内存管理工作。<br>这里主要介绍基于 Cpython 实现的内存管理</p>
+</blockquote>
+<blockquote>
+<p>python 内存管理机制 —— Pymalloc</p>
+</blockquote>
+<h3 id="主要实现方式"><a href="#主要实现方式" class="headerlink" title="主要实现方式"></a>主要实现方式</h3><ul>
+<li>针对<code>小对象</code>, 就是对象大小小于<code>256kb</code>时，pymalloc 会在<code>内存池中申请内存空间</code></li>
+<li>针对<code>大对象</code>, 对象大小<code>大于 256kb</code>时，会执行<code>new/malloc 行为</code>来申请新的内存空间</li>
+</ul>
+<h3 id="python-内存池（memory-pool）"><a href="#python-内存池（memory-pool）" class="headerlink" title="python 内存池（memory pool）"></a>python 内存池（memory pool）</h3><blockquote>
+<p>为什么要引入内存池？<br>当创建大量消耗小内存的对象时，频繁调用<code>new/malloc</code>会导致大量的内存碎片，导致效率降低</p>
+</blockquote>
+<ul>
+<li><code>内存池的作用就是预先在内存中申请一定数量的，大小相等的内存块（256kb）留作备用</code>，当有新的内存需求时，就优先从内存池中分配给这个需求。</li>
+<li>减少内存碎片化，提升效率</li>
+</ul>
+<img src="/images/python 内存池.png" width = "600" height = "700" alt="" align=center />
+
+<ul>
+<li><p>python 的对象管理主要位于 Level + 1 ~ Level +3 层</p>
+</li>
+<li><p>Level 3: 该层特定对象内存分配器，主要是 <code>python 内置的对象（int, dict, arr）</code>都有独立的私有内存池，对象<br>之间的内存池不共享，例如 <code>int</code> 释放的内存，不会被分配给 <code>float</code>使用。</p>
+</li>
+<li><p>Level 2: python 对象分配器：当申请的<code>内存大小小于256KB</code>时，内存对象的分配主要由<code>Python 对象</code> 分配器（python’s object allocator）实施</p>
+</li>
+<li><p>Level 1: python 内存分配器：当申请的<code>内存大小大于256KB</code>时，由 Python 原生的内存分配器进行分配，本质上是调用 C 标准库中的 malloc/readlloc 等函数</p>
+</li>
+</ul>
+<h3 id="内存池的内存释放"><a href="#内存池的内存释放" class="headerlink" title="内存池的内存释放"></a>内存池的内存释放</h3><blockquote>
+<p>内存释放，当一个对象的引用计算变为 0 时，Python 就会调用它的析构函数（__del__）。调用析构函数并不意味着最终一定会调用<br>free 来释放内存空间，会导致频繁申请、释放内存空间使得 Python 的执行效率大打折扣。因此在析构时也采用了内存池机制，内存池申请到的内存会被归还到内存池中，<br>以免频繁地申请和释放动作</p>
+</blockquote>
+<p>接下来就会讲到 Python 的垃圾回收机制。</p>
+<h1 id="垃圾回收机制"><a href="#垃圾回收机制" class="headerlink" title="垃圾回收机制"></a>垃圾回收机制</h1><blockquote>
+<p>如果别人问你，什么是 Python 的垃圾回收机制，你可以用一句话概括<br><strong>Python 的垃圾回收机制采用`引用计数为主，标记-清除和分代回收为辅的策略</strong></p>
+</blockquote>
+<p>Python 一切皆为对象，包括 int、str 等等基本的对象。Cpython 的实现中，有一个结构体为 PyObject, Cpython 中的每个其他对象都在使用它</p>
+<p>PyObject 是 Python 中所有对象的祖父，它只包含两件事：</p>
+<ul>
+<li>ob_refcnt: 引用计数器</li>
+<li>ob_type: 指向另一种类型的指针</li>
+</ul>
+<p>对于对象来说，无非是对象的创建和删除</p>
+<h2 id="引用计数"><a href="#引用计数" class="headerlink" title="引用计数"></a>引用计数</h2><blockquote>
+<p>每个对象都会维护一个 <code>ob_refcnt</code> 来记录当前对象被引用的次数</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">a = [<span class="number">2</span>]</span><br><span class="line"><span class="built_in">print</span>(sys.getrefcount(a))</span><br><span class="line"><span class="comment"># OUTPUT getrefcount 会增加一次引用</span></span><br><span class="line"><span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>对象引用计数 +1</p>
+<ul>
+<li><ol>
+<li>对象被创建 <code>a=1</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对象被引用 <code>a=b</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>对象被作为参数，传入函数中 def count(a, b)</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>对象作为一个元素被存储 <code>li = [1,2, a]</code></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>对象的引用计数 -1</p>
+<ul>
+<li><ol>
+<li>对象的引用被显示销毁时，<code>del a</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对象的引用别名被赋予新的对象, <code>a=26</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>一个对象离开它的作用域, 例如一个函数执行完成后，内部的<code>局部变量的引用计数器就会减一</code>(全局变量不变)</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>将该元素从容器中删除时，或者容器被销毁</li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>当指向对象的内存的引用计数为 0 时，该内存就会被 Python 虚拟机销毁</strong></p>
+<p>特性：</p>
+<blockquote>
+<p>优点：1. 高效。2。 实时性，一旦没有引用，内存就直接释放了。3. 对象有确定的生命周期 4. 易于实现<br>缺点：1. 维护引用计数消耗资源。2. 无法解决循环引用问题</p>
+</blockquote>
+<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><blockquote>
+<p>对于一个对象来说，当出现循环引用的时候，例如<code>a=1, b=a, a=b</code>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
+</blockquote>
+<h3 id="什么是标记清除？"><a href="#什么是标记清除？" class="headerlink" title="什么是标记清除？"></a>什么是标记清除？</h3><blockquote>
+<p>[标记清除（Mark-Sweep）] 算法是一种基于追踪回收（tracing GC）技术实现的垃圾回收算法。主要针对一些容器对象，例如<code>list</code>、<code>dict</code>、<code>tuple</code><br>对于字符串和数值对象是不可能造成循环引用的问题的（不可变对象，当出现引用时，会另外开辟空间存储，这个在缓存机制中会详细解释）。</p>
+</blockquote>
+<p>那么<code>标记清除</code>算法是如何运行的？<br>分为两个阶段：</p>
+<ul>
+<li><ol>
+<li>第一阶段是标记阶段，GC 会把所有的[活动对象]打上标记。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>第二阶段是把那些没有标记的[非活动对象]进行回收。</li>
+</ol>
+</li>
+</ul>
+<p>活动对象和非活动对象的标记：<br>对象之间通过引用（指针）连在一起，构成一个有相图，对象构成这个有向图的节点，而引用关系构成这个有向图的边。<br>从根对象（root object）出发，沿着有向边遍历对象，可达的（reachable）对象标记为活动对象，不可达的对象就是要被清除的非活动对象。<br>根对象就是全局变量、调用栈、寄存器。</p>
+<img src="/images/有向图.png" width = "400" height = "200" alt="" align=center />
+
+<p>从以上的有向图中：</p>
+<ul>
+<li>活动对象：A, B, C</li>
+<li>非活动对象：D, E</li>
+</ul>
+<h2 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h2><blockquote>
+<p>在标记清除对象的回收中，整个应用程序会被暂停，为了减少应用程序暂停的时间，Python 通过<strong>分代回收（Generational Conlletion）</strong>以空间换时间的方法提高垃圾回收效率</p>
+</blockquote>
+<p>Python 将所有对象分为：</p>
+<ul>
+<li>年轻代（第 0 代）</li>
+<li>中年代（第 1 代）</li>
+<li>老年代（第 2 代）</li>
+</ul>
+<p>所有新建的对象默认是第 0 代对象，经过 GC 扫描存活下来的对象将被移至第一代，在第一代的 GC 扫描中存活下来的对象将被移至第二代。</p>
+<blockquote>
+<p>GC 扫描次数 (第 0 代 &gt; 第 1 代 &gt; 第 2 代)</p>
+</blockquote>
+<h3 id="GC-分代回收是如何触发的？"><a href="#GC-分代回收是如何触发的？" class="headerlink" title="GC 分代回收是如何触发的？"></a>GC 分代回收是如何触发的？</h3><blockquote>
+<p>当某个世代中被分配的对象与被释放的对象数量之差到达某一个阈值时，就会触发当前一代的 GC 扫描。<br>当某一世代被扫描时，比它年轻的一代也会被扫描<br>当第 2 代的 GC 扫描发生时，第 0，1 代的 GC 扫描也会发生，即为全代扫描。</p>
+</blockquote>
+<p>那么这个阈值是如何确定的?</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> gc </span><br><span class="line">gc.get_threshold() <span class="comment">## 分代回收机制的参数阈值设置</span></span><br><span class="line"><span class="comment"># (700, 10, 10)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>700=新分配的对象数量-释放的对象数量，第 0 代 gc 扫描被触发</li>
+<li>第一个10：第 0 代 gc 扫描发生 10 次，则第 1 代的 gc 扫描被触发</li>
+<li>第二个10：第 1 代的 gc 扫描发生 10 次，则第 2 代的 gc 扫描被触发</li>
+</ul>
+<h1 id="Python-的缓存重用机制"><a href="#Python-的缓存重用机制" class="headerlink" title="Python 的缓存重用机制"></a>Python 的缓存重用机制</h1><blockquote>
+<p>Python 缓存重用机制是为了提高程序执行的效率。Python 解释器启动时从内存空间中开辟出一小部分，用来存储高频使用的数据，这样可以大大减少高频使用的<br>数据创建时申请内存和销毁的开销</p>
+</blockquote>
+<img src="/images/缓存重用机制.png" width = "600" height = "300" alt="" align=center />
+
+<p>这里基本演示，更加详细的演示，读者可以自行尝试</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#范围在 [-5, 256] 之间的小整数</span></span><br><span class="line">int1 = -<span class="number">5</span></span><br><span class="line">int2 = -<span class="number">5</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;[-5, 256] 情况下的两个变量：&quot;</span>, <span class="built_in">id</span>(int1), <span class="built_in">id</span>(int2))</span><br><span class="line"><span class="comment"># output</span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment">#bool类型</span></span><br><span class="line">bool1 = <span class="literal">True</span></span><br><span class="line">bool2 = <span class="literal">True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bool类型情况下的两个变量：&quot;</span>,<span class="built_in">id</span>(bool1),<span class="built_in">id</span>(bool2))</span><br><span class="line"><span class="comment">#对于字符串</span></span><br><span class="line">s1 = <span class="string">&quot;3344&quot;</span></span><br><span class="line">s2 = <span class="string">&quot;3344&quot;</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;字符串情况下的两个交量&quot;</span>, <span class="built_in">id</span>(s1), <span class="built_in">id</span>(s2))</span><br><span class="line"><span class="comment">#大于 256 的整数</span></span><br><span class="line">int3 = <span class="number">257</span></span><br><span class="line">int4 = <span class="number">257</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 256 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(int3), <span class="built_in">id</span>(int4))</span><br><span class="line"><span class="comment">#大于 0 的浮点数</span></span><br><span class="line">f1 = <span class="number">256.4</span></span><br><span class="line">f2 = <span class="number">256.4</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f1), <span class="built_in">id</span>(f2))</span><br><span class="line"><span class="comment">#小于 0 的浮点数</span></span><br><span class="line">f3 = -<span class="number">2.45</span></span><br><span class="line">f4 = -<span class="number">2.45</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f3), <span class="built_in">id</span>(f4))</span><br><span class="line"><span class="comment">#小于 -5 的整数</span></span><br><span class="line">n1 = -<span class="number">6</span></span><br><span class="line">n2 = -<span class="number">6</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 -5 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(n1), <span class="built_in">id</span>(n2))</span><br></pre></td></tr></table></figure>
+<p>OUTPUT:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[-5, 256] 情况下的两个变量： 4479762592 4479762592</span><br><span class="line">bool类型情况下的两个变量： 4479360112 4479360112</span><br><span class="line">字符串情况下的两个交量 140680232254768 140680232254768</span><br><span class="line">大于 256 的整数情况下的两个变量 140680231657872 140680231657872</span><br><span class="line">大于 0 的浮点数情况下的两个变量 140680231658256 140680231658256</span><br><span class="line">小于 0 的浮点数情况下的两个变量 140680191914768 140680191914768</span><br><span class="line">小于 -5 的整数情况下的两个变量 140680232617328 140680232617328</span><br></pre></td></tr></table></figure>
+
+<p>总结：</p>
+<ul>
+<li>对于<code>int</code>, <code>str</code>,<code>bool</code> 类型而言：<ol>
+<li>对于同一个对象，都是缓存同一个内容来使用</li>
+</ol>
+</li>
+<li>对于<code>大于 256 的整数</code>, 浮点数<ol>
+<li>如果位于同一代码块，则使用相同的缓存内容；反之，则不使用</li>
+</ol>
+</li>
+<li>对于 <code>小于 0 的整数</code><ol>
+<li>Python 没有对其进行缓存操作</li>
+</ol>
+</li>
+</ul>
+<h1 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h1><p>在 Python 中，主要通过 <code>引用计数</code>来进行垃圾回收；通过<code>标记-清除</code>来解决一些容器对象的循环引用问题；<br>通过<code>分代回收</code>以空间换时间的方式提高垃圾回收效率。</p>
+<p>缓存重用机制，作用类似于内存池，提高 Python 的执行效率</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p>「 python 垃圾回收机制 」- <a href="https://andrewpqc.github.io/2018/10/08/python-memory-management/">https://andrewpqc.github.io/2018/10/08/python-memory-management/</a><br>「 python GC 源代码 」- <a href="https://docs.python.org/2/library/gc.html">https://docs.python.org/2/library/gc.html</a><br>「 python 垃圾回收需要知道事 」- <a href="https://rushter.com/blog/python-garbage-collector/">https://rushter.com/blog/python-garbage-collector/</a> </p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>排序算法——冒泡、插入、选择排序</title>
     <url>/posts/7b385955/</url>
     <content><![CDATA[<h1 id="常用的排序算法"><a href="#常用的排序算法" class="headerlink" title="常用的排序算法"></a>常用的排序算法</h1><p>参考：<a href="https://blog.csdn.net/weixin_42702038/article/details/106744386">https://blog.csdn.net/weixin_42702038/article/details/106744386</a></p>
@@ -848,91 +1035,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>golang 垃圾回收机制</title>
-    <url>/posts/88f7796/</url>
-    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
-<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
-</blockquote>
-<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
-<thead>
-<tr>
-<th>版本</th>
-<th>GC 算法</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>v1.1</td>
-<td>STW(stop the world)</td>
-</tr>
-<tr>
-<td>v1.3</td>
-<td>Mark STW,Sweep（标记清除）</td>
-</tr>
-<tr>
-<td>v1.5</td>
-<td>三色标记</td>
-</tr>
-<tr>
-<td>v1.8</td>
-<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
-</tr>
-</tbody></table>
-<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
-<li><ol>
-<li>找出不可达对象，mark</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>回收标记好的对象</li>
-</ol>
-</li>
-</ul>
-<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
-<p>标记清除算法存在的问题</p>
-<ul>
-<li>stop the world 程序会暂停，即程序会出现卡顿</li>
-<li>标记需要扫描整个堆（heap）</li>
-<li>清除数据会产生 heap 碎片</li>
-</ul>
-<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
-<ul>
-<li><strong>灰色：对象还在标记队列中等待</strong></li>
-<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
-<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
-</ul>
-<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
-<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
-<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
-<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
-<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
-<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
-<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
-<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
-</ol>
-<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
-<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
-<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
-<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
-</li>
-<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
-</li>
-<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
-</li>
-</ol>
-]]></content>
-      <categories>
-        <category>Go</category>
-      </categories>
-      <tags>
-        <tag>Go</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -1056,6 +1158,91 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       <tags>
         <tag>MySQL</tag>
         <tag>Redis</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>golang 垃圾回收机制</title>
+    <url>/posts/88f7796/</url>
+    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
+<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
+</blockquote>
+<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
+<thead>
+<tr>
+<th>版本</th>
+<th>GC 算法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v1.1</td>
+<td>STW(stop the world)</td>
+</tr>
+<tr>
+<td>v1.3</td>
+<td>Mark STW,Sweep（标记清除）</td>
+</tr>
+<tr>
+<td>v1.5</td>
+<td>三色标记</td>
+</tr>
+<tr>
+<td>v1.8</td>
+<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
+</tr>
+</tbody></table>
+<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
+<li><ol>
+<li>找出不可达对象，mark</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>回收标记好的对象</li>
+</ol>
+</li>
+</ul>
+<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
+<p>标记清除算法存在的问题</p>
+<ul>
+<li>stop the world 程序会暂停，即程序会出现卡顿</li>
+<li>标记需要扫描整个堆（heap）</li>
+<li>清除数据会产生 heap 碎片</li>
+</ul>
+<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
+<ul>
+<li><strong>灰色：对象还在标记队列中等待</strong></li>
+<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
+<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
+</ul>
+<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
+<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
+<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
+<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
+<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
+<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
+<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
+<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
+</ol>
+<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
+<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
+<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
+<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
+</li>
+<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
+</li>
+<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Go</category>
+      </categories>
+      <tags>
+        <tag>Go</tag>
       </tags>
   </entry>
   <entry>
@@ -2061,193 +2248,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>Python 内存管理，垃圾回收，缓存重用机制</title>
-    <url>/posts/ec5b3295/</url>
-    <content><![CDATA[<h1 id="一文搞定Python-的-内存管理-垃圾回收-缓存重用机制"><a href="#一文搞定Python-的-内存管理-垃圾回收-缓存重用机制" class="headerlink" title="一文搞定Python 的 内存管理, 垃圾回收, 缓存重用机制"></a>一文搞定Python 的 <code>内存管理</code>, <code>垃圾回收</code>, <code>缓存重用机制</code></h1><blockquote>
-<p>鉴于 Python 的语言特性，详细的梳理记录下这三方面的知识</p>
-</blockquote>
-<span id="more"></span>
-<h2 id="详谈-python-的内存管理"><a href="#详谈-python-的内存管理" class="headerlink" title="详谈 python 的内存管理"></a>详谈 python 的内存管理</h2><blockquote>
-<p>python 作为一门高级语言，调用相关变量时，无需实现声明，变量无需指定类型，python 解释器会自动帮你回收，这一切都由<br><code>python 内存管理器</code>承担了复杂的内存管理工作。<br>这里主要介绍基于 Cpython 实现的内存管理</p>
-</blockquote>
-<blockquote>
-<p>python 内存管理机制 —— Pymalloc</p>
-</blockquote>
-<h3 id="主要实现方式"><a href="#主要实现方式" class="headerlink" title="主要实现方式"></a>主要实现方式</h3><ul>
-<li>针对<code>小对象</code>, 就是对象大小小于<code>256kb</code>时，pymalloc 会在<code>内存池中申请内存空间</code></li>
-<li>针对<code>大对象</code>, 对象大小<code>大于 256kb</code>时，会执行<code>new/malloc 行为</code>来申请新的内存空间</li>
-</ul>
-<h3 id="python-内存池（memory-pool）"><a href="#python-内存池（memory-pool）" class="headerlink" title="python 内存池（memory pool）"></a>python 内存池（memory pool）</h3><blockquote>
-<p>为什么要引入内存池？<br>当创建大量消耗小内存的对象时，频繁调用<code>new/malloc</code>会导致大量的内存碎片，导致效率降低</p>
-</blockquote>
-<ul>
-<li><code>内存池的作用就是预先在内存中申请一定数量的，大小相等的内存块（256kb）留作备用</code>，当有新的内存需求时，就优先从内存池中分配给这个需求。</li>
-<li>减少内存碎片化，提升效率</li>
-</ul>
-<img src="/images/python 内存池.png" width = "600" height = "700" alt="" align=center />
-
-<ul>
-<li><p>python 的对象管理主要位于 Level + 1 ~ Level +3 层</p>
-</li>
-<li><p>Level 3: 该层特定对象内存分配器，主要是 <code>python 内置的对象（int, dict, arr）</code>都有独立的私有内存池，对象<br>之间的内存池不共享，例如 <code>int</code> 释放的内存，不会被分配给 <code>float</code>使用。</p>
-</li>
-<li><p>Level 2: python 对象分配器：当申请的<code>内存大小小于256KB</code>时，内存对象的分配主要由<code>Python 对象</code> 分配器（python’s object allocator）实施</p>
-</li>
-<li><p>Level 1: python 内存分配器：当申请的<code>内存大小大于256KB</code>时，由 Python 原生的内存分配器进行分配，本质上是调用 C 标准库中的 malloc/readlloc 等函数</p>
-</li>
-</ul>
-<h3 id="内存池的内存释放"><a href="#内存池的内存释放" class="headerlink" title="内存池的内存释放"></a>内存池的内存释放</h3><blockquote>
-<p>内存释放，当一个对象的引用计算变为 0 时，Python 就会调用它的析构函数（__del__）。调用析构函数并不意味着最终一定会调用<br>free 来释放内存空间，会导致频繁申请、释放内存空间使得 Python 的执行效率大打折扣。因此在析构时也采用了内存池机制，内存池申请到的内存会被归还到内存池中，<br>以免频繁地申请和释放动作</p>
-</blockquote>
-<p>接下来就会讲到 Python 的垃圾回收机制。</p>
-<h1 id="垃圾回收机制"><a href="#垃圾回收机制" class="headerlink" title="垃圾回收机制"></a>垃圾回收机制</h1><blockquote>
-<p>如果别人问你，什么是 Python 的垃圾回收机制，你可以用一句话概括<br><strong>Python 的垃圾回收机制采用`引用计数为主，标记-清除和分代回收为辅的策略</strong></p>
-</blockquote>
-<p>Python 一切皆为对象，包括 int、str 等等基本的对象。Cpython 的实现中，有一个结构体为 PyObject, Cpython 中的每个其他对象都在使用它</p>
-<p>PyObject 是 Python 中所有对象的祖父，它只包含两件事：</p>
-<ul>
-<li>ob_refcnt: 引用计数器</li>
-<li>ob_type: 指向另一种类型的指针</li>
-</ul>
-<p>对于对象来说，无非是对象的创建和删除</p>
-<h2 id="引用计数"><a href="#引用计数" class="headerlink" title="引用计数"></a>引用计数</h2><blockquote>
-<p>每个对象都会维护一个 <code>ob_refcnt</code> 来记录当前对象被引用的次数</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">a = [<span class="number">2</span>]</span><br><span class="line"><span class="built_in">print</span>(sys.getrefcount(a))</span><br><span class="line"><span class="comment"># OUTPUT getrefcount 会增加一次引用</span></span><br><span class="line"><span class="number">2</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>对象引用计数 +1</p>
-<ul>
-<li><ol>
-<li>对象被创建 <code>a=1</code></li>
-</ol>
-</li>
-<li><ol start="2">
-<li>对象被引用 <code>a=b</code></li>
-</ol>
-</li>
-<li><ol start="3">
-<li>对象被作为参数，传入函数中 def count(a, b)</li>
-</ol>
-</li>
-<li><ol start="4">
-<li>对象作为一个元素被存储 <code>li = [1,2, a]</code></li>
-</ol>
-</li>
-</ul>
-</li>
-<li><p>对象的引用计数 -1</p>
-<ul>
-<li><ol>
-<li>对象的引用被显示销毁时，<code>del a</code></li>
-</ol>
-</li>
-<li><ol start="2">
-<li>对象的引用别名被赋予新的对象, <code>a=26</code></li>
-</ol>
-</li>
-<li><ol start="3">
-<li>一个对象离开它的作用域, 例如一个函数执行完成后，内部的<code>局部变量的引用计数器就会减一</code>(全局变量不变)</li>
-</ol>
-</li>
-<li><ol start="4">
-<li>将该元素从容器中删除时，或者容器被销毁</li>
-</ol>
-</li>
-</ul>
-</li>
-</ul>
-<p><strong>当指向对象的内存的引用计数为 0 时，该内存就会被 Python 虚拟机销毁</strong></p>
-<p>特性：</p>
-<blockquote>
-<p>优点：1. 高效。2。 实时性，一旦没有引用，内存就直接释放了。3. 对象有确定的生命周期 4. 易于实现<br>缺点：1. 维护引用计数消耗资源。2. 无法解决循环引用问题</p>
-</blockquote>
-<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><blockquote>
-<p>对于一个对象来说，当出现循环引用的时候，例如<code>a=1, b=a, a=b</code>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
-</blockquote>
-<h3 id="什么是标记清除？"><a href="#什么是标记清除？" class="headerlink" title="什么是标记清除？"></a>什么是标记清除？</h3><blockquote>
-<p>[标记清除（Mark-Sweep）] 算法是一种基于追踪回收（tracing GC）技术实现的垃圾回收算法。主要针对一些容器对象，例如<code>list</code>、<code>dict</code>、<code>tuple</code><br>对于字符串和数值对象是不可能造成循环引用的问题的（不可变对象，当出现引用时，会另外开辟空间存储，这个在缓存机制中会详细解释）。</p>
-</blockquote>
-<p>那么<code>标记清除</code>算法是如何运行的？<br>分为两个阶段：</p>
-<ul>
-<li><ol>
-<li>第一阶段是标记阶段，GC 会把所有的[活动对象]打上标记。</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>第二阶段是把那些没有标记的[非活动对象]进行回收。</li>
-</ol>
-</li>
-</ul>
-<p>活动对象和非活动对象的标记：<br>对象之间通过引用（指针）连在一起，构成一个有相图，对象构成这个有向图的节点，而引用关系构成这个有向图的边。<br>从根对象（root object）出发，沿着有向边遍历对象，可达的（reachable）对象标记为活动对象，不可达的对象就是要被清除的非活动对象。<br>根对象就是全局变量、调用栈、寄存器。</p>
-<img src="/images/有向图.png" width = "400" height = "200" alt="" align=center />
-
-<p>从以上的有向图中：</p>
-<ul>
-<li>活动对象：A, B, C</li>
-<li>非活动对象：D, E</li>
-</ul>
-<h2 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h2><blockquote>
-<p>在标记清除对象的回收中，整个应用程序会被暂停，为了减少应用程序暂停的时间，Python 通过<strong>分代回收（Generational Conlletion）</strong>以空间换时间的方法提高垃圾回收效率</p>
-</blockquote>
-<p>Python 将所有对象分为：</p>
-<ul>
-<li>年轻代（第 0 代）</li>
-<li>中年代（第 1 代）</li>
-<li>老年代（第 2 代）</li>
-</ul>
-<p>所有新建的对象默认是第 0 代对象，经过 GC 扫描存活下来的对象将被移至第一代，在第一代的 GC 扫描中存活下来的对象将被移至第二代。</p>
-<blockquote>
-<p>GC 扫描次数 (第 0 代 &gt; 第 1 代 &gt; 第 2 代)</p>
-</blockquote>
-<h3 id="GC-分代回收是如何触发的？"><a href="#GC-分代回收是如何触发的？" class="headerlink" title="GC 分代回收是如何触发的？"></a>GC 分代回收是如何触发的？</h3><blockquote>
-<p>当某个世代中被分配的对象与被释放的对象数量之差到达某一个阈值时，就会触发当前一代的 GC 扫描。<br>当某一世代被扫描时，比它年轻的一代也会被扫描<br>当第 2 代的 GC 扫描发生时，第 0，1 代的 GC 扫描也会发生，即为全代扫描。</p>
-</blockquote>
-<p>那么这个阈值是如何确定的?</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> gc </span><br><span class="line">gc.get_threshold() <span class="comment">## 分代回收机制的参数阈值设置</span></span><br><span class="line"><span class="comment"># (700, 10, 10)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>700=新分配的对象数量-释放的对象数量，第 0 代 gc 扫描被触发</li>
-<li>第一个10：第 0 代 gc 扫描发生 10 次，则第 1 代的 gc 扫描被触发</li>
-<li>第二个10：第 1 代的 gc 扫描发生 10 次，则第 2 代的 gc 扫描被触发</li>
-</ul>
-<h1 id="Python-的缓存重用机制"><a href="#Python-的缓存重用机制" class="headerlink" title="Python 的缓存重用机制"></a>Python 的缓存重用机制</h1><blockquote>
-<p>Python 缓存重用机制是为了提高程序执行的效率。Python 解释器启动时从内存空间中开辟出一小部分，用来存储高频使用的数据，这样可以大大减少高频使用的<br>数据创建时申请内存和销毁的开销</p>
-</blockquote>
-<img src="/images/缓存重用机制.png" width = "600" height = "300" alt="" align=center />
-
-<p>这里基本演示，更加详细的演示，读者可以自行尝试</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#范围在 [-5, 256] 之间的小整数</span></span><br><span class="line">int1 = -<span class="number">5</span></span><br><span class="line">int2 = -<span class="number">5</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;[-5, 256] 情况下的两个变量：&quot;</span>, <span class="built_in">id</span>(int1), <span class="built_in">id</span>(int2))</span><br><span class="line"><span class="comment"># output</span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment">#bool类型</span></span><br><span class="line">bool1 = <span class="literal">True</span></span><br><span class="line">bool2 = <span class="literal">True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bool类型情况下的两个变量：&quot;</span>,<span class="built_in">id</span>(bool1),<span class="built_in">id</span>(bool2))</span><br><span class="line"><span class="comment">#对于字符串</span></span><br><span class="line">s1 = <span class="string">&quot;3344&quot;</span></span><br><span class="line">s2 = <span class="string">&quot;3344&quot;</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;字符串情况下的两个交量&quot;</span>, <span class="built_in">id</span>(s1), <span class="built_in">id</span>(s2))</span><br><span class="line"><span class="comment">#大于 256 的整数</span></span><br><span class="line">int3 = <span class="number">257</span></span><br><span class="line">int4 = <span class="number">257</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 256 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(int3), <span class="built_in">id</span>(int4))</span><br><span class="line"><span class="comment">#大于 0 的浮点数</span></span><br><span class="line">f1 = <span class="number">256.4</span></span><br><span class="line">f2 = <span class="number">256.4</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f1), <span class="built_in">id</span>(f2))</span><br><span class="line"><span class="comment">#小于 0 的浮点数</span></span><br><span class="line">f3 = -<span class="number">2.45</span></span><br><span class="line">f4 = -<span class="number">2.45</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f3), <span class="built_in">id</span>(f4))</span><br><span class="line"><span class="comment">#小于 -5 的整数</span></span><br><span class="line">n1 = -<span class="number">6</span></span><br><span class="line">n2 = -<span class="number">6</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 -5 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(n1), <span class="built_in">id</span>(n2))</span><br></pre></td></tr></table></figure>
-<p>OUTPUT:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[-5, 256] 情况下的两个变量： 4479762592 4479762592</span><br><span class="line">bool类型情况下的两个变量： 4479360112 4479360112</span><br><span class="line">字符串情况下的两个交量 140680232254768 140680232254768</span><br><span class="line">大于 256 的整数情况下的两个变量 140680231657872 140680231657872</span><br><span class="line">大于 0 的浮点数情况下的两个变量 140680231658256 140680231658256</span><br><span class="line">小于 0 的浮点数情况下的两个变量 140680191914768 140680191914768</span><br><span class="line">小于 -5 的整数情况下的两个变量 140680232617328 140680232617328</span><br></pre></td></tr></table></figure>
-
-<p>总结：</p>
-<ul>
-<li>对于<code>int</code>, <code>str</code>,<code>bool</code> 类型而言：<ol>
-<li>对于同一个对象，都是缓存同一个内容来使用</li>
-</ol>
-</li>
-<li>对于<code>大于 256 的整数</code>, 浮点数<ol>
-<li>如果位于同一代码块，则使用相同的缓存内容；反之，则不使用</li>
-</ol>
-</li>
-<li>对于 <code>小于 0 的整数</code><ol>
-<li>Python 没有对其进行缓存操作</li>
-</ol>
-</li>
-</ul>
-<h1 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h1><p>在 Python 中，主要通过 <code>引用计数</code>来进行垃圾回收；通过<code>标记-清除</code>来解决一些容器对象的循环引用问题；<br>通过<code>分代回收</code>以空间换时间的方式提高垃圾回收效率。</p>
-<p>缓存重用机制，作用类似于内存池，提高 Python 的执行效率</p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p>「 python 垃圾回收机制 」- <a href="https://andrewpqc.github.io/2018/10/08/python-memory-management/">https://andrewpqc.github.io/2018/10/08/python-memory-management/</a><br>「 python GC 源代码 」- <a href="https://docs.python.org/2/library/gc.html">https://docs.python.org/2/library/gc.html</a><br>「 python 垃圾回收需要知道事 」- <a href="https://rushter.com/blog/python-garbage-collector/">https://rushter.com/blog/python-garbage-collector/</a> </p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Redis 高可用方案</title>
     <url>/posts/7c68620a/</url>
     <content><![CDATA[<h1 id="Redis-高可用方案"><a href="#Redis-高可用方案" class="headerlink" title="Redis 高可用方案"></a>Redis 高可用方案</h1><p>Redis 高可用方式主要有以下四种：</p>
@@ -2559,6 +2559,92 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>docker 与容器技术畅谈</title>
+    <url>/posts/bc91ee72/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
+<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
+</blockquote>
+<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
+<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
+<p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
+<p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
+<p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
+<p>那么为什么 docker 技术为何在短短几个月就风靡全世界了？</p>
+<ul>
+<li><strong>实则正是 <code>docker image</code></strong></li>
+</ul>
+<p>对于 Paas 项目而言，将项目运行的文件打包是一件极其麻烦的事情，对于每种语言，每种框架，每个版本都需要维护一个打好的包。</p>
+<p><strong>docker image 可以基于你所需要的系统文件，构建一个可以基于云端环境运行的压缩包。</strong></p>
+<h2 id="容器化技术的发展"><a href="#容器化技术的发展" class="headerlink" title="容器化技术的发展"></a>容器化技术的发展</h2><p>在以上的文章中，介绍了 docker 技术为何火热的原因。<br>对于一个大型的业务应用来说，从前端，后端，到数据库系统，文件系统等，往往是需要多个容器的，那么就存在着，如何能够优雅的在云端环境有序地运行。<br>于是，docker 公司便开发出了一个<code>容器编排化的工具</code>, <strong>docker Swarm</strong> 项目</p>
+<p>与此同时，Mesos 社区也开发出了一个类似的工具<code>Marathon</code>, 它虽然不能像 Swarm 那样提供原生的 Docker API, 但是其却拥有一个独特的核心竞争力：</p>
+<ul>
+<li><strong>超大规模集群的管理经验</strong></li>
+</ul>
+<p>也就在这个时候，google 公司根据公司多年的发展经验和借助成熟的内部项目<code>Borg</code>系统，宣布了 <code>Kubernetes</code> 项目的诞生。<br>而也是仅仅在两年之前，各个国内外的互联网厂商开始将自己的项目接入 k8s，宣布了 k8s 时代的到来。</p>
+<p>本文仅仅讨论 <code>docker 容器化技术</code>，对于<code>容器化编排</code>不做过多的介绍。</p>
+<h1 id="容器到底是怎么一回事？"><a href="#容器到底是怎么一回事？" class="headerlink" title="容器到底是怎么一回事？"></a>容器到底是怎么一回事？</h1><p>在上述的文章中，已经简单介绍了几个概念:</p>
+<ul>
+<li><code>虚拟器</code></li>
+<li><code>容器</code></li>
+<li><code>容器化技术</code></li>
+<li><code>镜像</code></li>
+</ul>
+<p>我们可以总结一下：<strong>容器其实就是一种沙盒技术，使用 <code>Cgroups</code>和<code>Namespace</code> 技术，将你的应用通过限制和隔离的技术在指定的环境中，良好的运行起来</strong></p>
+<p>先说结论，容器其实就是一种<code>特殊的进程</code>而已</p>
+<h2 id="隔离技术-Namespace"><a href="#隔离技术-Namespace" class="headerlink" title="隔离技术 - Namespace"></a>隔离技术 - Namespace</h2><blockquote>
+<p>那么隔离技术是如何实现的？</p>
+</blockquote>
+<p>首先创建一个容器：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker run -it --name=ubuntu-test ubuntu:18.04 /bin/sh</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ps</span></span><br><span class="line">  PID TTY          TIME CMD</span><br><span class="line">    1 pts/0    00:00:00 sh</span><br><span class="line">    7 pts/0    00:00:00 ps</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
+<p>我们可以看到这个容器中，一共有两个进程，通过 ps 可以看到 sh ,就是这个容器内部的第 1 号进程（PID=1）。</p>
+<p>这是为什么呢？</p>
+<p>本来，当我们在宿主机上运行了一个 /bin/sh 程序的时候，我们的操作系统都会给其分配一个进程编号，例如 PID=100。但是通过 <code>docker run</code> 命令时，docker<br>就会在当前的进程时，调整其 namespace 相关参数，将其变为在这个 docker 中的 1 号进程。</p>
+<p>这种技术就是<strong>Linux 里面的 Namespace 机制</strong>。</p>
+<p>我们知道，在 Linux 系统中创建进程的系统调用是 clone():</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, SIGCHID, NUll);</span><br></pre></td></tr></table></figure>
+
+<p>通过指定 <code>CLONE_NEWPID</code> 参数，而每个 <code>Namespace</code>里的应用进程，都会认为自己是当前容器里的第一号进程。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, CLONE_NEWPID | SIGCHLD, NULL)</span><br></pre></td></tr></table></figure>
+
+<p>在 Linux 操作系统中，还提供了 <code>Mount</code>、<code>UTS</code>、<code>IPC</code>、<code>Network</code>、<code>User</code> 这些 Namespace，用来对<code>各种不同的进程</code>上下文进行”障眼法”操作。</p>
+<h2 id="限制技术-Cgroups"><a href="#限制技术-Cgroups" class="headerlink" title="限制技术 - Cgroups"></a>限制技术 - Cgroups</h2><blockquote>
+<p>Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等<br>在 Linux 中，Cgroups 给用户暴露出来的操作接口是<strong>文件系统</strong>，即它以文件和目录的方式组织在操作系统的 /sys/fs/cgroup 路径下。</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># mount -t cgroup</span></span></span><br><span class="line">cpuset on /sys/fs/cgroup/cpuset type cgroup (ro,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cpu on /sys/fs/cgroup/cpu type cgroup (ro,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cpuacct on /sys/fs/cgroup/cpuacct type cgroup (ro,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">blkio on /sys/fs/cgroup/blkio type cgroup (ro,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">memory on /sys/fs/cgroup/memory type cgroup (ro,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">devices on /sys/fs/cgroup/devices type cgroup (ro,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">freezer on /sys/fs/cgroup/freezer type cgroup (ro,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">net_cls on /sys/fs/cgroup/net_cls type cgroup (ro,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">perf_event on /sys/fs/cgroup/perf_event type cgroup (ro,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">net_prio on /sys/fs/cgroup/net_prio type cgroup (ro,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">hugetlb on /sys/fs/cgroup/hugetlb type cgroup (ro,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">pids on /sys/fs/cgroup/pids type cgroup (ro,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">rdma on /sys/fs/cgroup/rdma type cgroup (ro,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (ro,nosuid,nodev,noexec,relatime,name=systemd)</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
+<p>其中，例如 <code>cpuset</code>、<code>cpu</code>、<code>memory</code> 这样的子目录，也叫子系统。这些都是可以被 <code>Cgroups</code> 进行限制的资源种类。</p>
+<p>现在我们看一下子系统中关于 CPU 的相关配置文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ls /sys/fs/cgroup/cpu</span></span><br><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release</span><br><span class="line">cgroup.procs	       cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat	 tasks</span><br></pre></td></tr></table></figure>
+<p>这些输出配置中，可以看到 <code>cpu.cfs_period_us</code> 和 <code>cpu.cfs_quota_us</code>，这两个参数需要组合使用，可以用来限制进程在长度<code>cfs_period</code>的一段时间内，<br>只能被分配到总量为 <code>cfs_quota</code> 的 CPU 时间。</p>
+<p>另开一个终端，输入:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">while : ; do : ; done &amp;</span><br><span class="line"></span><br><span class="line">23223</span><br></pre></td></tr></table></figure>
+<p>键入：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top</span><br><span class="line"><span class="meta">%</span><span class="bash">Cpu0 :100.0 us, 0.0 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
+<p>可以看到 CPU 的使用率已经 100% 了， quota 还没有任何限制（-1）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span> </span><br><span class="line">-1</span><br><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_period_us</span> </span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
+<p>在现在的默认配置中，在 100 ms 中的 cpu 时间中，使用 100ms 的 CPU 时间，也就是 100 %。<br>现在调整为 20%:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span></span><br></pre></td></tr></table></figure>
+<p>然后将限制的进程 PID 写入 container 组里的 tasks 文件:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 23223 &gt; /sys/fs/cgroup/cpu/container/tasks</span> </span><br></pre></td></tr></table></figure>
+<p>然后使用 <code>top</code> 指令查看:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash">Cpu0 : 20.3 us, 0.0 sy, 0.0 ni, 79.7 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
+<p>现在可以看到已经为 <code>20%</code> 左右了<br>其他关于 <code>blkio</code>，<code>cpuset</code>，<code>memory</code> 可以自行尝试</p>
+<h3 id="docker-运行时的限制参数"><a href="#docker-运行时的限制参数" class="headerlink" title="docker 运行时的限制参数"></a>docker 运行时的限制参数</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -it --cpu-period=100000 --cpu-quota=20000 ubuntu:18.04 /bin/bash</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置就会将对应的值写入到 docker-container 的配置文件中，这个 Docker 容器，只能使用到 20% 的 CPU 带宽。</p>
+<h3 id="虚拟机和容器对比"><a href="#虚拟机和容器对比" class="headerlink" title="虚拟机和容器对比"></a>虚拟机和容器对比</h3><img src="/images/虚拟机和容器对比图.png" width = "500" height = "300" alt="" align=center />
+
+<p>虚拟机的工作原理，通过硬件虚拟化功能，模拟出了运行一个操作系统需要的各种硬件，例如 CPU、内存、I/O 设备等等。<br>docker 项目帮助用户启动的，还是原来的应用进程，但是 Docker 会为它们加上了各种各样的 Namespace 参数。</p>
+<p>所以，”敏捷” 和 “高性能” 是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。</p>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Cookie &amp;&amp; Session &amp;&amp; JWT 使用总结</title>
     <url>/posts/ea9b1fcc/</url>
     <content><![CDATA[<h1 id="认证-授权-凭证"><a href="#认证-授权-凭证" class="headerlink" title="认证-授权-凭证"></a>认证-授权-凭证</h1><h2 id="什么是认证"><a href="#什么是认证" class="headerlink" title="什么是认证"></a>什么是认证</h2><p><strong>认证就是验证当前用户的身份</strong>：<br>互联网中的认证：</p>
@@ -2732,89 +2818,120 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>docker 与容器技术畅谈</title>
-    <url>/posts/bc91ee72/</url>
-    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
-<p>2018 年可以说是 <strong>docker 容器技术</strong> 最火热的一年，各大厂商，互联网公司都开始构建自己的容器化平台，CI/CD 工具<br>那么为什么 <strong>docker 会这么火</strong>，以及 **docker 技术内涵是什么?**，这篇文章，我将以一个学习者的身份详细解析 docker 容器化技术</p>
+    <title>什么是栈、栈的使用场景？</title>
+    <url>/posts/da81f8d9/</url>
+    <content><![CDATA[<h1 id="如何理解栈？"><a href="#如何理解栈？" class="headerlink" title="如何理解栈？"></a>如何理解栈？</h1><blockquote>
+<p>关于”栈”，就像是一摞叠在一起的书籍。当我们放书籍的时候，都是一本本书的摞起来；当我们需要取书籍的时候，也是需要从上到下<br>一个个的依次的取。</p>
 </blockquote>
-<h1 id="为什么选择-docker"><a href="#为什么选择-docker" class="headerlink" title="为什么选择 docker"></a>为什么选择 docker</h1><p>在容器化时代到来之前，<code>AWS</code> 以及 <code>OpenStack</code> 可谓盛极一时，与此同时还有以 <code>Cloud Foundry</code> 为代表的开源 <code>PaaS</code> 项目。</p>
-<p>PaaS 开源项目火热的主要原因主要是它提供了一种<strong>应用托管</strong> 的能力。各个国内外技术厂商都在进行<strong>上云</strong>体验。<br>具体的操作就是：<code>Cloud Foundry</code> 为每种主流编程语言都定义了一种打包格式，类似 <code>cf push app</code> 的操作就是将 app 的可执行文件和启动命令<br>打包进一个压缩包中，上传到 Cloud Foundry 的存储中。然后 Cloud Foundry 会通过调度器选择一个可以运行这个应用的<code>虚拟机</code>，然后通过这个机器上的 agent 将应用压缩包下载下来启动。</p>
-<p>对于一个虚拟机来说，需要在其上启动很多个来自不同用户的应用，Cloud Foundry 会调用操作系统 <code>Cgroups</code> 和 <code>Namespace</code> 机制为每个应用单独创建一个<br>称作<code>沙盒</code>的隔离环境，然后在<code>沙盒</code>环境中启动这些应用，这样就形成了一个个隔离的环境运行多个应用。</p>
-<p>以上就是 <strong>PaaS 项目的核心的功能，也就是容器化技术</strong>。</p>
-<p>也正是和 docker 项目相同的技术核心，通过 <code>Cgroups</code> 和 <code>Namespace</code>来构建一个资源和边界，实现沙盒环境。</p>
-<p>那么为什么 docker 技术为何在短短几个月就风靡全世界了？</p>
+<p>所谓的<strong>栈</strong>：就是<strong>后进者先出，先进者后出，这就是典型的 栈 的结构</strong>。</p>
+<p>从栈的操作特性上来看，<strong>栈是一种”操作受限”的线性表</strong>，只允许在一端插入和删除数据。</p>
+<p>从功能上来说，数组和链表确实可以替代栈，但是特定的数据结构是对特定场景的抽象，而且，数组或者链表暴露了太多的操作接口，操作上的灵活，<br>在使用时也就会变得不可控，自然也就更容易出错。</p>
+<p><strong>当某个数据集合只涉及在一端插入和删除数据的时候，并且满足后进先出、先进先出的特性，这时我们就应该首选”栈”这种数据结构</strong></p>
+<h1 id="如何实现一个”栈”？"><a href="#如何实现一个”栈”？" class="headerlink" title="如何实现一个”栈”？"></a>如何实现一个”栈”？</h1><p>栈可以使用数组来实现，也可以使用链表来实现；<br>这里我使用数组来实现</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stack</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self._stack.append(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self._stack)</span><br></pre></td></tr></table></figure>
+<p>先说结论：<br>栈的空间复杂度为 O(1), 时间复杂度为 O(1)。<br>这里存储数据需要一个大小为 n 的数组，并不是说空间复杂度就是 O(n)。我们在判断一个空间复杂度的时候，是指除了原本的数据存储空间外，<br>算法运行还需要额外的存储空间。</p>
+<p>对于时间复杂度来说，入栈和出栈都是 O(1)</p>
+<h1 id="栈在函数调用中的应用"><a href="#栈在函数调用中的应用" class="headerlink" title="栈在函数调用中的应用"></a>栈在函数调用中的应用</h1><h2 id="函数调用栈"><a href="#函数调用栈" class="headerlink" title="函数调用栈"></a>函数调用栈</h2><p>栈作为一个比较基础的数据结构，比较经典的应用场景就是<code>函数调用栈</code>。</p>
+<p>操作系统给每个线程分配了一块<code>独立的内存空间</code>，这块内存被组织成<code>栈</code>这种数据结构，用来存储函数调用时的临时变量。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span>():</span></span><br><span class="line">    a,b, c = <span class="number">1</span>,<span class="number">2</span>, <span class="number">3</span></span><br><span class="line">    _res = add(a,b)</span><br><span class="line">    res = _res + c</span><br><span class="line">    <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">a, b</span>):</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sum</span>(a,b)</span><br></pre></td></tr></table></figure>
+
+<p>调用顺序：main() –&gt; add()<br><img src="../../images/algorithm/%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8.png" alt="direct"></p>
+<h2 id="表达式求值"><a href="#表达式求值" class="headerlink" title="表达式求值"></a>表达式求值</h2><p>四则运算的实现<br>例如：16+26*36-2/2</p>
+<p>实现思路：</p>
+<ol>
+<li>维护一个栈，然后<br><img src="../../images/algorithm/%E5%9B%9B%E5%88%99%E8%BF%90%E7%AE%97%E6%A0%88%E5%AE%9E%E7%8E%B0.png" alt="img_2.png"></li>
+</ol>
+<p>实际上，编译器就是通过两个栈来实现的。其中一个来保存操作数的栈，另一个保存运算符的栈。</p>
+<h3 id="基本运算器实现"><a href="#基本运算器实现" class="headerlink" title="基本运算器实现"></a>基本运算器实现</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">s: <span class="built_in">str</span></span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">    n = <span class="built_in">len</span>(s)</span><br><span class="line">    stack = []</span><br><span class="line">    preSign = <span class="string">&#x27;+&#x27;</span></span><br><span class="line">    num = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n):</span><br><span class="line">        <span class="keyword">if</span> s[i] != <span class="string">&#x27; &#x27;</span> <span class="keyword">and</span> s[i].isdigit():</span><br><span class="line">            num = num * <span class="number">10</span> + <span class="built_in">ord</span>(s[i]) - <span class="built_in">ord</span>(<span class="string">&#x27;0&#x27;</span>)</span><br><span class="line">            <span class="built_in">print</span>(num)</span><br><span class="line">        <span class="keyword">if</span> i == n - <span class="number">1</span> <span class="keyword">or</span> s[i] <span class="keyword">in</span> <span class="string">&#x27;+-*/&#x27;</span>:</span><br><span class="line">            <span class="keyword">if</span> preSign == <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">                stack.append(num)</span><br><span class="line">            <span class="keyword">elif</span> preSign == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">                stack.append(-num)</span><br><span class="line">            <span class="keyword">elif</span> preSign == <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">                stack.append(stack.pop() * num)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                stack.append(<span class="built_in">int</span>(stack.pop() / num))</span><br><span class="line">            preSign = s[i]</span><br><span class="line">            num = <span class="number">0</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sum</span>(stack)</span><br></pre></td></tr></table></figure>
+<h2 id="浏览器前进和后退功能实现"><a href="#浏览器前进和后退功能实现" class="headerlink" title="浏览器前进和后退功能实现"></a>浏览器前进和后退功能实现</h2><p>解题思路：使用两个栈，A 和 B，将访问的页面一次压入栈 A 中，当点击后退按钮时，再依次从栈 A 中出栈，并将出栈的数据依次放入栈 B 中。点击前进按钮时，依次从栈 B<br>中取出数据，放入到 A 中。当栈 A 中没有数据时，那就是说明没有页面可以继续后退浏览了。当栈 B 中没有数据的时候，那就说明没有页面可以点击前进按钮浏览了。</p>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stack</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self._stack.append(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack == []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self._stack)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Brower</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.__forward_stack = Stack()</span><br><span class="line">        self.__back_stack = Stack()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">surf</span>(<span class="params">self, web_site_url</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;surf the website:&#123;&#125;&#x27;</span>.<span class="built_in">format</span>(web_site_url))</span><br><span class="line">        self.__forward_stack.push(web_site_url)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">forward</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">if</span> self.__back_stack.is_empty():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        top = self.__back_stack.pull()</span><br><span class="line">        self.__forward_stack.push(top)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;forward to the website: &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(top))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">back</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">if</span> self.__forward_stack.is_empty():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        top = self.__forward_stack.pull()</span><br><span class="line">        self.__back_stack.push(top)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;back to the website: &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(top))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    brower = Brower()</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.1.com&#x27;</span>)</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.2.com&#x27;</span>)</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.3.com&#x27;</span>)</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.4.com&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    brower.forward()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.forward()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>栈是一种<strong>操作受限</strong>的数据结构，只支持<code>入栈</code>和<code>出栈</code>操作。<br>可以通过<code>数组</code>或者<code>链表</code>来实现。<br>入栈、出栈的时间复杂度都是 O(1)。</p>
+<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><h2 id="为什么函数调用要用栈来保存临时变量呢？"><a href="#为什么函数调用要用栈来保存临时变量呢？" class="headerlink" title="为什么函数调用要用栈来保存临时变量呢？"></a>为什么函数调用要用<strong>栈</strong>来保存临时变量呢？</h2><p>函数调用时，符合<code>后进先出</code>的特性，用栈这种数据结构来实现，是最符合的。</p>
+<p>从调用函数进入被调用函数，比如：main –&gt; add –&gt; res 。变化的是<code>作用域</code>。所以从根本上，只要保证每进入一个新的函数，都是一个新的作用域都可以。<br>而要实现这个，用栈会非常方便。在进入被调用函数的时候，分配一段栈空间给这个函数的变量，在函数结束的时候，将栈顶复位，正好回到调用函数的作用域内。</p>
+<h2 id="在-JVM-内存管理中有个堆栈的概念-？"><a href="#在-JVM-内存管理中有个堆栈的概念-？" class="headerlink" title="在 JVM 内存管理中有个堆栈的概念 ？"></a>在 JVM 内存管理中有个<code>堆栈</code>的概念 ？</h2><p>内存中的堆栈和数据结构堆栈不是同一个概念，可以说内存中的堆栈是真实存在的物理区，数据结构中的堆栈是抽象的数据存储结构。<br>内存空间在逻辑上分为三部分：</p>
 <ul>
-<li><strong>实则正是 <code>docker image</code></strong></li>
+<li>代码区</li>
+<li>静态数据区</li>
+<li>动态数据区<ul>
+<li>栈区</li>
+<li>堆区</li>
 </ul>
-<p>对于 Paas 项目而言，将项目运行的文件打包是一件极其麻烦的事情，对于每种语言，每种框架，每个版本都需要维护一个打好的包。</p>
-<p><strong>docker image 可以基于你所需要的系统文件，构建一个可以基于云端环境运行的压缩包。</strong></p>
-<h2 id="容器化技术的发展"><a href="#容器化技术的发展" class="headerlink" title="容器化技术的发展"></a>容器化技术的发展</h2><p>在以上的文章中，介绍了 docker 技术为何火热的原因。<br>对于一个大型的业务应用来说，从前端，后端，到数据库系统，文件系统等，往往是需要多个容器的，那么就存在着，如何能够优雅的在云端环境有序地运行。<br>于是，docker 公司便开发出了一个<code>容器编排化的工具</code>, <strong>docker Swarm</strong> 项目</p>
-<p>与此同时，Mesos 社区也开发出了一个类似的工具<code>Marathon</code>, 它虽然不能像 Swarm 那样提供原生的 Docker API, 但是其却拥有一个独特的核心竞争力：</p>
+</li>
+</ul>
+<p>代码区：<code>存储方法体的二进制代码</code>。高级调度（作业调度）、中级调度（内存调度）、低级调度（进程调度）控制代码区执行代码的切换。<br>静态数据区：<code>存储全局变量</code>、<code>静态变量</code>、<code>常量</code>、常量包括 final 修饰的常量和 String 常量。系统自动分配和回收。</p>
+<p>栈区：<strong>存储运行方法的形参、局部变量、返回值。由系统自动分配和回收</strong><br>堆区：<strong>new 一个对象的引用或地址存储在栈区，指向该对象存储在堆区中的真实数据。</strong></p>
+<h1 id="相关题目"><a href="#相关题目" class="headerlink" title="相关题目"></a>相关题目</h1><h2 id="有效的括号"><a href="#有效的括号" class="headerlink" title="有效的括号"></a>有效的括号</h2><p>20 - <a href="https://leetcode-cn.com/problems/valid-parentheses/">https://leetcode-cn.com/problems/valid-parentheses/</a><br>解题思路：</p>
 <ul>
-<li><strong>超大规模集群的管理经验</strong></li>
+<li><ol>
+<li>括号是成对出现的，则判断字符串 s 是否为偶数，否则返回 False;</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>遍历字符串，先将 左括号压入栈，匹配到右括号时，则判断栈顶是否匹配到，否则返回 False;  <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">isValid_bracket</span>(<span class="params">brackets: <span class="built_in">str</span></span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(brackets) % <span class="number">2</span> == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    pairs = &#123;</span><br><span class="line">        <span class="string">&#x27;)&#x27;</span>: <span class="string">&#x27;(&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;]&#x27;</span>: <span class="string">&#x27;[&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;&#125;&#x27;</span>: <span class="string">&#x27;&#123;&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    stack = Stack()</span><br><span class="line">    <span class="keyword">for</span> ch <span class="keyword">in</span> brackets:</span><br><span class="line">        <span class="keyword">if</span> ch <span class="keyword">in</span> pairs:</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> stack <span class="keyword">or</span> stack.top() != pairs[ch]:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">            stack.pull()</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            stack.push(ch)</span><br><span class="line">    <span class="keyword">return</span> stack.is_empty()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(isValid_bracket(<span class="string">&#x27;([&#123;&#125;])&#x27;</span>))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="最小栈"><a href="#最小栈" class="headerlink" title="最小栈"></a>最小栈</h2>解题思路：维护一个辅助栈，在入栈的时候，依次与辅助栈中的数据比较，采用 <code>min(val, min_stack[-1])</code> 的方式入栈。pop 时，min_stack 也会 pop<br>155 - <a href="https://leetcode-cn.com/problems/min-stack/">https://leetcode-cn.com/problems/min-stack/</a><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MinStack</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack = []</span><br><span class="line">        self.min_stack = [math.inf] <span class="comment"># 存储正无穷大</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, val: <span class="built_in">int</span></span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        self._stack.append(val)</span><br><span class="line">        self.min_stack.append(<span class="built_in">min</span>(val, self.min_stack[-<span class="number">1</span>]))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        self._stack.pop()</span><br><span class="line">        self.min_stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">getMin</span>(<span class="params">self</span>) -&gt; <span class="built_in">float</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.min_stack[-<span class="number">1</span>]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="用两个栈实现队列"><a href="#用两个栈实现队列" class="headerlink" title="用两个栈实现队列"></a>用两个栈实现队列</h2>232 - <a href="https://leetcode-cn.com/problems/implement-queue-using-stacks/">https://leetcode-cn.com/problems/implement-queue-using-stacks/</a><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyQueue</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Initialize your data structure here.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        self.s1 = []</span><br><span class="line">        self.s2 = []</span><br><span class="line">        self.front = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, x: <span class="built_in">int</span></span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Push element x to the back of queue.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.s1:</span><br><span class="line">            self.front = x</span><br><span class="line">        self.s1.append(x)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span>(<span class="params">self</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Removes the element from in front of queue and returns that element.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.s2:</span><br><span class="line">            <span class="keyword">while</span> self.s1:</span><br><span class="line">                self.s2.append(self.s1.pop())</span><br><span class="line">            self.front = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">return</span> self.s2.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">peek</span>(<span class="params">self</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Get the front element.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> self.s2:</span><br><span class="line">            <span class="keyword">return</span> self.s2[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> self.front</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">empty</span>(<span class="params">self</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Returns whether the queue is empty.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.s1 <span class="keyword">and</span> <span class="keyword">not</span> self.s2:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="比较含退格的字符串"><a href="#比较含退格的字符串" class="headerlink" title="比较含退格的字符串"></a>比较含退格的字符串</h2>844 - <a href="https://leetcode-cn.com/problems/backspace-string-compare/">https://leetcode-cn.com/problems/backspace-string-compare/</a><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">backspaceCompare</span>(<span class="params">self, s: <span class="built_in">str</span>, t: <span class="built_in">str</span></span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">judge</span>(<span class="params">s: <span class="built_in">str</span></span>) -&gt; <span class="built_in">str</span>:</span></span><br><span class="line">            ret = []</span><br><span class="line">            <span class="keyword">for</span> value <span class="keyword">in</span> s:</span><br><span class="line">                <span class="keyword">if</span> value != <span class="string">&#x27;#&#x27;</span>:</span><br><span class="line">                    ret.append(value)</span><br><span class="line">                <span class="keyword">elif</span> ret:</span><br><span class="line">                    ret.pop()</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="string">&#x27;&#x27;</span>.join(ret)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> judge(s) == judge(t)</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
 </ul>
-<p>也就在这个时候，google 公司根据公司多年的发展经验和借助成熟的内部项目<code>Borg</code>系统，宣布了 <code>Kubernetes</code> 项目的诞生。<br>而也是仅仅在两年之前，各个国内外的互联网厂商开始将自己的项目接入 k8s，宣布了 k8s 时代的到来。</p>
-<p>本文仅仅讨论 <code>docker 容器化技术</code>，对于<code>容器化编排</code>不做过多的介绍。</p>
-<h1 id="容器到底是怎么一回事？"><a href="#容器到底是怎么一回事？" class="headerlink" title="容器到底是怎么一回事？"></a>容器到底是怎么一回事？</h1><p>在上述的文章中，已经简单介绍了几个概念:</p>
+<h2 id="基本计算器实现"><a href="#基本计算器实现" class="headerlink" title="基本计算器实现"></a>基本计算器实现</h2><p>224 - <a href="https://leetcode-cn.com/problems/basic-calculator/">https://leetcode-cn.com/problems/basic-calculator/</a></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">s</span>):</span></span><br><span class="line">    res, num, sign = <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">    stack = []</span><br><span class="line">    <span class="keyword">for</span> ch <span class="keyword">in</span> s:</span><br><span class="line">        <span class="keyword">if</span> ch.isdigit():</span><br><span class="line">            num = num * <span class="number">10</span> + <span class="built_in">int</span>(ch)</span><br><span class="line">        <span class="keyword">elif</span> ch == <span class="string">&#x27;+&#x27;</span> <span class="keyword">or</span> ch == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">            res += sign * num</span><br><span class="line">            num = <span class="number">0</span></span><br><span class="line">            sign = <span class="number">1</span> <span class="keyword">if</span> ch == <span class="string">&#x27;+&#x27;</span> <span class="keyword">else</span> -<span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> ch == <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">            stack.append(res)</span><br><span class="line">            stack.append(sign)</span><br><span class="line">            res = <span class="number">0</span></span><br><span class="line">            sign = <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> ch == <span class="string">&#x27;)&#x27;</span>:</span><br><span class="line">            res += sign * num</span><br><span class="line">            num = <span class="number">0</span></span><br><span class="line">            res *= stack.pop()</span><br><span class="line">            res += stack.pop()</span><br><span class="line">    res += sign * num</span><br><span class="line">    <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(calculate(<span class="string">&#x27;1+(1+2)-(1-1)+1&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+<h2 id="基本运算器-3"><a href="#基本运算器-3" class="headerlink" title="基本运算器 3"></a>基本运算器 3</h2><p><a href="https://leetcode-cn.com/problems/basic-calculator-iii/">https://leetcode-cn.com/problems/basic-calculator-iii/</a><br>基本运算元素：</p>
 <ul>
-<li><code>虚拟器</code></li>
-<li><code>容器</code></li>
-<li><code>容器化技术</code></li>
-<li><code>镜像</code></li>
+<li><code>(</code></li>
+<li><code>)</code></li>
+<li><code>-</code></li>
+<li><code>+</code></li>
+<li><code>*</code></li>
+<li><code>/</code></li>
 </ul>
-<p>我们可以总结一下：<strong>容器其实就是一种沙盒技术，使用 <code>Cgroups</code>和<code>Namespace</code> 技术，将你的应用通过限制和隔离的技术在指定的环境中，良好的运行起来</strong></p>
-<p>先说结论，容器其实就是一种<code>特殊的进程</code>而已</p>
-<h2 id="隔离技术-Namespace"><a href="#隔离技术-Namespace" class="headerlink" title="隔离技术 - Namespace"></a>隔离技术 - Namespace</h2><blockquote>
-<p>那么隔离技术是如何实现的？</p>
-</blockquote>
-<p>首先创建一个容器：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker run -it --name=ubuntu-test ubuntu:18.04 /bin/sh</span><br></pre></td></tr></table></figure>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ps</span></span><br><span class="line">  PID TTY          TIME CMD</span><br><span class="line">    1 pts/0    00:00:00 sh</span><br><span class="line">    7 pts/0    00:00:00 ps</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
-<p>我们可以看到这个容器中，一共有两个进程，通过 ps 可以看到 sh ,就是这个容器内部的第 1 号进程（PID=1）。</p>
-<p>这是为什么呢？</p>
-<p>本来，当我们在宿主机上运行了一个 /bin/sh 程序的时候，我们的操作系统都会给其分配一个进程编号，例如 PID=100。但是通过 <code>docker run</code> 命令时，docker<br>就会在当前的进程时，调整其 namespace 相关参数，将其变为在这个 docker 中的 1 号进程。</p>
-<p>这种技术就是<strong>Linux 里面的 Namespace 机制</strong>。</p>
-<p>我们知道，在 Linux 系统中创建进程的系统调用是 clone():</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, SIGCHID, NUll);</span><br></pre></td></tr></table></figure>
-
-<p>通过指定 <code>CLONE_NEWPID</code> 参数，而每个 <code>Namespace</code>里的应用进程，都会认为自己是当前容器里的第一号进程。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">int pid = clone(main_function, stack_size, CLONE_NEWPID | SIGCHLD, NULL)</span><br></pre></td></tr></table></figure>
-
-<p>在 Linux 操作系统中，还提供了 <code>Mount</code>、<code>UTS</code>、<code>IPC</code>、<code>Network</code>、<code>User</code> 这些 Namespace，用来对<code>各种不同的进程</code>上下文进行”障眼法”操作。</p>
-<h2 id="限制技术-Cgroups"><a href="#限制技术-Cgroups" class="headerlink" title="限制技术 - Cgroups"></a>限制技术 - Cgroups</h2><blockquote>
-<p>Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等<br>在 Linux 中，Cgroups 给用户暴露出来的操作接口是<strong>文件系统</strong>，即它以文件和目录的方式组织在操作系统的 /sys/fs/cgroup 路径下。</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"></span></span><br><span class="line"><span class="bash"><span class="comment"># mount -t cgroup</span></span></span><br><span class="line">cpuset on /sys/fs/cgroup/cpuset type cgroup (ro,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cpu on /sys/fs/cgroup/cpu type cgroup (ro,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cpuacct on /sys/fs/cgroup/cpuacct type cgroup (ro,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">blkio on /sys/fs/cgroup/blkio type cgroup (ro,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">memory on /sys/fs/cgroup/memory type cgroup (ro,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">devices on /sys/fs/cgroup/devices type cgroup (ro,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">freezer on /sys/fs/cgroup/freezer type cgroup (ro,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">net_cls on /sys/fs/cgroup/net_cls type cgroup (ro,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">perf_event on /sys/fs/cgroup/perf_event type cgroup (ro,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">net_prio on /sys/fs/cgroup/net_prio type cgroup (ro,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">hugetlb on /sys/fs/cgroup/hugetlb type cgroup (ro,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">pids on /sys/fs/cgroup/pids type cgroup (ro,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">rdma on /sys/fs/cgroup/rdma type cgroup (ro,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (ro,nosuid,nodev,noexec,relatime,name=systemd)</span><br><span class="line"><span class="meta">#</span></span><br></pre></td></tr></table></figure>
-<p>其中，例如 <code>cpuset</code>、<code>cpu</code>、<code>memory</code> 这样的子目录，也叫子系统。这些都是可以被 <code>Cgroups</code> 进行限制的资源种类。</p>
-<p>现在我们看一下子系统中关于 CPU 的相关配置文件</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> ls /sys/fs/cgroup/cpu</span></span><br><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release</span><br><span class="line">cgroup.procs	       cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat	 tasks</span><br></pre></td></tr></table></figure>
-<p>这些输出配置中，可以看到 <code>cpu.cfs_period_us</code> 和 <code>cpu.cfs_quota_us</code>，这两个参数需要组合使用，可以用来限制进程在长度<code>cfs_period</code>的一段时间内，<br>只能被分配到总量为 <code>cfs_quota</code> 的 CPU 时间。</p>
-<p>另开一个终端，输入:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">while : ; do : ; done &amp;</span><br><span class="line"></span><br><span class="line">23223</span><br></pre></td></tr></table></figure>
-<p>键入：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top</span><br><span class="line"><span class="meta">%</span><span class="bash">Cpu0 :100.0 us, 0.0 sy, 0.0 ni, 0.0 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
-<p>可以看到 CPU 的使用率已经 100% 了， quota 还没有任何限制（-1）</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span> </span><br><span class="line">-1</span><br><span class="line"><span class="meta">$</span><span class="bash"> cat /sys/fs/cgroup/cpu/container/cpu.cfs_period_us</span> </span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
-<p>在现在的默认配置中，在 100 ms 中的 cpu 时间中，使用 100ms 的 CPU 时间，也就是 100 %。<br>现在调整为 20%:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</span></span><br></pre></td></tr></table></figure>
-<p>然后将限制的进程 PID 写入 container 组里的 tasks 文件:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">$</span><span class="bash"> <span class="built_in">echo</span> 23223 &gt; /sys/fs/cgroup/cpu/container/tasks</span> </span><br></pre></td></tr></table></figure>
-<p>然后使用 <code>top</code> 指令查看:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">%</span><span class="bash">Cpu0 : 20.3 us, 0.0 sy, 0.0 ni, 79.7 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 st</span></span><br></pre></td></tr></table></figure>
-<p>现在可以看到已经为 <code>20%</code> 左右了<br>其他关于 <code>blkio</code>，<code>cpuset</code>，<code>memory</code> 可以自行尝试</p>
-<h3 id="docker-运行时的限制参数"><a href="#docker-运行时的限制参数" class="headerlink" title="docker 运行时的限制参数"></a>docker 运行时的限制参数</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> docker run -it --cpu-period=100000 --cpu-quota=20000 ubuntu:18.04 /bin/bash</span></span><br></pre></td></tr></table></figure>
-
-<p>这个配置就会将对应的值写入到 docker-container 的配置文件中，这个 Docker 容器，只能使用到 20% 的 CPU 带宽。</p>
-<h3 id="虚拟机和容器对比"><a href="#虚拟机和容器对比" class="headerlink" title="虚拟机和容器对比"></a>虚拟机和容器对比</h3><img src="/images/虚拟机和容器对比图.png" width = "500" height = "300" alt="" align=center />
-
-<p>虚拟机的工作原理，通过硬件虚拟化功能，模拟出了运行一个操作系统需要的各种硬件，例如 CPU、内存、I/O 设备等等。<br>docker 项目帮助用户启动的，还是原来的应用进程，但是 Docker 会为它们加上了各种各样的 Namespace 参数。</p>
-<p>所以，”敏捷” 和 “高性能” 是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。</p>
-]]></content>
+<p>运算符优先级：</p>
+<ul>
+<li>2<ul>
+<li><code>/ *</code></li>
+</ul>
+</li>
+<li>1<ul>
+<li><code>+ -</code></li>
+</ul>
+</li>
+<li>0<ul>
+<li><code>( )</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="解题思路："><a href="#解题思路：" class="headerlink" title="解题思路："></a>解题思路：</h3><p>双栈法</p>
+<ul>
+<li>stack_num 存储<strong>数字</strong></li>
+<li>stack_opt 存储<strong>运算符</strong></li>
+</ul>
+<p>最小原子计算：</p>
+<ol>
+<li>stack_num 中 pop 出两个数 A, B</li>
+<li>stack_opt 中 pop 出一个操作符 opt</li>
+<li>计算结果：res = B opt A</li>
+<li>存储运算结果：stack_num.append(res)</li>
+</ol>
+<p>字符串枚举：</p>
+<ol>
+<li><code>空格</code>，continue 下一个循环</li>
+<li><code>数字</code></li>
+</ol>
+<ul>
+<li>单个数字<br><code>stack_num.append()</code></li>
+<li>多位数字<br>解析多位数字，<code>append</code></li>
+<li>‘(‘<br>直接进入 stack_opt 栈</li>
+<li>‘)’<br>重复最小原子计算，直到 <code>stack_opt</code> 栈顶为 <code>(</code>。然后 stack_opt 栈 pop</li>
+<li>操作符(+,-,*,/)<br>比较<code>当前操作符</code>与 <code>栈顶操作符</code>优先级，若前者大于后者，则进行最小原子计算操作。<br>反之，则压入 <code>stack_opt</code> 栈中。</li>
+</ul>
+<p>3.遍历完所有字符串后，判断 <code>stack_opt</code> 是否为空，重复执行最基本计算操作，直到为空。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 基本运算器</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 最小原子计算器</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">cal</span>(<span class="params">self, A, B, opt</span>):</span></span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(A) + <span class="built_in">int</span>(B)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) - <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) * <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;/&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) / <span class="built_in">int</span>(A)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">basic_cal</span>(<span class="params">self, stack_num, stack_opt</span>):</span></span><br><span class="line">        opt = stack_opt.pop()</span><br><span class="line">        A = stack_num.pop()</span><br><span class="line">        B = stack_num.pop()</span><br><span class="line">        res = self.cal(A, B, opt)</span><br><span class="line">        stack_num.append(res)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">self, s:<span class="built_in">str</span></span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="comment"># stack_num &amp;&amp; stack_opt</span></span><br><span class="line">        stack_num, stack_opt = [], []</span><br><span class="line">        priority = &#123;</span><br><span class="line">            <span class="string">&#x27;(&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;)&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;+&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;-&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;*&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">            <span class="string">&#x27;/&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">        &#125;</span><br><span class="line">        length = <span class="built_in">len</span>(s)</span><br><span class="line">        i = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> i &lt; length:</span><br><span class="line">            <span class="keyword">if</span> i == <span class="string">&quot; &quot;</span>:</span><br><span class="line">                i += <span class="number">1</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                start = i</span><br><span class="line">                <span class="keyword">while</span> i+<span class="number">1</span> &lt; length <span class="keyword">and</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i+<span class="number">1</span>] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                    i = i+<span class="number">1</span></span><br><span class="line">                num = <span class="built_in">int</span>(s[start: i+<span class="number">1</span>])</span><br><span class="line">                stack_num.append(num)</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;)&#x27;</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt[-<span class="number">1</span>] != <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.pop()</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt <span class="keyword">and</span> priority[s[i]] &lt;= priority[stack_opt[-<span class="number">1</span>]]:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line"></span><br><span class="line">            i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 进行全部计算</span></span><br><span class="line">        <span class="keyword">while</span> stack_opt:</span><br><span class="line">            self.basic_cal(stack_num, stack_opt)</span><br><span class="line">        val = stack_num[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">int</span>(val)</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
       <categories>
-        <category>docker</category>
+        <category>数据结构与算法</category>
       </categories>
       <tags>
-        <tag>docker</tag>
+        <tag>数据结构与算法</tag>
       </tags>
   </entry>
   <entry>
@@ -2958,123 +3075,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 
 <h1 id="链表实现源码"><a href="#链表实现源码" class="headerlink" title="链表实现源码"></a>链表实现源码</h1><p><a href="https://github.com/tyronemaxi/algorithm/tree/main/chain">https://github.com/tyronemaxi/algorithm/tree/main/chain</a></p>
 ]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>什么是栈、栈的使用场景？</title>
-    <url>/posts/da81f8d9/</url>
-    <content><![CDATA[<h1 id="如何理解栈？"><a href="#如何理解栈？" class="headerlink" title="如何理解栈？"></a>如何理解栈？</h1><blockquote>
-<p>关于”栈”，就像是一摞叠在一起的书籍。当我们放书籍的时候，都是一本本书的摞起来；当我们需要取书籍的时候，也是需要从上到下<br>一个个的依次的取。</p>
-</blockquote>
-<p>所谓的<strong>栈</strong>：就是<strong>后进者先出，先进者后出，这就是典型的 栈 的结构</strong>。</p>
-<p>从栈的操作特性上来看，<strong>栈是一种”操作受限”的线性表</strong>，只允许在一端插入和删除数据。</p>
-<p>从功能上来说，数组和链表确实可以替代栈，但是特定的数据结构是对特定场景的抽象，而且，数组或者链表暴露了太多的操作接口，操作上的灵活，<br>在使用时也就会变得不可控，自然也就更容易出错。</p>
-<p><strong>当某个数据集合只涉及在一端插入和删除数据的时候，并且满足后进先出、先进先出的特性，这时我们就应该首选”栈”这种数据结构</strong></p>
-<h1 id="如何实现一个”栈”？"><a href="#如何实现一个”栈”？" class="headerlink" title="如何实现一个”栈”？"></a>如何实现一个”栈”？</h1><p>栈可以使用数组来实现，也可以使用链表来实现；<br>这里我使用数组来实现</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stack</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self._stack.append(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self._stack)</span><br></pre></td></tr></table></figure>
-<p>先说结论：<br>栈的空间复杂度为 O(1), 时间复杂度为 O(1)。<br>这里存储数据需要一个大小为 n 的数组，并不是说空间复杂度就是 O(n)。我们在判断一个空间复杂度的时候，是指除了原本的数据存储空间外，<br>算法运行还需要额外的存储空间。</p>
-<p>对于时间复杂度来说，入栈和出栈都是 O(1)</p>
-<h1 id="栈在函数调用中的应用"><a href="#栈在函数调用中的应用" class="headerlink" title="栈在函数调用中的应用"></a>栈在函数调用中的应用</h1><h2 id="函数调用栈"><a href="#函数调用栈" class="headerlink" title="函数调用栈"></a>函数调用栈</h2><p>栈作为一个比较基础的数据结构，比较经典的应用场景就是<code>函数调用栈</code>。</p>
-<p>操作系统给每个线程分配了一块<code>独立的内存空间</code>，这块内存被组织成<code>栈</code>这种数据结构，用来存储函数调用时的临时变量。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span>():</span></span><br><span class="line">    a,b, c = <span class="number">1</span>,<span class="number">2</span>, <span class="number">3</span></span><br><span class="line">    _res = add(a,b)</span><br><span class="line">    res = _res + c</span><br><span class="line">    <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">a, b</span>):</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sum</span>(a,b)</span><br></pre></td></tr></table></figure>
-
-<p>调用顺序：main() –&gt; add()<br><img src="../../images/algorithm/%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8.png" alt="direct"></p>
-<h2 id="表达式求值"><a href="#表达式求值" class="headerlink" title="表达式求值"></a>表达式求值</h2><p>四则运算的实现<br>例如：16+26*36-2/2</p>
-<p>实现思路：</p>
-<ol>
-<li>维护一个栈，然后<br><img src="../../images/algorithm/%E5%9B%9B%E5%88%99%E8%BF%90%E7%AE%97%E6%A0%88%E5%AE%9E%E7%8E%B0.png" alt="img_2.png"></li>
-</ol>
-<p>实际上，编译器就是通过两个栈来实现的。其中一个来保存操作数的栈，另一个保存运算符的栈。</p>
-<h3 id="基本运算器实现"><a href="#基本运算器实现" class="headerlink" title="基本运算器实现"></a>基本运算器实现</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">s: <span class="built_in">str</span></span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">    n = <span class="built_in">len</span>(s)</span><br><span class="line">    stack = []</span><br><span class="line">    preSign = <span class="string">&#x27;+&#x27;</span></span><br><span class="line">    num = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n):</span><br><span class="line">        <span class="keyword">if</span> s[i] != <span class="string">&#x27; &#x27;</span> <span class="keyword">and</span> s[i].isdigit():</span><br><span class="line">            num = num * <span class="number">10</span> + <span class="built_in">ord</span>(s[i]) - <span class="built_in">ord</span>(<span class="string">&#x27;0&#x27;</span>)</span><br><span class="line">            <span class="built_in">print</span>(num)</span><br><span class="line">        <span class="keyword">if</span> i == n - <span class="number">1</span> <span class="keyword">or</span> s[i] <span class="keyword">in</span> <span class="string">&#x27;+-*/&#x27;</span>:</span><br><span class="line">            <span class="keyword">if</span> preSign == <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">                stack.append(num)</span><br><span class="line">            <span class="keyword">elif</span> preSign == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">                stack.append(-num)</span><br><span class="line">            <span class="keyword">elif</span> preSign == <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">                stack.append(stack.pop() * num)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                stack.append(<span class="built_in">int</span>(stack.pop() / num))</span><br><span class="line">            preSign = s[i]</span><br><span class="line">            num = <span class="number">0</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sum</span>(stack)</span><br></pre></td></tr></table></figure>
-<h2 id="浏览器前进和后退功能实现"><a href="#浏览器前进和后退功能实现" class="headerlink" title="浏览器前进和后退功能实现"></a>浏览器前进和后退功能实现</h2><p>解题思路：使用两个栈，A 和 B，将访问的页面一次压入栈 A 中，当点击后退按钮时，再依次从栈 A 中出栈，并将出栈的数据依次放入栈 B 中。点击前进按钮时，依次从栈 B<br>中取出数据，放入到 A 中。当栈 A 中没有数据时，那就是说明没有页面可以继续后退浏览了。当栈 B 中没有数据的时候，那就说明没有页面可以点击前进按钮浏览了。</p>
-<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Stack</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, data</span>):</span></span><br><span class="line">        self._stack.append(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pull</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self._stack == []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">size</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self._stack)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Brower</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.__forward_stack = Stack()</span><br><span class="line">        self.__back_stack = Stack()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">surf</span>(<span class="params">self, web_site_url</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;surf the website:&#123;&#125;&#x27;</span>.<span class="built_in">format</span>(web_site_url))</span><br><span class="line">        self.__forward_stack.push(web_site_url)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">forward</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">if</span> self.__back_stack.is_empty():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        top = self.__back_stack.pull()</span><br><span class="line">        self.__forward_stack.push(top)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;forward to the website: &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(top))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">back</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">if</span> self.__forward_stack.is_empty():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        top = self.__forward_stack.pull()</span><br><span class="line">        self.__back_stack.push(top)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;back to the website: &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(top))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    brower = Brower()</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.1.com&#x27;</span>)</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.2.com&#x27;</span>)</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.3.com&#x27;</span>)</span><br><span class="line">    brower.surf(<span class="string">&#x27;www.4.com&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    brower.forward()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.back()</span><br><span class="line">    brower.forward()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>栈是一种<strong>操作受限</strong>的数据结构，只支持<code>入栈</code>和<code>出栈</code>操作。<br>可以通过<code>数组</code>或者<code>链表</code>来实现。<br>入栈、出栈的时间复杂度都是 O(1)。</p>
-<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><h2 id="为什么函数调用要用栈来保存临时变量呢？"><a href="#为什么函数调用要用栈来保存临时变量呢？" class="headerlink" title="为什么函数调用要用栈来保存临时变量呢？"></a>为什么函数调用要用<strong>栈</strong>来保存临时变量呢？</h2><p>函数调用时，符合<code>后进先出</code>的特性，用栈这种数据结构来实现，是最符合的。</p>
-<p>从调用函数进入被调用函数，比如：main –&gt; add –&gt; res 。变化的是<code>作用域</code>。所以从根本上，只要保证每进入一个新的函数，都是一个新的作用域都可以。<br>而要实现这个，用栈会非常方便。在进入被调用函数的时候，分配一段栈空间给这个函数的变量，在函数结束的时候，将栈顶复位，正好回到调用函数的作用域内。</p>
-<h2 id="在-JVM-内存管理中有个堆栈的概念-？"><a href="#在-JVM-内存管理中有个堆栈的概念-？" class="headerlink" title="在 JVM 内存管理中有个堆栈的概念 ？"></a>在 JVM 内存管理中有个<code>堆栈</code>的概念 ？</h2><p>内存中的堆栈和数据结构堆栈不是同一个概念，可以说内存中的堆栈是真实存在的物理区，数据结构中的堆栈是抽象的数据存储结构。<br>内存空间在逻辑上分为三部分：</p>
-<ul>
-<li>代码区</li>
-<li>静态数据区</li>
-<li>动态数据区<ul>
-<li>栈区</li>
-<li>堆区</li>
-</ul>
-</li>
-</ul>
-<p>代码区：<code>存储方法体的二进制代码</code>。高级调度（作业调度）、中级调度（内存调度）、低级调度（进程调度）控制代码区执行代码的切换。<br>静态数据区：<code>存储全局变量</code>、<code>静态变量</code>、<code>常量</code>、常量包括 final 修饰的常量和 String 常量。系统自动分配和回收。</p>
-<p>栈区：<strong>存储运行方法的形参、局部变量、返回值。由系统自动分配和回收</strong><br>堆区：<strong>new 一个对象的引用或地址存储在栈区，指向该对象存储在堆区中的真实数据。</strong></p>
-<h1 id="相关题目"><a href="#相关题目" class="headerlink" title="相关题目"></a>相关题目</h1><h2 id="有效的括号"><a href="#有效的括号" class="headerlink" title="有效的括号"></a>有效的括号</h2><p>20 - <a href="https://leetcode-cn.com/problems/valid-parentheses/">https://leetcode-cn.com/problems/valid-parentheses/</a><br>解题思路：</p>
-<ul>
-<li><ol>
-<li>括号是成对出现的，则判断字符串 s 是否为偶数，否则返回 False;</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>遍历字符串，先将 左括号压入栈，匹配到右括号时，则判断栈顶是否匹配到，否则返回 False;  <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">isValid_bracket</span>(<span class="params">brackets: <span class="built_in">str</span></span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(brackets) % <span class="number">2</span> == <span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    pairs = &#123;</span><br><span class="line">        <span class="string">&#x27;)&#x27;</span>: <span class="string">&#x27;(&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;]&#x27;</span>: <span class="string">&#x27;[&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;&#125;&#x27;</span>: <span class="string">&#x27;&#123;&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    stack = Stack()</span><br><span class="line">    <span class="keyword">for</span> ch <span class="keyword">in</span> brackets:</span><br><span class="line">        <span class="keyword">if</span> ch <span class="keyword">in</span> pairs:</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> stack <span class="keyword">or</span> stack.top() != pairs[ch]:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">            stack.pull()</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            stack.push(ch)</span><br><span class="line">    <span class="keyword">return</span> stack.is_empty()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(isValid_bracket(<span class="string">&#x27;([&#123;&#125;])&#x27;</span>))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="最小栈"><a href="#最小栈" class="headerlink" title="最小栈"></a>最小栈</h2>解题思路：维护一个辅助栈，在入栈的时候，依次与辅助栈中的数据比较，采用 <code>min(val, min_stack[-1])</code> 的方式入栈。pop 时，min_stack 也会 pop<br>155 - <a href="https://leetcode-cn.com/problems/min-stack/">https://leetcode-cn.com/problems/min-stack/</a><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MinStack</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self._stack = []</span><br><span class="line">        self.min_stack = [math.inf] <span class="comment"># 存储正无穷大</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, val: <span class="built_in">int</span></span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        self._stack.append(val)</span><br><span class="line">        self.min_stack.append(<span class="built_in">min</span>(val, self.min_stack[-<span class="number">1</span>]))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        self._stack.pop()</span><br><span class="line">        self.min_stack.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">top</span>(<span class="params">self</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._stack[-<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">getMin</span>(<span class="params">self</span>) -&gt; <span class="built_in">float</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.min_stack[-<span class="number">1</span>]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="用两个栈实现队列"><a href="#用两个栈实现队列" class="headerlink" title="用两个栈实现队列"></a>用两个栈实现队列</h2>232 - <a href="https://leetcode-cn.com/problems/implement-queue-using-stacks/">https://leetcode-cn.com/problems/implement-queue-using-stacks/</a><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyQueue</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Initialize your data structure here.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        self.s1 = []</span><br><span class="line">        self.s2 = []</span><br><span class="line">        self.front = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span>(<span class="params">self, x: <span class="built_in">int</span></span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Push element x to the back of queue.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.s1:</span><br><span class="line">            self.front = x</span><br><span class="line">        self.s1.append(x)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span>(<span class="params">self</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Removes the element from in front of queue and returns that element.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.s2:</span><br><span class="line">            <span class="keyword">while</span> self.s1:</span><br><span class="line">                self.s2.append(self.s1.pop())</span><br><span class="line">            self.front = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">return</span> self.s2.pop()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">peek</span>(<span class="params">self</span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Get the front element.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> self.s2:</span><br><span class="line">            <span class="keyword">return</span> self.s2[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> self.front</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">empty</span>(<span class="params">self</span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        Returns whether the queue is empty.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.s1 <span class="keyword">and</span> <span class="keyword">not</span> self.s2:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="比较含退格的字符串"><a href="#比较含退格的字符串" class="headerlink" title="比较含退格的字符串"></a>比较含退格的字符串</h2>844 - <a href="https://leetcode-cn.com/problems/backspace-string-compare/">https://leetcode-cn.com/problems/backspace-string-compare/</a><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">backspaceCompare</span>(<span class="params">self, s: <span class="built_in">str</span>, t: <span class="built_in">str</span></span>) -&gt; <span class="built_in">bool</span>:</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">judge</span>(<span class="params">s: <span class="built_in">str</span></span>) -&gt; <span class="built_in">str</span>:</span></span><br><span class="line">            ret = []</span><br><span class="line">            <span class="keyword">for</span> value <span class="keyword">in</span> s:</span><br><span class="line">                <span class="keyword">if</span> value != <span class="string">&#x27;#&#x27;</span>:</span><br><span class="line">                    ret.append(value)</span><br><span class="line">                <span class="keyword">elif</span> ret:</span><br><span class="line">                    ret.pop()</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="string">&#x27;&#x27;</span>.join(ret)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> judge(s) == judge(t)</span><br></pre></td></tr></table></figure></li>
-</ol>
-</li>
-</ul>
-<h2 id="基本计算器实现"><a href="#基本计算器实现" class="headerlink" title="基本计算器实现"></a>基本计算器实现</h2><p>224 - <a href="https://leetcode-cn.com/problems/basic-calculator/">https://leetcode-cn.com/problems/basic-calculator/</a></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">s</span>):</span></span><br><span class="line">    res, num, sign = <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">    stack = []</span><br><span class="line">    <span class="keyword">for</span> ch <span class="keyword">in</span> s:</span><br><span class="line">        <span class="keyword">if</span> ch.isdigit():</span><br><span class="line">            num = num * <span class="number">10</span> + <span class="built_in">int</span>(ch)</span><br><span class="line">        <span class="keyword">elif</span> ch == <span class="string">&#x27;+&#x27;</span> <span class="keyword">or</span> ch == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">            res += sign * num</span><br><span class="line">            num = <span class="number">0</span></span><br><span class="line">            sign = <span class="number">1</span> <span class="keyword">if</span> ch == <span class="string">&#x27;+&#x27;</span> <span class="keyword">else</span> -<span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> ch == <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">            stack.append(res)</span><br><span class="line">            stack.append(sign)</span><br><span class="line">            res = <span class="number">0</span></span><br><span class="line">            sign = <span class="number">1</span></span><br><span class="line">        <span class="keyword">elif</span> ch == <span class="string">&#x27;)&#x27;</span>:</span><br><span class="line">            res += sign * num</span><br><span class="line">            num = <span class="number">0</span></span><br><span class="line">            res *= stack.pop()</span><br><span class="line">            res += stack.pop()</span><br><span class="line">    res += sign * num</span><br><span class="line">    <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(calculate(<span class="string">&#x27;1+(1+2)-(1-1)+1&#x27;</span>))</span><br></pre></td></tr></table></figure>
-
-<h2 id="基本运算器-3"><a href="#基本运算器-3" class="headerlink" title="基本运算器 3"></a>基本运算器 3</h2><p><a href="https://leetcode-cn.com/problems/basic-calculator-iii/">https://leetcode-cn.com/problems/basic-calculator-iii/</a><br>基本运算元素：</p>
-<ul>
-<li><code>(</code></li>
-<li><code>)</code></li>
-<li><code>-</code></li>
-<li><code>+</code></li>
-<li><code>*</code></li>
-<li><code>/</code></li>
-</ul>
-<p>运算符优先级：</p>
-<ul>
-<li>2<ul>
-<li><code>/ *</code></li>
-</ul>
-</li>
-<li>1<ul>
-<li><code>+ -</code></li>
-</ul>
-</li>
-<li>0<ul>
-<li><code>( )</code></li>
-</ul>
-</li>
-</ul>
-<h3 id="解题思路："><a href="#解题思路：" class="headerlink" title="解题思路："></a>解题思路：</h3><p>双栈法</p>
-<ul>
-<li>stack_num 存储<strong>数字</strong></li>
-<li>stack_opt 存储<strong>运算符</strong></li>
-</ul>
-<p>最小原子计算：</p>
-<ol>
-<li>stack_num 中 pop 出两个数 A, B</li>
-<li>stack_opt 中 pop 出一个操作符 opt</li>
-<li>计算结果：res = B opt A</li>
-<li>存储运算结果：stack_num.append(res)</li>
-</ol>
-<p>字符串枚举：</p>
-<ol>
-<li><code>空格</code>，continue 下一个循环</li>
-<li><code>数字</code></li>
-</ol>
-<ul>
-<li>单个数字<br><code>stack_num.append()</code></li>
-<li>多位数字<br>解析多位数字，<code>append</code></li>
-<li>‘(‘<br>直接进入 stack_opt 栈</li>
-<li>‘)’<br>重复最小原子计算，直到 <code>stack_opt</code> 栈顶为 <code>(</code>。然后 stack_opt 栈 pop</li>
-<li>操作符(+,-,*,/)<br>比较<code>当前操作符</code>与 <code>栈顶操作符</code>优先级，若前者大于后者，则进行最小原子计算操作。<br>反之，则压入 <code>stack_opt</code> 栈中。</li>
-</ul>
-<p>3.遍历完所有字符串后，判断 <code>stack_opt</code> 是否为空，重复执行最基本计算操作，直到为空。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 基本运算器</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 最小原子计算器</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">cal</span>(<span class="params">self, A, B, opt</span>):</span></span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;+&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(A) + <span class="built_in">int</span>(B)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;-&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) - <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;*&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) * <span class="built_in">int</span>(A)</span><br><span class="line">        <span class="keyword">if</span> opt == <span class="string">&#x27;/&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">int</span>(B) / <span class="built_in">int</span>(A)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">basic_cal</span>(<span class="params">self, stack_num, stack_opt</span>):</span></span><br><span class="line">        opt = stack_opt.pop()</span><br><span class="line">        A = stack_num.pop()</span><br><span class="line">        B = stack_num.pop()</span><br><span class="line">        res = self.cal(A, B, opt)</span><br><span class="line">        stack_num.append(res)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">calculate</span>(<span class="params">self, s:<span class="built_in">str</span></span>) -&gt; <span class="built_in">int</span>:</span></span><br><span class="line">        <span class="comment"># stack_num &amp;&amp; stack_opt</span></span><br><span class="line">        stack_num, stack_opt = [], []</span><br><span class="line">        priority = &#123;</span><br><span class="line">            <span class="string">&#x27;(&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;)&#x27;</span>: <span class="number">0</span>,</span><br><span class="line">            <span class="string">&#x27;+&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;-&#x27;</span>: <span class="number">1</span>,</span><br><span class="line">            <span class="string">&#x27;*&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">            <span class="string">&#x27;/&#x27;</span>: <span class="number">2</span>,</span><br><span class="line">        &#125;</span><br><span class="line">        length = <span class="built_in">len</span>(s)</span><br><span class="line">        i = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> i &lt; length:</span><br><span class="line">            <span class="keyword">if</span> i == <span class="string">&quot; &quot;</span>:</span><br><span class="line">                i += <span class="number">1</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                start = i</span><br><span class="line">                <span class="keyword">while</span> i+<span class="number">1</span> &lt; length <span class="keyword">and</span> <span class="string">&#x27;0&#x27;</span> &lt;= s[i+<span class="number">1</span>] &lt;= <span class="string">&#x27;9&#x27;</span>:</span><br><span class="line">                    i = i+<span class="number">1</span></span><br><span class="line">                num = <span class="built_in">int</span>(s[start: i+<span class="number">1</span>])</span><br><span class="line">                stack_num.append(num)</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line">            <span class="keyword">elif</span> s[i] == <span class="string">&#x27;)&#x27;</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt[-<span class="number">1</span>] != <span class="string">&#x27;(&#x27;</span>:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.pop()</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">while</span> stack_opt <span class="keyword">and</span> priority[s[i]] &lt;= priority[stack_opt[-<span class="number">1</span>]]:</span><br><span class="line">                    self.basic_cal(stack_num, stack_opt)</span><br><span class="line">                stack_opt.append(s[i])</span><br><span class="line"></span><br><span class="line">            i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 进行全部计算</span></span><br><span class="line">        <span class="keyword">while</span> stack_opt:</span><br><span class="line">            self.basic_cal(stack_num, stack_opt)</span><br><span class="line">        val = stack_num[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">int</span>(val)</span><br><span class="line"></span><br></pre></td></tr></table></figure>]]></content>
       <categories>
         <category>数据结构与算法</category>
       </categories>
