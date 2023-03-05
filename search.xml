@@ -474,7 +474,7 @@
       </tags>
   </entry>
   <entry>
-    <title>MySQL 索引总结 -</title>
+    <title>MySQL 索引总</title>
     <url>/posts/6e16c56e/</url>
     <content><![CDATA[<h1 id="什么是-索引？"><a href="#什么是-索引？" class="headerlink" title="什么是 索引？"></a>什么是 <strong>索引</strong>？</h1><p><strong>索引（ MySQL 中也叫做<code>键(key)</code>）</strong> 是<strong>存储引擎</strong>用于<strong>快速找到记录</strong>的一种<strong>数据结构</strong>。本文主要学习的是基于 InnoDB 存储引擎。<br>索引对于良好的性能非常关键，对于较大的数据量来说，索引的创建愈发重要。</p>
 <h1 id="索引的类型"><a href="#索引的类型" class="headerlink" title="索引的类型"></a>索引的类型</h1><blockquote>
@@ -482,7 +482,6 @@
 </blockquote>
 <h2 id="从存储结构上分"><a href="#从存储结构上分" class="headerlink" title="从存储结构上分"></a>从存储结构上分</h2><ul>
 <li>Btree 索引 （B+tree、B-tree）</li>
-<li>哈希索引</li>
 <li>full-index 全文索引</li>
 <li>RTree</li>
 </ul>
