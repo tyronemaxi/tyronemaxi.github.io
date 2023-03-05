@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://www.tianzhichao.com/posts/26a608fc/</loc>
+    
+    <lastmod>2023-03-05</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://www.tianzhichao.com/posts/c0462762/</loc>
     
     <lastmod>2023-03-04</lastmod>
@@ -131,15 +140,6 @@
     <loc>https://www.tianzhichao.com/posts/6e16c56e/</loc>
     
     <lastmod>2022-05-12</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/posts/26a608fc/</loc>
-    
-    <lastmod>2022-05-07</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
