@@ -20,20 +20,20 @@
     var CONFIG = {"hostname":"www.tianzhichao.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="GIL 解释及探究">
+  <meta name="description" content="iter 函数的使用">
 <meta property="og:type" content="article">
-<meta property="og:title" content="GIL 解释及探究">
-<meta property="og:url" content="https://www.tianzhichao.com/posts/723b604d/index.html">
+<meta property="og:title" content="iter()">
+<meta property="og:url" content="https://www.tianzhichao.com/posts/3a33b362/index.html">
 <meta property="og:site_name" content="Tyrone&#39;s Blog">
-<meta property="og:description" content="GIL 解释及探究">
+<meta property="og:description" content="iter 函数的使用">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-04-13T03:04:55.000Z">
-<meta property="article:modified_time" content="2023-02-01T14:27:37.463Z">
+<meta property="article:modified_time" content="2023-03-08T15:36:15.856Z">
 <meta property="article:author" content="tyrone">
 <meta property="article:tag" content="Python">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://www.tianzhichao.com/posts/723b604d/">
+<link rel="canonical" href="https://www.tianzhichao.com/posts/3a33b362/">
 
 
 <script id="page-configurations">
@@ -46,7 +46,7 @@
   };
 </script>
 
-  <title>GIL 解释及探究 | Tyrone's Blog</title>
+  <title>iter() | Tyrone's Blog</title>
   
 
 
@@ -185,7 +185,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://www.tianzhichao.com/posts/723b604d/">
+    <link itemprop="mainEntityOfPage" href="https://www.tianzhichao.com/posts/3a33b362/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -198,7 +198,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          GIL 解释及探究
+          iter()
         </h1>
 
         <div class="post-meta">
@@ -215,7 +215,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-02-01 22:27:37" itemprop="dateModified" datetime="2023-02-01T22:27:37+08:00">2023-02-01</time>
+                <time title="修改时间：2023-03-08 23:36:15" itemprop="dateModified" datetime="2023-03-08T23:36:15+08:00">2023-03-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -240,7 +240,7 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.6k</span>
+              <span>1.1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -249,7 +249,7 @@
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
               <span>1 分钟</span>
             </span>
-            <div class="post-description">GIL 解释及探究</div>
+            <div class="post-description">iter 函数的使用</div>
 
         </div>
       </header>
@@ -260,40 +260,24 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
+        <h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a target="_blank" rel="noopener" href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
 <blockquote>
-<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
+<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
 </blockquote>
-<blockquote>
-<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
-</blockquote>
-<ul>
-<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
-<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
-<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
+<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
+<li><p>iter(object[, sentinel])</p>
+</li>
+<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
+</li>
+<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
+</li>
 </ul>
-<p>常见的 Python 解释器还有：</p>
-<ul>
-<li>CPython</li>
-<li>IPython</li>
-<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
-<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
-<li>IronPython: .Net 平台</li>
-</ul>
-<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
-<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
-<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
-<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
-<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
-<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
-<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
-<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
-<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
-<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
-<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
-<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
-</ul>
+<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
+
 
     </div>
 
@@ -322,12 +306,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/posts/3a33b362/" rel="prev" title="iter()">
-      <i class="fa fa-chevron-left"></i> iter()
+    <a href="/posts/ec5b3295/" rel="prev" title="Python 内存管理，垃圾回收，缓存重用机制">
+      <i class="fa fa-chevron-left"></i> Python 内存管理，垃圾回收，缓存重用机制
     </a></div>
       <div class="post-nav-item">
-    <a href="/posts/77fe4966/" rel="next" title="linux shell 脚本">
-      linux shell 脚本 <i class="fa fa-chevron-right"></i>
+    <a href="/posts/723b604d/" rel="next" title="GIL 解释及探究">
+      GIL 解释及探究 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -387,7 +371,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF-GIL-%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">什么是 GIL ？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#GIL-%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">1.1.</span> <span class="nav-text">GIL 带来的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GIL-%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">GIL 原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">1.3.</span> <span class="nav-text">解决方案</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#iter-%E5%A6%99%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">iter 妙用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#iter-%E7%94%A8%E6%B3%95"><span class="nav-number">1.1.</span> <span class="nav-text">iter 用法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B%EF%BC%9A"><span class="nav-number">1.2.</span> <span class="nav-text">使用示例：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%9D%97%E8%AF%BB%E5%8F%96%E6%96%87%E4%BB%B6"><span class="nav-number">1.3.</span> <span class="nav-text">分块读取文件</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
