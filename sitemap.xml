@@ -324,14 +324,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/docker/</loc>
+    <loc>https://www.tianzhichao.com/tags/HTTP/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/HTTP/</loc>
+    <loc>https://www.tianzhichao.com/tags/docker/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -345,14 +345,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/Go/</loc>
+    <loc>https://www.tianzhichao.com/tags/Redis/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/Redis/</loc>
+    <loc>https://www.tianzhichao.com/tags/Go/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -396,14 +396,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/docker/</loc>
+    <loc>https://www.tianzhichao.com/categories/HTTP/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/HTTP/</loc>
+    <loc>https://www.tianzhichao.com/categories/docker/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -417,14 +417,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/Go/</loc>
+    <loc>https://www.tianzhichao.com/categories/redis/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/redis/</loc>
+    <loc>https://www.tianzhichao.com/categories/Go/</loc>
     <lastmod>2023-03-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
