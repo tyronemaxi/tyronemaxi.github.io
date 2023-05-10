@@ -333,14 +333,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/HTTP/</loc>
+    <loc>https://www.tianzhichao.com/tags/docker/</loc>
     <lastmod>2023-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/docker/</loc>
+    <loc>https://www.tianzhichao.com/tags/HTTP/</loc>
     <lastmod>2023-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -405,14 +405,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/HTTP/</loc>
+    <loc>https://www.tianzhichao.com/categories/docker/</loc>
     <lastmod>2023-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/docker/</loc>
+    <loc>https://www.tianzhichao.com/categories/HTTP/</loc>
     <lastmod>2023-05-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
