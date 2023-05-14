@@ -365,6 +365,134 @@
       </tags>
   </entry>
   <entry>
+    <title>如何实现一个工业级的散列表</title>
+    <url>/posts/2c2cd033/</url>
+    <content><![CDATA[<p>如何设计一个可以应对各种异常情况的工业级散列表，来避免在散列冲突的情况下，散列表性能的急剧下降，并且能抵抗散列碰撞攻击？</p>
+<p>在了解到的 「 散列表 」中，我们了解散列表的查询效率并不能笼统的说成 O(1)，其依赖三个部分：</p>
+<ul>
+<li>散列函数</li>
+<li>装载因子</li>
+<li>散列冲突</li>
+</ul>
+<h2 id="散列函数"><a href="#散列函数" class="headerlink" title="散列函数"></a>散列函数</h2><blockquote>
+<p>如何设计一个又好又快的散列表</p>
+</blockquote>
+<ul>
+<li><p><strong>散列函数的设计不能太复杂</strong>，过于复杂的散列函数，势必会消耗很多计算时间，也就间接地影响到散列表的性能</p>
+</li>
+<li><p><strong>散列函数生成的值要尽可能随机平均分布，最小化避免散列冲突</strong></p>
+</li>
+</ul>
+<p>我理解为：<strong>简单且迅速且平均分布</strong></p>
+<p>常见的一些散列思想为：</p>
+<ul>
+<li>数据分析法</li>
+<li>直接寻址法</li>
+<li>平方取中法</li>
+<li>折叠法</li>
+<li>随机数法</li>
+</ul>
+<p>我这里介绍一下 <strong>数据分析法</strong>，比较好理解。</p>
+<h3 id="数据分析法"><a href="#数据分析法" class="headerlink" title="数据分析法"></a>数据分析法</h3><ol>
+<li>对于我们而言，在校园中，工作中，社会中，都会有自己的 ID 标识，这里用学号举例子：</li>
+</ol>
+<ul>
+<li>2023011002</li>
+</ul>
+<p>2023 级 大一 10 班 02 号</p>
+<p>对于每一个学生的身份信息都可以使用这个 id 来存储：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;<span class="string">&quot;2023011002&quot;</span>: &#123;<span class="string">&quot;name&quot;</span>: <span class="string">&quot;wang&quot;</span>, <span class="string">&quot;age&quot;</span>: <span class="number">1</span>&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Hash(2023011002) == 011002 % 100000</p>
+<hr>
+<ol start="2">
+<li>还有就是 word 单词拼写检查功能。</li>
+</ol>
+<p>对于词库的存储，其每个单词都可以通过  ASCII 码 进位相加，然后再和散列表的大小取余、取模，作为散列值。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">hash</span>(<span class="string">&quot;nice&quot;</span>)=((<span class="string">&quot;n&quot;</span> - <span class="string">&quot;a&quot;</span>) * <span class="number">26</span>*<span class="number">26</span>*<span class="number">26</span> + (<span class="string">&quot;i&quot;</span> - <span class="string">&quot;a&quot;</span>)*<span class="number">26</span>*<span class="number">26</span> + (<span class="string">&quot;c&quot;</span> - <span class="string">&quot;a&quot;</span>)*<span class="number">26</span>+ (<span class="string">&quot;e&quot;</span>-<span class="string">&quot;a&quot;</span>)) / <span class="number">123456</span></span><br></pre></td></tr></table></figure>
+
+<p>当然，这种方法都只是一种分析方法，捉襟见肘</p>
+<h2 id="装载因子"><a href="#装载因子" class="headerlink" title="装载因子"></a>装载因子</h2><p>装载因子描述的是散列表中元素的个数大小情况，成正比。</p>
+<p><strong>对于动态散列表而言，数据集合是频繁变动的，我们无法准确的预估将要加入的数据个数，所以我们也无法事先申请一个足够大的散列表。这个时候动态扩容就变得很重要了</strong></p>
+<p>对于数组的扩容策略而言，<strong>只需要空间申请&amp;&amp;数据搬移即可</strong>，但是散列表的数据搬移就会显得比较复杂：<strong>当散列表的大小变化后，数据存储的位置也会发生变化</strong>，这是因为空间是新申请的，即使哈希值没有变化，但是空间地址已经发生了变化。</p>
+<p>例如：原本的 21 的 index == 0，但是经过扩容后，index == 7</p>
+<img src="https://static001.geekbang.org/resource/image/67/43/67d12e07a7d673a9c1d14354ad029443.jpg?wh=1142*756" alt="img" style="zoom:67%;" />
+
+<h3 id="高效的扩容"><a href="#高效的扩容" class="headerlink" title="高效的扩容"></a>高效的扩容</h3><p>装载因子阈值的设置要权衡时间、空间复杂度。</p>
+<p>对于动态扩容而言，当采用单纯的设置阈值的方式进行扩容，会发生比较极端的情况。例如：当阈值设置为 1GB 时，那就需要对 1GB 的数据进行 hash ，然后进行数据搬移，此时就会比较耗时，如果涉及到用户操作，那么可能发生阻塞。</p>
+<p>于是，采用分而治的思想，我们可以在每次插入的时候进行扩容，分批完成。<strong>当装载因子触及阈值时，我们只申请新空间，但是不将老的数据插入。当有新的数据插入的时候，我们将新数据插入到新申请的空间中，然后将老的数据搬移，经过多次插入操作后，就完成了动态搬移。</strong></p>
+<p><strong>其实上述的思想就是渐进式 rehash，其本质是空间换时间。</strong></p>
+<blockquote>
+<p>渐进式 Rehash 这一实现的/类似的思想，本质是空间换时间。 1. Redis 的全局哈希表就是这么做的。具体可以看 <a href="https://time.geekbang.org/column/article/268253">https://time.geekbang.org/column/article/268253</a> 2. 在 RocksDB 中也有体现。利用两个相同的内存空间 Memtable1 和 Memtable2，一个用来接收正在写入的数据，一个备着。当 Memtable1 写满了数据，再去刷盘，然后 Memtable2 来写入数据，这个是可以限流的。轮换着写入数据 -&gt; 刷盘。具体的可以看 <a href="https://time.geekbang.org/column/article/298205">https://time.geekbang.org/column/article/298205</a> 3. JVM 复制清除算法也是这么做的。</p>
+</blockquote>
+<p><strong>那么问题来了，查询操作如何执行呢？</strong><br><strong>为了兼容新、老数据，我们先从新的散列表中查找，如果没有找到，再去老的散列表中查找。</strong></p>
+<h2 id="散列冲突"><a href="#散列冲突" class="headerlink" title="散列冲突"></a>散列冲突</h2><h3 id="开放寻址法"><a href="#开放寻址法" class="headerlink" title="开放寻址法"></a>开放寻址法</h3><p>开放寻址法可以有效地利用 CPU 缓存加快查询速度，这种方式实现的散列表比较好序列化。</p>
+<p><strong>当数据量较小，装载因子小的时候，适合采用开放寻址法。这也是 Java 中的 ThreadLocalMap 使用开放寻址法解决冲突的原因。</strong></p>
+<h3 id="链表法"><a href="#链表法" class="headerlink" title="链表法"></a>链表法</h3><p>基于链表的散列冲突的处理方法比较适合存储大对象、大数据量的散列表，而且，比起开放寻址法，它更加灵活，支持更多的优化策略，例如用红黑树代替链表。</p>
+<p><strong>链表法对内存的利用率比开放寻址法要高。</strong></p>
+<p>链表中的数据都是通过指针进行索引的，对于小对象而言，一个指针（4/8 bytes）可能会消耗更多，而对于大对象则可忽略。</p>
+<p>实际上，链表法也是可以改造的，可以实现一个更加高效的散列表。那就是使用其他数据结构，例如跳表或着红黑树。</p>
+<img src="https://static001.geekbang.org/resource/image/10/29/103b84d7173277c5565607b413c40129.jpg?wh=1142*593" alt="img" style="zoom:67%;" />
+
+
+
+<h2 id="工业散列表"><a href="#工业散列表" class="headerlink" title="工业散列表"></a>工业散列表</h2><h3 id="Java-HashMap"><a href="#Java-HashMap" class="headerlink" title="Java HashMap"></a>Java HashMap</h3><h4 id="1-初始大小"><a href="#1-初始大小" class="headerlink" title="1. 初始大小"></a>1. 初始大小</h4><p>Java HashMap 的默认初始大小是 16，可以配置修改；</p>
+<h4 id="2-装载因子和动态扩容"><a href="#2-装载因子和动态扩容" class="headerlink" title="2. 装载因子和动态扩容"></a>2. 装载因子和动态扩容</h4><p>最大的装载因子默认是 0.75，当 HashMap 中的元素个数超过 0.75 * capacity (capacity 表示散列表的容量)的时候，就会自动扩容，每次扩容都会扩容为原来的两倍大小。</p>
+<h4 id="3-散列冲突解决办法"><a href="#3-散列冲突解决办法" class="headerlink" title="3. 散列冲突解决办法"></a>3. 散列冲突解决办法</h4><p>HashMap 底层采用链表法来解决冲突。即使负载因子和散列函数设计得再合理，也免不了会出现拉链过长的情况，一旦出现拉链过长，则会严重影响 HashMap 的性能。</p>
+<p>于是在 JDK 1.8 版本中，为了对 HashMap 做进一步优化，我们引入了红黑树。当链表长度太长（默认超过 8 ）时，链表就转换为红黑树。我们可以使用红黑树快速增删改查的特定，提升 HashMap 的性能。当红黑树节点少于 8 时，又会将红黑树转化为链表。</p>
+<h4 id="4-散列函数"><a href="#4-散列函数" class="headerlink" title="4. 散列函数"></a>4. 散列函数</h4><p>散列函数的设计并不复杂，追求的是简单高效、分布均匀。</p>
+<p>以下是 java 的 hash 函数：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">int</span> <span class="built_in">hash</span>(Object key) &#123;</span><br><span class="line">    <span class="built_in">int</span> h = key.hashCode()；</span><br><span class="line">    <span class="keyword">return</span> (h ^ (h &gt;&gt;&gt; <span class="number">16</span>)) &amp; (capicity -<span class="number">1</span>); //capicity表示散列表的大小</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">public <span class="built_in">int</span> hashCode() &#123;</span><br><span class="line">  <span class="built_in">int</span> var1 = this.<span class="built_in">hash</span>;</span><br><span class="line">  <span class="keyword">if</span>(var1 == <span class="number">0</span> &amp;&amp; this.value.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    char[] var2 = this.value;</span><br><span class="line">    <span class="keyword">for</span>(<span class="built_in">int</span> var3 = <span class="number">0</span>; var3 &lt; this.value.length; ++var3) &#123;</span><br><span class="line">      var1 = <span class="number">31</span> * var1 + var2[var3];</span><br><span class="line">    &#125;</span><br><span class="line">    this.<span class="built_in">hash</span> = var1;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> var1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="Python-dictobject"><a href="#Python-dictobject" class="headerlink" title="Python dictobject"></a>Python dictobject</h3><p>python 字典</p>
+<h4 id="1-初始大小-1"><a href="#1-初始大小-1" class="headerlink" title="1. 初始大小"></a>1. 初始大小</h4><p>dict 的初始大小是 8 个存储桶。</p>
+<p>其中桶是一种特殊的数据结构：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    PyObject *me_key;</span><br><span class="line">    PyObject *me_value;</span><br><span class="line">&#125; PyDictEntry;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-装载因子和动态扩容-1"><a href="#2-装载因子和动态扩容-1" class="headerlink" title="2. 装载因子和动态扩容"></a>2. 装载因子和动态扩容</h4><p>在 CPython 中，装载因子的阈值通常是 2/3。当字典中的键值对数量超过当前存储桶的 2/3 时，就会触发动态扩容。</p>
+<ul>
+<li><p>下面是动态扩容的大致步骤：</p>
+<ol>
+<li>当字典的装载因子超过阈值时，触发动态扩容操作。</li>
+<li>计算新的存储桶数量，通常是当前存储桶数量的两倍。</li>
+<li>分配一个新的存储桶数组，并进行初始化。</li>
+<li>遍历原存储桶数组中的键值对。</li>
+<li>对于每个键值对，根据键的哈希值和新的存储桶数量，计算键在新存储桶数组中的位置。</li>
+<li>将键值对插入新的存储桶数组中的对应位置。</li>
+<li>释放原存储桶数组的内存。</li>
+<li>更新字典的元数据，包括存储桶数量和已使用的存储桶数量。</li>
+</ol>
+<p>这样的动态扩容操作确保了字典可以适应更多的键值对，并且保持较高的查找效率。在扩容期间，字典仍然保持可用，但插入操作可能会稍微慢一些。</p>
+<p>请注意，动态扩容过程中并不会同时维护两个哈希表，而是在新的存储桶数组中重新哈希所有的键值对。这样确保了字典的一致性和正确性。</p>
+</li>
+</ul>
+<h4 id="3-散列冲突解决办法-1"><a href="#3-散列冲突解决办法-1" class="headerlink" title="3. 散列冲突解决办法"></a>3. 散列冲突解决办法</h4><p><strong>CPython使用开放寻址法来解决哈希冲突，具体而言是线性探测法。</strong></p>
+<p>当发生哈希冲突时，CPython会按照以下步骤解决冲突：</p>
+<ol>
+<li>根据键的哈希值计算存储桶的初始位置。</li>
+<li>如果该位置的存储桶为空（未被占用），则将键值对插入该位置。</li>
+<li>如果该位置的存储桶已经被占用，则继续线性探测，即依次检查下一个存储桶，直到找到一个空槽或者完全遍历整个存储桶数组。</li>
+<li>当找到一个空槽时，将键值对插入该位置。</li>
+<li>如果遍历整个存储桶数组都没有找到空槽，即所有的存储桶都被占用了，那么会触发动态扩容，重新分配更大的存储桶数组，并重新哈希键值对。</li>
+</ol>
+<p>通过线性探测，CPython尝试在哈希冲突的情况下找到下一个可用的存储桶。这样，具有相同哈希值的键值对可以在存储桶数组中找到不同的位置。</p>
+<p><strong>需要注意的是，线性探测法可能会导致聚集（clustering）现象，即连续的键值对被插入到相邻的存储桶中，造成查找和插入操作的性能下降。为了缓解这个问题，CPython还使用了二次探测（quadratic probing）和双重散列（double hashing）等技术来处理冲突，以提高字典的性能。</strong></p>
+<p>总结起来，CPython中字典解决哈希冲突的方法是使用开放定址法，具体而言是线性探测法。在冲突发生时，它会线性探测存储桶数组，直到找到一个空槽或者触发动态扩容操作。这样保证了具有相同哈希值的键值对能够被正确插入到字典中。</p>
+<h4 id="4-散列函数-1"><a href="#4-散列函数-1" class="headerlink" title="4. 散列函数"></a>4. 散列函数</h4><p>自从CPython 3.4版本开始，它使用了一种称为”SipHash”的哈希算法。SipHash是一种快速且安全的哈希算法，适用于哈希表等数据结构。它被设计为具有较低的碰撞概率和高度的安全性。</p>
+<p>CPython使用SipHash算法计算散列值，以保证字典的安全性和效率。这是CPython中哈希函数的默认实现。</p>
+]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Redis 常用数据类型结构剖析</title>
     <url>/posts/28bd12e6/</url>
     <content><![CDATA[<h1 id="Redis-常用的数据类型剖析"><a href="#Redis-常用的数据类型剖析" class="headerlink" title="Redis 常用的数据类型剖析"></a>Redis 常用的数据类型剖析</h1><h2 id="Redis-数据库介绍"><a href="#Redis-数据库介绍" class="headerlink" title="Redis 数据库介绍"></a>Redis 数据库介绍</h2><blockquote>
@@ -3888,134 +4016,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <h1 id="问题思考"><a href="#问题思考" class="headerlink" title="问题思考"></a>问题思考</h1><p>如何在 1000 W 个整数中快速查找某个整数？</p>
 <p>如果我们内存限制是 100 MB,每个数据的大小是 8 字节，最简单的办法就是将数据存储在数组中，内存占用差不多是 80 MB,符合内存的限制。<br>可以先对这 1000 W 的数据从小到大排序，然后再利用二分查找随发，就可以快速地查找想要的数据了。</p>
 <h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1>]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>如何实现一个工业级的散列表</title>
-    <url>/posts/2c2cd033/</url>
-    <content><![CDATA[<p>如何设计一个可以应对各种异常情况的工业级散列表，来避免在散列冲突的情况下，散列表性能的急剧下降，并且能抵抗散列碰撞攻击？</p>
-<p>**在了解到的 「 散列表 」中，我们了解散列表的查询效率并不能笼统的说成 O(1)，其依赖三个部分：</p>
-<ul>
-<li>散列函数</li>
-<li>装载因子</li>
-<li>散列冲突**</li>
-</ul>
-<h2 id="散列函数"><a href="#散列函数" class="headerlink" title="散列函数"></a>散列函数</h2><blockquote>
-<p>如何设计一个又好又快的散列表</p>
-</blockquote>
-<ul>
-<li><p><strong>散列函数的设计不能太复杂</strong>，过于复杂的散列函数，势必会消耗很多计算时间，也就间接地影响到散列表的性能</p>
-</li>
-<li><p><strong>散列函数生成的值要尽可能随机平均分布，最小化避免散列冲突</strong></p>
-</li>
-</ul>
-<p>我理解为：<strong>简单且迅速且平均分布</strong></p>
-<p>常见的一些散列思想为：</p>
-<ul>
-<li>数据分析法</li>
-<li>直接寻址法</li>
-<li>平方取中法</li>
-<li>折叠法</li>
-<li>随机数法</li>
-</ul>
-<p>我这里介绍一下 <strong>数据分析法</strong>，比较好理解。</p>
-<h3 id="数据分析法"><a href="#数据分析法" class="headerlink" title="数据分析法"></a>数据分析法</h3><ol>
-<li>对于我们而言，在校园中，工作中，社会中，都会有自己的 ID 标识，这里用学号举例子：</li>
-</ol>
-<ul>
-<li>2023011002</li>
-</ul>
-<p>2023 级 大一 10 班 02 号</p>
-<p>对于每一个学生的身份信息都可以使用这个 id 来存储：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;<span class="string">&quot;2023011002&quot;</span>: &#123;<span class="string">&quot;name&quot;</span>: <span class="string">&quot;wang&quot;</span>, <span class="string">&quot;age&quot;</span>: <span class="number">1</span>&#125;&#125;</span><br></pre></td></tr></table></figure>
-
-<p>Hash(2023011002) == 011002 % 100000</p>
-<hr>
-<ol start="2">
-<li>还有就是 word 单词拼写检查功能。</li>
-</ol>
-<p>对于词库的存储，其每个单词都可以通过  ASCII 码 进位相加，然后再和散列表的大小取余、取模，作为散列值。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">hash</span>(<span class="string">&quot;nice&quot;</span>)=((<span class="string">&quot;n&quot;</span> - <span class="string">&quot;a&quot;</span>) * <span class="number">26</span>*<span class="number">26</span>*<span class="number">26</span> + (<span class="string">&quot;i&quot;</span> - <span class="string">&quot;a&quot;</span>)*<span class="number">26</span>*<span class="number">26</span> + (<span class="string">&quot;c&quot;</span> - <span class="string">&quot;a&quot;</span>)*<span class="number">26</span>+ (<span class="string">&quot;e&quot;</span>-<span class="string">&quot;a&quot;</span>)) / <span class="number">123456</span></span><br></pre></td></tr></table></figure>
-
-<p>当然，这种方法都只是一种分析方法，捉襟见肘</p>
-<h2 id="装载因子"><a href="#装载因子" class="headerlink" title="装载因子"></a>装载因子</h2><p>装载因子描述的是散列表中元素的个数大小情况，成正比。</p>
-<p><strong>对于动态散列表而言，数据集合是频繁变动的，我们无法准确的预估将要加入的数据个数，所以我们也无法事先申请一个足够大的散列表。这个时候动态扩容就变得很重要了</strong></p>
-<p>对于数组的扩容策略而言，<strong>只需要空间申请&amp;&amp;数据搬移即可</strong>，但是散列表的数据搬移就会显得比较复杂：<strong>当散列表的大小变化后，数据存储的位置也会发生变化</strong>，这是因为空间是新申请的，即使哈希值没有变化，但是空间地址已经发生了变化。</p>
-<p>例如：原本的 21 的 index == 0，但是经过扩容后，index == 7</p>
-<img src="https://static001.geekbang.org/resource/image/67/43/67d12e07a7d673a9c1d14354ad029443.jpg?wh=1142*756" alt="img" style="zoom:67%;" />
-
-<h3 id="高效的扩容"><a href="#高效的扩容" class="headerlink" title="高效的扩容"></a>高效的扩容</h3><p>装载因子阈值的设置要权衡时间、空间复杂度。</p>
-<p>对于动态扩容而言，当采用单纯的设置阈值的方式进行扩容，会发生比较极端的情况。例如：当阈值设置为 1GB 时，那就需要对 1GB 的数据进行 hash ，然后进行数据搬移，此时就会比较耗时，如果涉及到用户操作，那么可能发生阻塞。</p>
-<p>于是，采用分而治的思想，我们可以在每次插入的时候进行扩容，分批完成。<strong>当装载因子触及阈值时，我们只申请新空间，但是不将老的数据插入。当有新的数据插入的时候，我们将新数据插入到新申请的空间中，然后将老的数据搬移，经过多次插入操作后，就完成了动态搬移。</strong></p>
-<p><strong>其实上述的思想就是渐进式 rehash，其本质是空间换时间。</strong></p>
-<blockquote>
-<p>渐进式 Rehash 这一实现的/类似的思想，本质是空间换时间。 1. Redis 的全局哈希表就是这么做的。具体可以看 <a href="https://time.geekbang.org/column/article/268253">https://time.geekbang.org/column/article/268253</a> 2. 在 RocksDB 中也有体现。利用两个相同的内存空间 Memtable1 和 Memtable2，一个用来接收正在写入的数据，一个备着。当 Memtable1 写满了数据，再去刷盘，然后 Memtable2 来写入数据，这个是可以限流的。轮换着写入数据 -&gt; 刷盘。具体的可以看 <a href="https://time.geekbang.org/column/article/298205">https://time.geekbang.org/column/article/298205</a> 3. JVM 复制清除算法也是这么做的。</p>
-</blockquote>
-<p><strong>那么问题来了，查询操作如何执行呢？</strong><br><strong>为了兼容新、老数据，我们先从新的散列表中查找，如果没有找到，再去老的散列表中查找。</strong></p>
-<h2 id="散列冲突"><a href="#散列冲突" class="headerlink" title="散列冲突"></a>散列冲突</h2><h3 id="开放寻址法"><a href="#开放寻址法" class="headerlink" title="开放寻址法"></a>开放寻址法</h3><p>开放寻址法可以有效地利用 CPU 缓存加快查询速度，这种方式实现的散列表比较好序列化。</p>
-<p><strong>当数据量较小，装载因子小的时候，适合采用开放寻址法。这也是 Java 中的 ThreadLocalMap 使用开放寻址法解决冲突的原因。</strong></p>
-<h3 id="链表法"><a href="#链表法" class="headerlink" title="链表法"></a>链表法</h3><p>基于链表的散列冲突的处理方法比较适合存储大对象、大数据量的散列表，而且，比起开放寻址法，它更加灵活，支持更多的优化策略，例如用红黑树代替链表。</p>
-<p><strong>链表法对内存的利用率比开放寻址法要高。</strong></p>
-<p>链表中的数据都是通过指针进行索引的，对于小对象而言，一个指针（4/8 bytes）可能会消耗更多，而对于大对象则可忽略。</p>
-<p>实际上，链表法也是可以改造的，可以实现一个更加高效的散列表。那就是使用其他数据结构，例如跳表或着红黑树。</p>
-<img src="https://static001.geekbang.org/resource/image/10/29/103b84d7173277c5565607b413c40129.jpg?wh=1142*593" alt="img" style="zoom:67%;" />
-
-
-
-<h2 id="工业散列表"><a href="#工业散列表" class="headerlink" title="工业散列表"></a>工业散列表</h2><h3 id="Java-HashMap"><a href="#Java-HashMap" class="headerlink" title="Java HashMap"></a>Java HashMap</h3><h4 id="1-初始大小"><a href="#1-初始大小" class="headerlink" title="1. 初始大小"></a>1. 初始大小</h4><p>Java HashMap 的默认初始大小是 16，可以配置修改；</p>
-<h4 id="2-装载因子和动态扩容"><a href="#2-装载因子和动态扩容" class="headerlink" title="2. 装载因子和动态扩容"></a>2. 装载因子和动态扩容</h4><p>最大的装载因子默认是 0.75，当 HashMap 中的元素个数超过 0.75 * capacity (capacity 表示散列表的容量)的时候，就会自动扩容，每次扩容都会扩容为原来的两倍大小。</p>
-<h4 id="3-散列冲突解决办法"><a href="#3-散列冲突解决办法" class="headerlink" title="3. 散列冲突解决办法"></a>3. 散列冲突解决办法</h4><p>HashMap 底层采用链表法来解决冲突。即使负载因子和散列函数设计得再合理，也免不了会出现拉链过长的情况，一旦出现拉链过长，则会严重影响 HashMap 的性能。</p>
-<p>于是在 JDK 1.8 版本中，为了对 HashMap 做进一步优化，我们引入了红黑树。当链表长度太长（默认超过 8 ）时，链表就转换为红黑树。我们可以使用红黑树快速增删改查的特定，提升 HashMap 的性能。当红黑树节点少于 8 时，又会将红黑树转化为链表。</p>
-<h4 id="4-散列函数"><a href="#4-散列函数" class="headerlink" title="4. 散列函数"></a>4. 散列函数</h4><p>散列函数的设计并不复杂，追求的是简单高效、分布均匀。</p>
-<p>以下是 java 的 hash 函数：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">int</span> <span class="built_in">hash</span>(Object key) &#123;</span><br><span class="line">    <span class="built_in">int</span> h = key.hashCode()；</span><br><span class="line">    <span class="keyword">return</span> (h ^ (h &gt;&gt;&gt; <span class="number">16</span>)) &amp; (capicity -<span class="number">1</span>); //capicity表示散列表的大小</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">public <span class="built_in">int</span> hashCode() &#123;</span><br><span class="line">  <span class="built_in">int</span> var1 = this.<span class="built_in">hash</span>;</span><br><span class="line">  <span class="keyword">if</span>(var1 == <span class="number">0</span> &amp;&amp; this.value.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    char[] var2 = this.value;</span><br><span class="line">    <span class="keyword">for</span>(<span class="built_in">int</span> var3 = <span class="number">0</span>; var3 &lt; this.value.length; ++var3) &#123;</span><br><span class="line">      var1 = <span class="number">31</span> * var1 + var2[var3];</span><br><span class="line">    &#125;</span><br><span class="line">    this.<span class="built_in">hash</span> = var1;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> var1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="Python-dictobject"><a href="#Python-dictobject" class="headerlink" title="Python dictobject"></a>Python dictobject</h3><p>python 字典</p>
-<h4 id="1-初始大小-1"><a href="#1-初始大小-1" class="headerlink" title="1. 初始大小"></a>1. 初始大小</h4><p>dict 的初始大小是 8 个存储桶。</p>
-<p>其中桶是一种特殊的数据结构：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">typedef struct &#123;</span><br><span class="line">    PyObject *me_key;</span><br><span class="line">    PyObject *me_value;</span><br><span class="line">&#125; PyDictEntry;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<h4 id="2-装载因子和动态扩容-1"><a href="#2-装载因子和动态扩容-1" class="headerlink" title="2. 装载因子和动态扩容"></a>2. 装载因子和动态扩容</h4><p>在 CPython 中，装载因子的阈值通常是 2/3。当字典中的键值对数量超过当前存储桶的 2/3 时，就会触发动态扩容。</p>
-<ul>
-<li><p>下面是动态扩容的大致步骤：</p>
-<ol>
-<li>当字典的装载因子超过阈值时，触发动态扩容操作。</li>
-<li>计算新的存储桶数量，通常是当前存储桶数量的两倍。</li>
-<li>分配一个新的存储桶数组，并进行初始化。</li>
-<li>遍历原存储桶数组中的键值对。</li>
-<li>对于每个键值对，根据键的哈希值和新的存储桶数量，计算键在新存储桶数组中的位置。</li>
-<li>将键值对插入新的存储桶数组中的对应位置。</li>
-<li>释放原存储桶数组的内存。</li>
-<li>更新字典的元数据，包括存储桶数量和已使用的存储桶数量。</li>
-</ol>
-<p>这样的动态扩容操作确保了字典可以适应更多的键值对，并且保持较高的查找效率。在扩容期间，字典仍然保持可用，但插入操作可能会稍微慢一些。</p>
-<p>请注意，动态扩容过程中并不会同时维护两个哈希表，而是在新的存储桶数组中重新哈希所有的键值对。这样确保了字典的一致性和正确性。</p>
-</li>
-</ul>
-<h4 id="3-散列冲突解决办法-1"><a href="#3-散列冲突解决办法-1" class="headerlink" title="3. 散列冲突解决办法"></a>3. 散列冲突解决办法</h4><p><strong>CPython使用开放寻址法来解决哈希冲突，具体而言是线性探测法。</strong></p>
-<p>当发生哈希冲突时，CPython会按照以下步骤解决冲突：</p>
-<ol>
-<li>根据键的哈希值计算存储桶的初始位置。</li>
-<li>如果该位置的存储桶为空（未被占用），则将键值对插入该位置。</li>
-<li>如果该位置的存储桶已经被占用，则继续线性探测，即依次检查下一个存储桶，直到找到一个空槽或者完全遍历整个存储桶数组。</li>
-<li>当找到一个空槽时，将键值对插入该位置。</li>
-<li>如果遍历整个存储桶数组都没有找到空槽，即所有的存储桶都被占用了，那么会触发动态扩容，重新分配更大的存储桶数组，并重新哈希键值对。</li>
-</ol>
-<p>通过线性探测，CPython尝试在哈希冲突的情况下找到下一个可用的存储桶。这样，具有相同哈希值的键值对可以在存储桶数组中找到不同的位置。</p>
-<p><strong>需要注意的是，线性探测法可能会导致聚集（clustering）现象，即连续的键值对被插入到相邻的存储桶中，造成查找和插入操作的性能下降。为了缓解这个问题，CPython还使用了二次探测（quadratic probing）和双重散列（double hashing）等技术来处理冲突，以提高字典的性能。</strong></p>
-<p>总结起来，CPython中字典解决哈希冲突的方法是使用开放定址法，具体而言是线性探测法。在冲突发生时，它会线性探测存储桶数组，直到找到一个空槽或者触发动态扩容操作。这样保证了具有相同哈希值的键值对能够被正确插入到字典中。</p>
-<h4 id="4-散列函数-1"><a href="#4-散列函数-1" class="headerlink" title="4. 散列函数"></a>4. 散列函数</h4><p>自从CPython 3.4版本开始，它使用了一种称为”SipHash”的哈希算法。SipHash是一种快速且安全的哈希算法，适用于哈希表等数据结构。它被设计为具有较低的碰撞概率和高度的安全性。</p>
-<p>CPython使用SipHash算法计算散列值，以保证字典的安全性和效率。这是CPython中哈希函数的默认实现。</p>
-]]></content>
       <categories>
         <category>数据结构与算法</category>
       </categories>
