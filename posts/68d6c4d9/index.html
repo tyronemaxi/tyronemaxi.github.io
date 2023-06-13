@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Microsoft YaHei:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.tianzhichao.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="gunicorn 原理探究">
+<meta property="og:type" content="article">
+<meta property="og:title" content="gunicorn 原理">
+<meta property="og:url" content="https://www.tianzhichao.com/posts/68d6c4d9/index.html">
+<meta property="og:site_name" content="Tyrone 的博客">
+<meta property="og:description" content="gunicorn 原理探究">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-03-28T06:36:24.000Z">
+<meta property="article:modified_time" content="2023-06-13T12:49:22.810Z">
+<meta property="article:author" content="Tyrone">
+<meta property="article:tag" content="gunicorn">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://www.tianzhichao.com/posts/68d6c4d9/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>gunicorn 原理 | Tyrone 的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tyrone 的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.tianzhichao.com/posts/68d6c4d9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Tyrone">
+      <meta itemprop="description" content="人生最好的境界就是保持内心丰富的安静">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tyrone 的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          gunicorn 原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-03-28 14:36:24" itemprop="dateCreated datePublished" datetime="2023-03-28T14:36:24+08:00">2023-03-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-06-13 20:49:22" itemprop="dateModified" datetime="2023-06-13T20:49:22+08:00">2023-06-13</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/gunicorn/" itemprop="url" rel="index"><span itemprop="name">gunicorn</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+            <div class="post-description">gunicorn 原理探究</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="gunicorn"><a href="#gunicorn" class="headerlink" title="gunicorn"></a>gunicorn</h1><p>Gunicorn – unix 上被广泛使用的高性能 Python WSGI UNIX HTTP Server，常用于生产环境中运行的 Python Web 应用程序。</p>
+<p>它所在的位置通常是在反向代理（Nginx）或者 负载均衡 和一个 web 应用之间。它是一个移植自 Ruby 的 Unicorn 项目的 pre-woker 模型，即支持 eventlet 也支持 greenlet</p>
+<h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><p>Gunicorn 基于 pre-fork worker 模型。这意味着有一个中央主进程管理一组工作进程。</p>
+<p>主进程是一个简单的循环，它监听各种进程信号并做出相应的反应。它通过监听 TTIN、TTOUT 和 CHLD 等信号来管理正在运行的工作人员列表。TTIN 和 TTOUT 告诉 master 增加或减少正在运行的 worker 的数量。CHLD 表示一个子进程已经终止，在这种情况下主进程会自动重启失败的工作进程。</p>
+<h2 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h2><ul>
+<li>WSGI 兼容性：Gnicorn 符合 WSGI 规范，定义了 Web 服务器和 Python 应用程序之间通信的标准接口。这使得 Gunicorn 与许多 Python Web 框架（如 Django\Flask等）兼容。</li>
+<li>高性能：gunicorn 使用异步的、事件驱动的编程模型，具备大量的并发连接。采用 pre-fork 的方式，每个进程可以处理多个请求，并在请求到达时快速响应。</li>
+<li>丰富的配置：gunicorn 提供了丰富的配置选项、可以通过配置文件或者命令行参数进行调整。你可以指定工作进的数量、绑定的主机和端口、日志级别等。</li>
+<li>进程管理：gunicorn 具有内置的进程管理功能，可以管理工作进程的生命周期。它可以自动重启崩溃的进程，并在需要时平滑地进行热部署，而不会中断正在处理的请求。</li>
+<li>安全性：Gunicorn 提供了一些安全机制，包括 Unix 权限控制、访问日志记录和访问限制。它还可以与反向代理（Nginx）结合使用，以增强安全性和性能</li>
+<li>插件生态系统：Gunicorn 支持多插件，可以扩展其功能。例如，有插件用于加载静态文件、实现 SSL 加密、处理 WebSocket 连接等。</li>
+</ul>
+<h2 id="常规使用"><a href="#常规使用" class="headerlink" title="常规使用"></a>常规使用</h2><h3 id="常规参数一览"><a href="#常规参数一览" class="headerlink" title="常规参数一览"></a>常规参数一览</h3><p><a target="_blank" rel="noopener" href="https://docs.gunicorn.org/en/stable/run.html#commonly-used-arguments">https://docs.gunicorn.org/en/stable/run.html#commonly-used-arguments</a></p>
+<ol>
+<li>绑定地址和端口相关配置<ul>
+<li><code>ip:port</code></li>
+<li><strong><code>backlog</code>: 定义等待连接队列的最大长度，在 TCP/IP 网络编程中，当一个服务器正在处理并发连接请求时，如果有更多的连接到达，当服务器当前无法及时处理时，这些请求将会被放置在一个等待连接队列中，等待服务器处理。</strong></li>
+</ul>
+</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 绑定端口 注意0.0.0.0的配置在docker网络中是关键配置</span></span><br><span class="line">bind = <span class="string">f&quot;0.0.0.0:<span class="subst">&#123;PORT&#125;</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>工作进程和并发性能配置<ul>
+<li><strong><code>workers</code>: 定义工作进程的数量，可以是整数值或者是 CPU 核心数的倍数</strong></li>
+<li><strong><code>worker_class</code>: 定义 worker 类型，例如：sync\gevent\eventlet 等</strong></li>
+<li><strong><code>worker_connections</code>: 每个工作进程允许的最大并发连接数</strong></li>
+<li><code>threads</code>: 每个工作进程中的线程数<strong>（仅适用于支持线程的工作进程）</strong></li>
+</ul>
+</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 工作进程数 常规使用Docker横向扩容，故按项目实际情况配置</span></span><br><span class="line">workers = <span class="number">3</span></span><br><span class="line"><span class="comment"># 工作单位 除特殊情况外,工程无脑使用gevent 算法可考虑使用gthread</span></span><br><span class="line"><span class="comment"># 详见文档: https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type</span></span><br><span class="line"><span class="comment"># 不使用sync的最大问题在于sync虽然在短连接中网络模式最为简单干净,但不支持长连接,在高并发任务中的TCP效率会非常低</span></span><br><span class="line">worker_class = <span class="string">&quot;gevent&quot;</span></span><br><span class="line"><span class="comment"># 客户端最大同时连接数 在极高并发根据服务器和实例数根据情况修改</span></span><br><span class="line"><span class="comment"># 仅适用于eventlet/gevent</span></span><br><span class="line">worker_connections = <span class="number">5000</span></span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>进程管理和重启配置<ul>
+<li><strong><code>max_requests</code>: 每个工作进程处理的最大请求数，达到后将自动重启</strong></li>
+<li><strong><code>max_requests_jitter</code>: 请求处理最大请求数的抖动范围</strong></li>
+<li><code>timeout</code>: 工作进程处理请求的超时时间</li>
+<li><code>graceful_timeout</code>: 优雅关闭工作进程的超时时间</li>
+</ul>
+</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 3. 进程管理和重启配置 -&gt; max_requests &amp;&amp; max_requests_jitter &amp;&amp; timeout &amp;&amp; graceful_timeout</span></span><br><span class="line"><span class="comment"># 每执行多少请求,即重启服务 该功能用于防止内存泄漏</span></span><br><span class="line"><span class="comment"># 对算法来说,该功能会导致重新初始化服务 可以设置0为关闭</span></span><br><span class="line">max_requests = <span class="number">50000</span></span><br><span class="line"><span class="comment"># 在max_requests 的基础上,随机加减 max_requests_jitter 的参数值 该功能用于防止并发下所有容器同时重启</span></span><br><span class="line"><span class="comment"># 当max_requests=0 时,该配置不生效</span></span><br><span class="line">max_requests_jitter = <span class="number">1000</span></span><br><span class="line"><span class="comment"># 超时时间 根据实际情况配置 推荐30/60</span></span><br><span class="line">timeout = <span class="number">600</span></span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>日志和调试配置<ul>
+<li><code>accesslog</code>: 访问日志文件的路径，或者使用特定的值（例如 <code>-</code>）输出到标准输出</li>
+<li><code>errorlog</code>: 错误日志文件的路径，或者使用特定的值（例如 <code>-</code>）输入到标准输出</li>
+<li><code>loglevel</code>: 日志记录级别，例如 <code>degub</code>,<code>info</code>, <code>warning</code></li>
+</ul>
+</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 是否使用debug模式</span></span><br><span class="line">debug = DEBUG</span><br><span class="line"><span class="comment"># 是否重定向错误到日志文件</span></span><br><span class="line">capture_output = <span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CMD [<span class="string">&quot;gunicorn&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;gunicorn.conf.py&quot;</span>, <span class="string">&quot;server:create_app()&quot;</span>, <span class="string">&quot;–access-logfile -&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="how-to-choose-worker"><a href="#how-to-choose-worker" class="headerlink" title="how to choose worker"></a>how to choose worker</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type">https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type</a></p>
+<p>如何选择一个适用的 worker， Gunicorn 提供了多种类型的工作进程（Workers）,每种</p>
+<p>工作进程都有不同的工作模型和适用场景。以下是 Gunicorn 支持的常见工作类型：</p>
+<ul>
+<li><p>Sync - 同步工作进程</p>
+<p><code>sync</code> 默认的工作进程类型。它使用同步的方式处理请求，即每个工作进程一次只处理一个请求。适用于 IO 密集型的应用程序，但是在面对长时间运行的请求或高并发情况下可能会出现性能问题。</p>
+</li>
+<li><p>Async workers - 异步工作进程</p>
+<ul>
+<li><code>gevent</code>: 使用 gevent 库作为异步处理引擎。适用于 IO 密集型的应用程序，能够处理大量的并发连接，提高性能。</li>
+<li><code>eventlet</code>: 使用 <code>eventlet 库</code>作为异步处理引擎。类似于 gevent，适用于 IO 密集型的应用程序，具有良好的并发性能。</li>
+<li>……</li>
+</ul>
+</li>
+<li><p>Thread-based Workers (基于线程的工作进程)</p>
+<ul>
+<li><code>sync</code>: 使用多线程来处理请求。适用于处理计算密集型的任务，可以利用多核 CPU 的优势，但在面对 IO 密集型的应用程序时可能会有性能问题</li>
+</ul>
+</li>
+</ul>
+<h2 id="gevent-介绍"><a href="#gevent-介绍" class="headerlink" title="gevent 介绍"></a>gevent 介绍</h2><p>gevent 是一个 Python 网络函数库，通过 Greenlet 协程 + libev 快速事件循环，实现了异步模型。</p>
+<p>gevent 的主要特定和工作原理如下：</p>
+<ul>
+<li><strong>协程</strong> (Greenlet)：gevent 使用 greenlet 库实现协程。协程是一种用户级线程，可以在同一个线程中切换执行。每个协程都有自己的执行上下文和栈，可以独立地运行和暂停，以及在适当的时机切换到其他协程。</li>
+<li><strong>事件循环</strong>(Event Loop)：gevent 使用事件循环机制来调度协程的执行。事件循环负责管理协程的调度和协程之间的切换。当一个协程被阻塞时（例如等待 I/O 操作完成），事件循环会切换到其他可运行的协程，以避免阻塞整个程序。</li>
+<li><strong>非阻塞式 I/O</strong>：gevent 利用非阻塞式 I/O 来实现协程之间的切换。当一个协程遇到 I/O 操作时（例如网络请求或文件读写），它会将 I/O 操作交给 gevent 的事件循环处理，并切换到其他协程继续执行。当 I/O 操作完成时，事件循环会通知相应的协程，让器继续执行。</li>
+<li>基于 <strong>Monkey patching</strong> 的协程化：gevent 通过 Monkey Patching 技术，对 Python 标准库中的一些阻塞式 I/O 操作进行替换，使其变成非阻塞的。</li>
+</ul>
+<h2 id="gevent-如何实现并发"><a href="#gevent-如何实现并发" class="headerlink" title="gevent 如何实现并发"></a>gevent 如何实现并发</h2><p>在 gevent 中，每个请求的连接都是一个 Greenlet 协程。Gevent 虽然只有一个线程、同时只能处理一个请求，但是在这个请求的异步事件没准备好时，进入到 IO 等待时，能主动 yield 让出控制权、而不是阻塞其他请求的协程，而是先让其他协程执行，当自己的 IO 准备好后，事件循环会将它从 yield 让出控制权的地方，继续恢复执行。</p>
+<p>这样，Gevent 就能在不同的请求间不断切换，从而实现并发，以充分利用 CPU、减少 IO 等待时间。并且，切换的 Greenlet 是微线程，它操作的维度是函数，而不是线程/进程，所以来回切换的开销，就没有那么大。</p>
+<p>同步 worker 和 异步 worker ,这两种 worker 类型是最常用的。一般而言，对于我们的应用而言，我们的 web app 多半属于 外部 IO 密集型（总要访问第三方服务等），所以用 Gunicorn 的 Gevent 异步 worker，就非常合理。</p>
+<p>而如果你的 web app 是 CPU 密集型，或者你希望请求之间不要互相影响，那么可以选择 Gunicorn 的 同步 worker。</p>
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><p>常见问题：<a target="_blank" rel="noopener" href="https://docs.gunicorn.org/en/stable/faq.html#faq">https://docs.gunicorn.org/en/stable/faq.html#faq</a></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/36834234/eventlet-vs-greenlet-vs-gevent">https://stackoverflow.com/questions/36834234/eventlet-vs-greenlet-vs-gevent</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.gunicorn.org/en/latest/design.html#how-many-workers">https://docs.gunicorn.org/en/latest/design.html#how-many-workers</a></p>
+<p><a target="_blank" rel="noopener" href="https://bbs.huaweicloud.com/blogs/309794">https://bbs.huaweicloud.com/blogs/309794</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type">https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type</a></p>
+
+    </div>
+
+    
+    
+    
+    
+      <div>
+     <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:24px;">-------------THANKS  FOR  READING-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/gunicorn/" rel="tag"><i class="fa fa-tag"></i> gunicorn</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/28bd12e6/" rel="prev" title="Redis 常用数据类型结构剖析">
+      <i class="fa fa-chevron-left"></i> Redis 常用数据类型结构剖析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/da7213b0/" rel="next" title="如何实现一个工业级的散列表">
+      如何实现一个工业级的散列表 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#gunicorn"><span class="nav-number">1.</span> <span class="nav-text">gunicorn</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text">工作原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%B9%E7%82%B9"><span class="nav-number">1.2.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%84%E4%BD%BF%E7%94%A8"><span class="nav-number">1.3.</span> <span class="nav-text">常规使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E8%A7%84%E5%8F%82%E6%95%B0%E4%B8%80%E8%A7%88"><span class="nav-number">1.3.1.</span> <span class="nav-text">常规参数一览</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#how-to-choose-worker"><span class="nav-number">1.4.</span> <span class="nav-text">how to choose worker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#gevent-%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.5.</span> <span class="nav-text">gevent 介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#gevent-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E5%B9%B6%E5%8F%91"><span class="nav-number">1.6.</span> <span class="nav-text">gevent 如何实现并发</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="nav-number">1.7.</span> <span class="nav-text">常见问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">1.8.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tyrone"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Tyrone</p>
+  <div class="site-description" itemprop="description">人生最好的境界就是保持内心丰富的安静</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">34</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tyrone</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">136k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:04</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
