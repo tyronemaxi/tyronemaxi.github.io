@@ -1855,91 +1855,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>golang 垃圾回收机制</title>
-    <url>/posts/88f7796/</url>
-    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
-<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
-</blockquote>
-<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
-<thead>
-<tr>
-<th>版本</th>
-<th>GC 算法</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>v1.1</td>
-<td>STW(stop the world)</td>
-</tr>
-<tr>
-<td>v1.3</td>
-<td>Mark STW,Sweep（标记清除）</td>
-</tr>
-<tr>
-<td>v1.5</td>
-<td>三色标记</td>
-</tr>
-<tr>
-<td>v1.8</td>
-<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
-</tr>
-</tbody></table>
-<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
-<li><ol>
-<li>找出不可达对象，mark</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>回收标记好的对象</li>
-</ol>
-</li>
-</ul>
-<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
-<p>标记清除算法存在的问题</p>
-<ul>
-<li>stop the world 程序会暂停，即程序会出现卡顿</li>
-<li>标记需要扫描整个堆（heap）</li>
-<li>清除数据会产生 heap 碎片</li>
-</ul>
-<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
-<ul>
-<li><strong>灰色：对象还在标记队列中等待</strong></li>
-<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
-<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
-</ul>
-<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
-<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
-<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
-<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
-<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
-<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
-<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
-<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
-</ol>
-<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
-<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
-<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
-<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
-</li>
-<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
-</li>
-<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
-</li>
-</ol>
-]]></content>
-      <categories>
-        <category>Go</category>
-      </categories>
-      <tags>
-        <tag>Go</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -2061,8 +1976,93 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
         <category>redis</category>
       </categories>
       <tags>
-        <tag>Redis</tag>
         <tag>MySQL</tag>
+        <tag>Redis</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>golang 垃圾回收机制</title>
+    <url>/posts/88f7796/</url>
+    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
+<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
+</blockquote>
+<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
+<thead>
+<tr>
+<th>版本</th>
+<th>GC 算法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v1.1</td>
+<td>STW(stop the world)</td>
+</tr>
+<tr>
+<td>v1.3</td>
+<td>Mark STW,Sweep（标记清除）</td>
+</tr>
+<tr>
+<td>v1.5</td>
+<td>三色标记</td>
+</tr>
+<tr>
+<td>v1.8</td>
+<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
+</tr>
+</tbody></table>
+<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
+<li><ol>
+<li>找出不可达对象，mark</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>回收标记好的对象</li>
+</ol>
+</li>
+</ul>
+<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
+<p>标记清除算法存在的问题</p>
+<ul>
+<li>stop the world 程序会暂停，即程序会出现卡顿</li>
+<li>标记需要扫描整个堆（heap）</li>
+<li>清除数据会产生 heap 碎片</li>
+</ul>
+<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
+<ul>
+<li><strong>灰色：对象还在标记队列中等待</strong></li>
+<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
+<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
+</ul>
+<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
+<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
+<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
+<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
+<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
+<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
+<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
+<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
+</ol>
+<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
+<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
+<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
+<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
+</li>
+<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
+</li>
+<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Go</category>
+      </categories>
+      <tags>
+        <tag>Go</tag>
       </tags>
   </entry>
   <entry>
@@ -2546,6 +2546,230 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </categories>
       <tags>
         <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GIL 解释及探究</title>
+    <url>/posts/723b604d/</url>
+    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
+<blockquote>
+<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
+</blockquote>
+<blockquote>
+<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
+</blockquote>
+<ul>
+<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
+<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
+<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
+</ul>
+<p>常见的 Python 解释器还有：</p>
+<ul>
+<li>CPython</li>
+<li>IPython</li>
+<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
+<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
+<li>IronPython: .Net 平台</li>
+</ul>
+<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
+<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
+<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
+<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
+<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
+<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
+<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
+<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
+<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
+<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
+<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
+<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>iter()</title>
+    <url>/posts/3a33b362/</url>
+    <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
+<blockquote>
+<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
+</blockquote>
+<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
+<li><p>iter(object[, sentinel])</p>
+</li>
+<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
+</li>
+<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
+</li>
+</ul>
+<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>常用 linux 命令</title>
+    <url>/posts/92072779/</url>
+    <content><![CDATA[<h1 id="linx-面试题"><a href="#linx-面试题" class="headerlink" title="linx 面试题"></a>linx 面试题</h1><p>参考：<a href="https://segmentfault.com/a/1190000040007585">https://segmentfault.com/a/1190000040007585</a><br><a href="https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/">https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/</a></p>
+<h2 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vat vi vim ls mkdir touch cp mv</span><br></pre></td></tr></table></figure>
+<p>查找是否存在文件名：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find / -name mysql</span><br></pre></td></tr></table></figure>
+<h2 id="日志操作"><a href="#日志操作" class="headerlink" title="日志操作"></a>日志操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tail -f /var/www/data.log.out</span><br></pre></td></tr></table></figure>
+<p>抓取关键字</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat  data.log.out | grep &quot;error&quot;</span><br><span class="line">grep -i &quot;返回 resp &quot; data.log</span><br></pre></td></tr></table></figure>
+
+<h2 id="解压"><a href="#解压" class="headerlink" title="解压"></a>解压</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -zxvf filename.tar.gz</span><br></pre></td></tr></table></figure>
+
+<h2 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar –cvf jpg.tar *.jpg</span><br></pre></td></tr></table></figure>
+
+<h2 id="查找进程"><a href="#查找进程" class="headerlink" title="查找进程"></a>查找进程</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -aux | grep java</span><br></pre></td></tr></table></figure>
+
+<h2 id="系统、内存、磁盘、网络相关"><a href="#系统、内存、磁盘、网络相关" class="headerlink" title="系统、内存、磁盘、网络相关"></a>系统、内存、磁盘、网络相关</h2><p>top 查看内存、cpu 情况<br>du、df 查看磁盘、文件大小</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">du -s -h /data</span><br></pre></td></tr></table></figure>
+<p>ping、curl 查看网络是否正常</p>
+<h2 id="权限相关"><a href="#权限相关" class="headerlink" title="权限相关"></a>权限相关</h2><p>chmod: 修改文件或者目录的权限<br>chown: 即 change owner, 修改文件和目录的所有者权限<br>chattr: chmod 的底层操作，锁定文件<br>例如，你想设置权限，使用户可以读取、写入和执行它，并且你的组的成员可以读取和执行它，而其他人只能读取它<br>chmod u=rwx,g=rx,o=r a  ilename<br>chmod 751 filename<br>绝对模式</p>
+<table>
+<thead>
+<tr>
+<th><strong>0</strong></th>
+<th>没有权限</th>
+<th>– – –</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1</strong></td>
+<td>执行权限</td>
+<td>- - X</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>写权限</td>
+<td>– w –</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>执行和写入权限：1（执行）+2（写入）=3</td>
+<td>– wx</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>读取权限</td>
+<td>r – –</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>读取和执行权限：4（读取）+1（执行）=5</td>
+<td>r - x</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>读写权限：4（读）+2（写）=6</td>
+<td>rw—— _</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>所有权限：4（读取）+ 2（写入）+ 1（执行）= 7</td>
+<td>rwx</td>
+</tr>
+<tr>
+<td><img src="img.png" alt="img.png"></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="内存命令"><a href="#内存命令" class="headerlink" title="内存命令"></a>内存命令</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top </span><br><span class="line">free -h</span><br><span class="line">vmstat</span><br><span class="line">htop</span><br><span class="line">free -h -s 3 3 秒一次的间隔秒数</span><br></pre></td></tr></table></figure>
+
+<h2 id="buff-cache"><a href="#buff-cache" class="headerlink" title="buff/cache"></a>buff/cache</h2><p>缓冲/缓存是两种类型的内存。<br>先总结一下：<br><strong>缓冲</strong>主要目的是进行流量整形，把突发的大数量较小规模的 I/O 整理成平稳的<br>小数量较大规模的 I/O ，以<strong>减少响应次数</strong>。（比如从网上下电影，你不能下一点点数据就写一下硬盘，而是积攒一定量的数据以后一整块一起写，不然硬盘都要被你玩坏了）<br><strong>缓存</strong> 是为了弥补高速设备和低速设备的鸿沟而引入的中间层，最终起到<strong>加快访问速度</strong><br>的作用。</p>
+<h2 id="CPU-负载很高怎么办"><a href="#CPU-负载很高怎么办" class="headerlink" title="CPU 负载很高怎么办"></a>CPU 负载很高怎么办</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -axjf 查看 STAT 这一列是否存在 D 状态进程</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>D 状态是指不可中断的睡眠状态。该状态的进程无法被 kill, 也无法自行退出<br>只能通过恢复其依赖的资源或者重启系统来解决。</p>
+</blockquote>
+<h2 id="如何查看-CPU-和-CPU-核心？"><a href="#如何查看-CPU-和-CPU-核心？" class="headerlink" title="如何查看 CPU 和 CPU 核心？"></a>如何查看 CPU 和 CPU 核心？</h2><p>查看 cpu 和 cpu 核心？</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;model name&quot;</span><br></pre></td></tr></table></figure>
+<p>查看 cpu 核心</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;cpu cores&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="查看硬盘的使用情况"><a href="#查看硬盘的使用情况" class="headerlink" title="查看硬盘的使用情况"></a>查看硬盘的使用情况</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">df -hl</span><br><span class="line">du -s -h /root</span><br></pre></td></tr></table></figure>
+<h2 id="怎么杀死进程？"><a href="#怎么杀死进程？" class="headerlink" title="怎么杀死进程？"></a>怎么杀死进程？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">查看进程</span><br><span class="line">ps -aux | grep  python</span><br><span class="line">找到需要杀死的进程</span><br><span class="line">kill -9 3827</span><br></pre></td></tr></table></figure>
+<h2 id="linux-vm-内核参数优化设置"><a href="#linux-vm-内核参数优化设置" class="headerlink" title="linux vm 内核参数优化设置"></a>linux vm 内核参数优化设置</h2><h3 id="CPU"><a href="#CPU" class="headerlink" title="CPU"></a>CPU</h3><p>使用 uptime 查看 CPU 使用情况</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">uptime</span><br></pre></td></tr></table></figure>
+<p>vmstat 查看 CPU 使用情况</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vmstat 2 10</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何合理的查找（find）"><a href="#如何合理的查找（find）" class="headerlink" title="如何合理的查找（find）"></a>如何合理的查找（find）</h2><h3 id="在-software-目录下找出大小超过-10-MB的文件"><a href="#在-software-目录下找出大小超过-10-MB的文件" class="headerlink" title="在 /software 目录下找出大小超过 10 MB的文件"></a>在 /software 目录下找出大小超过 10 MB的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software -type f -size +10240k</span><br></pre></td></tr></table></figure>
+
+<h3 id="在-目录下找出-365-天未被访问过的文件"><a href="#在-目录下找出-365-天未被访问过的文件" class="headerlink" title="在 目录下找出 365 天未被访问过的文件"></a>在 目录下找出 365 天未被访问过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software \! -atime -365</span><br></pre></td></tr></table></figure>
+
+<h3 id="目录下找出-365-天之前被修改过的文件"><a href="#目录下找出-365-天之前被修改过的文件" class="headerlink" title="目录下找出 365 天之前被修改过的文件"></a>目录下找出 365 天之前被修改过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /home -mtime +365</span><br></pre></td></tr></table></figure>
+
+<h2 id="什么是-inode-和-process-id"><a href="#什么是-inode-和-process-id" class="headerlink" title="什么是 inode 和 process id ?"></a>什么是 inode 和 process id ?</h2><p>inode 是操作系统赋予每个文件的唯一名称。同样，进程 ID 是赋予每个进程的唯一 ID</p>
+<h2 id="什么是守护进程（daemon）"><a href="#什么是守护进程（daemon）" class="headerlink" title="什么是守护进程（daemon）"></a>什么是守护进程（daemon）</h2><p>守护进程是作为后台进程运行以提供基本操作系统中可能不可用的功能的计算机程序。守护进程通常用于在后台运行服务，<br>而不直接控制交互式用户。守护进程的目的是处理周期性请求，然后将请求转发给适当程序执行。</p>
+<h2 id="Linux-中的进程状态有哪些？"><a href="#Linux-中的进程状态有哪些？" class="headerlink" title="Linux 中的进程状态有哪些？"></a>Linux 中的进程状态有哪些？</h2><ul>
+<li>Ready: 进程已创建并准备运行</li>
+<li>Running: 进程正在执行</li>
+<li>Blocked or wait: 进程正在等待用户输入</li>
+<li>Terminated or Completed: 进程已完成或者被操作系统终止</li>
+<li>Zombie:进程终止，但进程表仍然存在信息</li>
+</ul>
+<h2 id="解释-Linux-中的进程管理系统调用"><a href="#解释-Linux-中的进程管理系统调用" class="headerlink" title="解释 Linux 中的进程管理系统调用"></a>解释 Linux 中的进程管理系统调用</h2><p>管理进程的系统调用：</p>
+<ul>
+<li>fork(): 用户创建新进程</li>
+<li>exec(): 执行一个新进程</li>
+<li>wait(): 等待进程完成执行</li>
+<li>exit(): 退出进程</li>
+</ul>
+<h2 id="为什么要使用-tar-命令？"><a href="#为什么要使用-tar-命令？" class="headerlink" title="为什么要使用 tar 命令？"></a>为什么要使用 tar 命令？</h2><blockquote>
+<p>tar 命令用于提取或创建归档文件</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -xvzf sample.tar.gz</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -cvzf filename.tar.gz</span><br></pre></td></tr></table></figure>
+<p>其中 c: 创建存档；x: 提取；v: 详细；f: 文件</p>
+<h2 id="如何查看-Linux-上挂载的设备列表？"><a href="#如何查看-Linux-上挂载的设备列表？" class="headerlink" title="如何查看 Linux 上挂载的设备列表？"></a>如何查看 Linux 上挂载的设备列表？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mount -l</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何查找两个配置文件的不同之处"><a href="#如何查找两个配置文件的不同之处" class="headerlink" title="如何查找两个配置文件的不同之处"></a>如何查找两个配置文件的不同之处</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">diff abc.conf xyz.conf</span><br></pre></td></tr></table></figure>
+<p><img src="img_1.png" alt="img_1.png"></p>
+<h2 id="你会如何在-linux-中安排任务？"><a href="#你会如何在-linux-中安排任务？" class="headerlink" title="你会如何在 linux 中安排任务？"></a>你会如何在 linux 中安排任务？</h2><p>linux 中有两个用于调度任务的命令：cron 和 at。<br>cron 命令用于在特定时间重复调度任务。任务存储在 cron 文件中，然后使用 cron 命令执行。<br>cron 命令从该文件中<code>读取字符串</code>并安排任务。<br>cron 文件语法：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">&lt;minute&gt; &lt;hour&gt; &lt;day&gt; &lt;month&gt; &lt;weekday&gt; &lt;command&gt;</span><br></pre></td></tr></table></figure>
+<p>假设您想在每周日下午 4 点运行一个命令，那么字符串将是：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">0 16 * * 0 &lt;command&gt;</span><br></pre></td></tr></table></figure>
+<p>假设您想在今天下午 6 点关闭系统，那么执行操作的命令将是：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;shutdown now&quot; | at -m 18:00</span><br></pre></td></tr></table></figure>
+<h2 id="如何识别你使用的是哪个-shell"><a href="#如何识别你使用的是哪个-shell" class="headerlink" title="如何识别你使用的是哪个 shell?"></a>如何识别你使用的是哪个 shell?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo $SHELL</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何从您的系统登陆到您网络中的另一个系统？"><a href="#如何从您的系统登陆到您网络中的另一个系统？" class="headerlink" title="如何从您的系统登陆到您网络中的另一个系统？"></a>如何从您的系统登陆到您网络中的另一个系统？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ssh &lt;username&gt;@&lt;ip address&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何使用-vim-编辑器以只读模式打开文件？"><a href="#如何使用-vim-编辑器以只读模式打开文件？" class="headerlink" title="如何使用 vim 编辑器以只读模式打开文件？"></a>如何使用 vim 编辑器以<code>只读</code>模式打开文件？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim -R &lt;filename&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何使用-vim-编辑器在文件中搜索特定的员工-ID"><a href="#如何使用-vim-编辑器在文件中搜索特定的员工-ID" class="headerlink" title="如何使用 vim 编辑器在文件中搜索特定的员工 ID ?"></a>如何使用 vim 编辑器在文件中搜索特定的员工 ID ?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;employee id to be searched&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何使用-vim-编辑器跳转到文件中的特定行？"><a href="#如何使用-vim-编辑器跳转到文件中的特定行？" class="headerlink" title="如何使用 vim 编辑器跳转到文件中的特定行？"></a>如何使用 vim 编辑器跳转到文件中的特定行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;line number&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何按照升序对文本文件中的条目进行排序"><a href="#如何按照升序对文本文件中的条目进行排序" class="headerlink" title="如何按照升序对文本文件中的条目进行排序?"></a>如何按照升序对文本文件中的条目进行排序?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sort sample.txt</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何检查特定服务是否在运行？"><a href="#如何检查特定服务是否在运行？" class="headerlink" title="如何检查特定服务是否在运行？"></a>如何检查特定服务是否在运行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service &lt;service-name&gt; status</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何查看所有服务的状态"><a href="#如何查看所有服务的状态" class="headerlink" title="如何查看所有服务的状态?"></a>如何查看所有服务的状态?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service --status-all</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>linux</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
       </tags>
   </entry>
   <entry>
@@ -3093,230 +3317,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </categories>
       <tags>
         <tag>linux</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>常用 linux 命令</title>
-    <url>/posts/92072779/</url>
-    <content><![CDATA[<h1 id="linx-面试题"><a href="#linx-面试题" class="headerlink" title="linx 面试题"></a>linx 面试题</h1><p>参考：<a href="https://segmentfault.com/a/1190000040007585">https://segmentfault.com/a/1190000040007585</a><br><a href="https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/">https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/</a></p>
-<h2 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vat vi vim ls mkdir touch cp mv</span><br></pre></td></tr></table></figure>
-<p>查找是否存在文件名：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find / -name mysql</span><br></pre></td></tr></table></figure>
-<h2 id="日志操作"><a href="#日志操作" class="headerlink" title="日志操作"></a>日志操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tail -f /var/www/data.log.out</span><br></pre></td></tr></table></figure>
-<p>抓取关键字</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat  data.log.out | grep &quot;error&quot;</span><br><span class="line">grep -i &quot;返回 resp &quot; data.log</span><br></pre></td></tr></table></figure>
-
-<h2 id="解压"><a href="#解压" class="headerlink" title="解压"></a>解压</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -zxvf filename.tar.gz</span><br></pre></td></tr></table></figure>
-
-<h2 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar –cvf jpg.tar *.jpg</span><br></pre></td></tr></table></figure>
-
-<h2 id="查找进程"><a href="#查找进程" class="headerlink" title="查找进程"></a>查找进程</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -aux | grep java</span><br></pre></td></tr></table></figure>
-
-<h2 id="系统、内存、磁盘、网络相关"><a href="#系统、内存、磁盘、网络相关" class="headerlink" title="系统、内存、磁盘、网络相关"></a>系统、内存、磁盘、网络相关</h2><p>top 查看内存、cpu 情况<br>du、df 查看磁盘、文件大小</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">du -s -h /data</span><br></pre></td></tr></table></figure>
-<p>ping、curl 查看网络是否正常</p>
-<h2 id="权限相关"><a href="#权限相关" class="headerlink" title="权限相关"></a>权限相关</h2><p>chmod: 修改文件或者目录的权限<br>chown: 即 change owner, 修改文件和目录的所有者权限<br>chattr: chmod 的底层操作，锁定文件<br>例如，你想设置权限，使用户可以读取、写入和执行它，并且你的组的成员可以读取和执行它，而其他人只能读取它<br>chmod u=rwx,g=rx,o=r a  ilename<br>chmod 751 filename<br>绝对模式</p>
-<table>
-<thead>
-<tr>
-<th><strong>0</strong></th>
-<th>没有权限</th>
-<th>– – –</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>1</strong></td>
-<td>执行权限</td>
-<td>- - X</td>
-</tr>
-<tr>
-<td><strong>2</strong></td>
-<td>写权限</td>
-<td>– w –</td>
-</tr>
-<tr>
-<td><strong>3</strong></td>
-<td>执行和写入权限：1（执行）+2（写入）=3</td>
-<td>– wx</td>
-</tr>
-<tr>
-<td><strong>4</strong></td>
-<td>读取权限</td>
-<td>r – –</td>
-</tr>
-<tr>
-<td><strong>5</strong></td>
-<td>读取和执行权限：4（读取）+1（执行）=5</td>
-<td>r - x</td>
-</tr>
-<tr>
-<td><strong>6</strong></td>
-<td>读写权限：4（读）+2（写）=6</td>
-<td>rw—— _</td>
-</tr>
-<tr>
-<td><strong>7</strong></td>
-<td>所有权限：4（读取）+ 2（写入）+ 1（执行）= 7</td>
-<td>rwx</td>
-</tr>
-<tr>
-<td><img src="img.png" alt="img.png"></td>
-<td></td>
-<td></td>
-</tr>
-</tbody></table>
-<h2 id="内存命令"><a href="#内存命令" class="headerlink" title="内存命令"></a>内存命令</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top </span><br><span class="line">free -h</span><br><span class="line">vmstat</span><br><span class="line">htop</span><br><span class="line">free -h -s 3 3 秒一次的间隔秒数</span><br></pre></td></tr></table></figure>
-
-<h2 id="buff-cache"><a href="#buff-cache" class="headerlink" title="buff/cache"></a>buff/cache</h2><p>缓冲/缓存是两种类型的内存。<br>先总结一下：<br><strong>缓冲</strong>主要目的是进行流量整形，把突发的大数量较小规模的 I/O 整理成平稳的<br>小数量较大规模的 I/O ，以<strong>减少响应次数</strong>。（比如从网上下电影，你不能下一点点数据就写一下硬盘，而是积攒一定量的数据以后一整块一起写，不然硬盘都要被你玩坏了）<br><strong>缓存</strong> 是为了弥补高速设备和低速设备的鸿沟而引入的中间层，最终起到<strong>加快访问速度</strong><br>的作用。</p>
-<h2 id="CPU-负载很高怎么办"><a href="#CPU-负载很高怎么办" class="headerlink" title="CPU 负载很高怎么办"></a>CPU 负载很高怎么办</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -axjf 查看 STAT 这一列是否存在 D 状态进程</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>D 状态是指不可中断的睡眠状态。该状态的进程无法被 kill, 也无法自行退出<br>只能通过恢复其依赖的资源或者重启系统来解决。</p>
-</blockquote>
-<h2 id="如何查看-CPU-和-CPU-核心？"><a href="#如何查看-CPU-和-CPU-核心？" class="headerlink" title="如何查看 CPU 和 CPU 核心？"></a>如何查看 CPU 和 CPU 核心？</h2><p>查看 cpu 和 cpu 核心？</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;model name&quot;</span><br></pre></td></tr></table></figure>
-<p>查看 cpu 核心</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;cpu cores&quot;</span><br></pre></td></tr></table></figure>
-
-<h2 id="查看硬盘的使用情况"><a href="#查看硬盘的使用情况" class="headerlink" title="查看硬盘的使用情况"></a>查看硬盘的使用情况</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">df -hl</span><br><span class="line">du -s -h /root</span><br></pre></td></tr></table></figure>
-<h2 id="怎么杀死进程？"><a href="#怎么杀死进程？" class="headerlink" title="怎么杀死进程？"></a>怎么杀死进程？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">查看进程</span><br><span class="line">ps -aux | grep  python</span><br><span class="line">找到需要杀死的进程</span><br><span class="line">kill -9 3827</span><br></pre></td></tr></table></figure>
-<h2 id="linux-vm-内核参数优化设置"><a href="#linux-vm-内核参数优化设置" class="headerlink" title="linux vm 内核参数优化设置"></a>linux vm 内核参数优化设置</h2><h3 id="CPU"><a href="#CPU" class="headerlink" title="CPU"></a>CPU</h3><p>使用 uptime 查看 CPU 使用情况</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">uptime</span><br></pre></td></tr></table></figure>
-<p>vmstat 查看 CPU 使用情况</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vmstat 2 10</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何合理的查找（find）"><a href="#如何合理的查找（find）" class="headerlink" title="如何合理的查找（find）"></a>如何合理的查找（find）</h2><h3 id="在-software-目录下找出大小超过-10-MB的文件"><a href="#在-software-目录下找出大小超过-10-MB的文件" class="headerlink" title="在 /software 目录下找出大小超过 10 MB的文件"></a>在 /software 目录下找出大小超过 10 MB的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software -type f -size +10240k</span><br></pre></td></tr></table></figure>
-
-<h3 id="在-目录下找出-365-天未被访问过的文件"><a href="#在-目录下找出-365-天未被访问过的文件" class="headerlink" title="在 目录下找出 365 天未被访问过的文件"></a>在 目录下找出 365 天未被访问过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software \! -atime -365</span><br></pre></td></tr></table></figure>
-
-<h3 id="目录下找出-365-天之前被修改过的文件"><a href="#目录下找出-365-天之前被修改过的文件" class="headerlink" title="目录下找出 365 天之前被修改过的文件"></a>目录下找出 365 天之前被修改过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /home -mtime +365</span><br></pre></td></tr></table></figure>
-
-<h2 id="什么是-inode-和-process-id"><a href="#什么是-inode-和-process-id" class="headerlink" title="什么是 inode 和 process id ?"></a>什么是 inode 和 process id ?</h2><p>inode 是操作系统赋予每个文件的唯一名称。同样，进程 ID 是赋予每个进程的唯一 ID</p>
-<h2 id="什么是守护进程（daemon）"><a href="#什么是守护进程（daemon）" class="headerlink" title="什么是守护进程（daemon）"></a>什么是守护进程（daemon）</h2><p>守护进程是作为后台进程运行以提供基本操作系统中可能不可用的功能的计算机程序。守护进程通常用于在后台运行服务，<br>而不直接控制交互式用户。守护进程的目的是处理周期性请求，然后将请求转发给适当程序执行。</p>
-<h2 id="Linux-中的进程状态有哪些？"><a href="#Linux-中的进程状态有哪些？" class="headerlink" title="Linux 中的进程状态有哪些？"></a>Linux 中的进程状态有哪些？</h2><ul>
-<li>Ready: 进程已创建并准备运行</li>
-<li>Running: 进程正在执行</li>
-<li>Blocked or wait: 进程正在等待用户输入</li>
-<li>Terminated or Completed: 进程已完成或者被操作系统终止</li>
-<li>Zombie:进程终止，但进程表仍然存在信息</li>
-</ul>
-<h2 id="解释-Linux-中的进程管理系统调用"><a href="#解释-Linux-中的进程管理系统调用" class="headerlink" title="解释 Linux 中的进程管理系统调用"></a>解释 Linux 中的进程管理系统调用</h2><p>管理进程的系统调用：</p>
-<ul>
-<li>fork(): 用户创建新进程</li>
-<li>exec(): 执行一个新进程</li>
-<li>wait(): 等待进程完成执行</li>
-<li>exit(): 退出进程</li>
-</ul>
-<h2 id="为什么要使用-tar-命令？"><a href="#为什么要使用-tar-命令？" class="headerlink" title="为什么要使用 tar 命令？"></a>为什么要使用 tar 命令？</h2><blockquote>
-<p>tar 命令用于提取或创建归档文件</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -xvzf sample.tar.gz</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -cvzf filename.tar.gz</span><br></pre></td></tr></table></figure>
-<p>其中 c: 创建存档；x: 提取；v: 详细；f: 文件</p>
-<h2 id="如何查看-Linux-上挂载的设备列表？"><a href="#如何查看-Linux-上挂载的设备列表？" class="headerlink" title="如何查看 Linux 上挂载的设备列表？"></a>如何查看 Linux 上挂载的设备列表？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mount -l</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何查找两个配置文件的不同之处"><a href="#如何查找两个配置文件的不同之处" class="headerlink" title="如何查找两个配置文件的不同之处"></a>如何查找两个配置文件的不同之处</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">diff abc.conf xyz.conf</span><br></pre></td></tr></table></figure>
-<p><img src="img_1.png" alt="img_1.png"></p>
-<h2 id="你会如何在-linux-中安排任务？"><a href="#你会如何在-linux-中安排任务？" class="headerlink" title="你会如何在 linux 中安排任务？"></a>你会如何在 linux 中安排任务？</h2><p>linux 中有两个用于调度任务的命令：cron 和 at。<br>cron 命令用于在特定时间重复调度任务。任务存储在 cron 文件中，然后使用 cron 命令执行。<br>cron 命令从该文件中<code>读取字符串</code>并安排任务。<br>cron 文件语法：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">&lt;minute&gt; &lt;hour&gt; &lt;day&gt; &lt;month&gt; &lt;weekday&gt; &lt;command&gt;</span><br></pre></td></tr></table></figure>
-<p>假设您想在每周日下午 4 点运行一个命令，那么字符串将是：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">0 16 * * 0 &lt;command&gt;</span><br></pre></td></tr></table></figure>
-<p>假设您想在今天下午 6 点关闭系统，那么执行操作的命令将是：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;shutdown now&quot; | at -m 18:00</span><br></pre></td></tr></table></figure>
-<h2 id="如何识别你使用的是哪个-shell"><a href="#如何识别你使用的是哪个-shell" class="headerlink" title="如何识别你使用的是哪个 shell?"></a>如何识别你使用的是哪个 shell?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo $SHELL</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何从您的系统登陆到您网络中的另一个系统？"><a href="#如何从您的系统登陆到您网络中的另一个系统？" class="headerlink" title="如何从您的系统登陆到您网络中的另一个系统？"></a>如何从您的系统登陆到您网络中的另一个系统？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ssh &lt;username&gt;@&lt;ip address&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何使用-vim-编辑器以只读模式打开文件？"><a href="#如何使用-vim-编辑器以只读模式打开文件？" class="headerlink" title="如何使用 vim 编辑器以只读模式打开文件？"></a>如何使用 vim 编辑器以<code>只读</code>模式打开文件？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim -R &lt;filename&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何使用-vim-编辑器在文件中搜索特定的员工-ID"><a href="#如何使用-vim-编辑器在文件中搜索特定的员工-ID" class="headerlink" title="如何使用 vim 编辑器在文件中搜索特定的员工 ID ?"></a>如何使用 vim 编辑器在文件中搜索特定的员工 ID ?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;employee id to be searched&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何使用-vim-编辑器跳转到文件中的特定行？"><a href="#如何使用-vim-编辑器跳转到文件中的特定行？" class="headerlink" title="如何使用 vim 编辑器跳转到文件中的特定行？"></a>如何使用 vim 编辑器跳转到文件中的特定行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;line number&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何按照升序对文本文件中的条目进行排序"><a href="#如何按照升序对文本文件中的条目进行排序" class="headerlink" title="如何按照升序对文本文件中的条目进行排序?"></a>如何按照升序对文本文件中的条目进行排序?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sort sample.txt</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何检查特定服务是否在运行？"><a href="#如何检查特定服务是否在运行？" class="headerlink" title="如何检查特定服务是否在运行？"></a>如何检查特定服务是否在运行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service &lt;service-name&gt; status</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何查看所有服务的状态"><a href="#如何查看所有服务的状态" class="headerlink" title="如何查看所有服务的状态?"></a>如何查看所有服务的状态?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service --status-all</span><br></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>linux</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GIL 解释及探究</title>
-    <url>/posts/723b604d/</url>
-    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
-<blockquote>
-<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
-</blockquote>
-<blockquote>
-<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
-</blockquote>
-<ul>
-<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
-<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
-<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
-</ul>
-<p>常见的 Python 解释器还有：</p>
-<ul>
-<li>CPython</li>
-<li>IPython</li>
-<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
-<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
-<li>IronPython: .Net 平台</li>
-</ul>
-<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
-<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 Python 的线程就是 C 语言的 pthread, 它是通过操作系统调度算法调度执行的。</p>
-<p>python3.x 进行了优化，基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放<br>GIL，触发系统的线程调度。</p>
-<p>而在python3.x中，GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），<br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
-<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
-<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
-<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
-<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
-<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
-<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
-<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
-<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>iter()</title>
-    <url>/posts/3a33b362/</url>
-    <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
-<blockquote>
-<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
-</blockquote>
-<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
-<li><p>iter(object[, sentinel])</p>
-</li>
-<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
-</li>
-<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
-</li>
-</ul>
-<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
       </tags>
   </entry>
   <entry>
@@ -3890,6 +3890,129 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>排序算法一览</title>
+    <url>/posts/2c2cd033/</url>
+    <content><![CDATA[<h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><table>
+<thead>
+<tr>
+<th>排序算法</th>
+<th>时间复杂度</th>
+<th>是否基于比较</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>冒泡、插入、选择</td>
+<td>O(n**2)</td>
+<td>支持</td>
+<td>冒泡、插入、选择排序都有一个共同点，将待排序数列分为已排序和未排序两部分。在未排序的部分中查找一个最值，放到已排序数列的恰当位置。 具体到代码层面，外层循环的变量用于分割已排序和未排序数，内层循环的变量用于在未排序数中查找。从思路上看，这三种算法其实是一样的，所以时间复杂度也相同。</td>
+</tr>
+<tr>
+<td>快排、归并</td>
+<td>O(nlog(n))</td>
+<td>支持</td>
+<td>-</td>
+</tr>
+<tr>
+<td>桶、计数、基数</td>
+<td></td>
+<td></td>
+<td>-</td>
+</tr>
+</tbody></table>
+<h2 id="如何分析一个排序算法？"><a href="#如何分析一个排序算法？" class="headerlink" title="如何分析一个排序算法？"></a>如何分析一个排序算法？</h2><ul>
+<li><p>算法的执行效率</p>
+<ul>
+<li>最好、最坏、平均情况时间复杂度</li>
+<li>时间复杂度的系数、常数、低阶</li>
+<li>比较次数和交换次数</li>
+</ul>
+</li>
+<li><p>排序算法的内存消耗</p>
+<ul>
+<li>算法的内存消耗可以通过空间复杂度来衡量</li>
+</ul>
+</li>
+<li><p>排序算法的稳定性</p>
+<ul>
+<li>稳定的排序算法(原有排序不变)</li>
+<li>不稳定的排序算法(原有排序改变)</li>
+</ul>
+</li>
+</ul>
+<h2 id="冒泡排序（Bubble-Sort）"><a href="#冒泡排序（Bubble-Sort）" class="headerlink" title="冒泡排序（Bubble Sort）"></a>冒泡排序（Bubble Sort）</h2><blockquote>
+<p>冒泡排序: 比较相邻的两个元素，经过一次排序后，最大的数会冒泡到最后。</p>
+<p>时间复杂度：O（n**2）</p>
+<p>空间复杂度：O（1）</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    冒泡排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        exchange = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(length - i - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">                exchange = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><blockquote>
+<p>插入排序，取未排序区间中的元素，在已排序区间中找到合适的插入为止将其插入，并保证已排序区间一直有序，重复这个过程，直到未排序空间中的元素为空</p>
+<p>有序空间左边肯定最小的，只需要每次比较未排序空间的第一个；</p>
+<p>满有序度：n*(n-1)/2=15</p>
+<p>时间复杂度：O(n**2)</p>
+<p>空间复杂度：O(1)</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        value = arr[i]</span><br><span class="line">        j = i - <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> arr[j] &gt; value:</span><br><span class="line">            arr[j + <span class="number">1</span>] = arr[i]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        arr[j] = value</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><blockquote>
+<p>选择排序是一种简单的排序算法，其基本思想是每次从待排序的元素中选择最小的元素，将其放到已排序的序列的末尾，从而得到一个新的有序序列；</p>
+<p>时间复杂度：O(n**2)</p>
+<p>空间复杂度：O(1)</p>
+<p>是否稳定：不稳定</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    选择排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        min_index = i</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span>, length):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; arr[min_index]:</span><br><span class="line">                min_index = j</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<h2 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h2><blockquote>
+<p>归并排序，使用了分治思想，将一个数组分开为左小右大的无数个数组，然后合并；</p>
+<p>时间复杂度：O(logn)</p>
+<p>空间复杂度：O(n)</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">import</span> math</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    middle = math.floor(<span class="built_in">len</span>(arr)/<span class="number">2</span>)</span><br><span class="line">    left, right = arr[<span class="number">0</span>:middle], arr[middle:]</span><br><span class="line">    <span class="keyword">return</span> merge(merge_sort(left), merge_sort(right))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span>(<span class="params">left, right</span>):</span></span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">while</span> left <span class="keyword">and</span> right:</span><br><span class="line">        <span class="keyword">if</span> left[<span class="number">0</span>] &lt;= right[<span class="number">0</span>]:</span><br><span class="line">            result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> left:</span><br><span class="line">        result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> right:</span><br><span class="line">        result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
+
+<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><blockquote>
+<p>快排的思想是这样的：如果要排序数组中下标从 p 到 r 之间的一组数据，我们选择 p 到 r 之间的任意一个数据作为 pivot（分区点）。</p>
+<p>空间复杂度：O(n)</p>
+<p>时间复杂度：O(log(n))</p>
+<p>是否稳定：否</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr:<span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    快速排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">    privot = arr[<span class="number">0</span>]</span><br><span class="line">    less = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= privot]</span><br><span class="line">    greater = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; privot]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> quick_sort(less) + [privot] + quick_sort(greater)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>归并排序的处理过程是由下到上的，先处理子问题，然后再合并。而快排正好相反，它的处理过程是由上到下的，先分区，然后再处理子问题。</p>
+<h2 id="线性排序"><a href="#线性排序" class="headerlink" title="线性排序"></a>线性排序</h2><p>时间复杂度为 O(n) 的排序算法：桶排序、计数排序、基数排序。这三种排序算法的时间复杂度是线性的。</p>
+<h3 id="桶排序"><a href="#桶排序" class="headerlink" title="桶排序"></a>桶排序</h3><blockquote>
+<p>核心思想是将要排序的数据分到几个有序的桶里，每个桶里的数据再单独进行排序。桶内的数据排序完之后，再把每个桶内的数据按照顺序依次取出，组成的序列就是有序的</p>
+</blockquote>
+<h3 id="计数排序"><a href="#计数排序" class="headerlink" title="计数排序"></a>计数排序</h3><blockquote>
+<p>计数排序只能用在数据范围不大的场景中，如果数据范围 k 比要排序的数据 n 大很多，就不适合用计数排序了。而且，计数排序只能给非负整数排序，如果要排序的数据是其他类型的，要将其在不改变相对大小的情况下，转化为非负整数。</p>
+</blockquote>
+<h3 id="基数排序"><a href="#基数排序" class="headerlink" title="基数排序"></a>基数排序</h3><blockquote>
+<p>基数排序对要排序的数据是有要求的，需要可以分割出独立的“位”来比较，而且位之间有递进的关系，如果 a 数据的高位比 b 数据大，那剩下的低位就不用比较了。除此之外，每一位的数据范围不能太大，要可以用线性排序算法来排序，否则，基数排序的时间复杂度就无法做到 O(n) 了。</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>三种排序算法的时间复杂度均为 O(n</strong>2)，空间复杂度为 O(1), 除选择排序均为稳定的算法；</p>
+<p>三者排序思想都是将元素分为已排序空间和未排序空间，<strong>冒泡排序的思想是在未排序的空间中，找到最大的数放置最未排序空间的末端；</strong></p>
+<p><strong>选择排序是在未排序空间中，找到最小的数，放置到最左端；插入排序的思想则是如何将一个数插入到已排序空间中并保持有序；</strong></p>
+<p><strong>而为何大多使用插入排序，主要原因是插入排序中的赋值语句较为简单， 较少的数据交换</strong></p>
+<hr>
+]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>为什么使用链表&amp;&amp;实现</title>
     <url>/posts/2c2cd033/</url>
     <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
@@ -4029,129 +4152,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">middleNode</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        </span><br><span class="line">        n, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> cur:</span><br><span class="line">            n += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        k, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> k &lt; n // <span class="number">2</span>:</span><br><span class="line">            k += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> cur</span><br></pre></td></tr></table></figure>
 
 <h1 id="链表实现源码"><a href="#链表实现源码" class="headerlink" title="链表实现源码"></a>链表实现源码</h1><p><a href="https://github.com/tyronemaxi/algorithm/tree/main/chain">https://github.com/tyronemaxi/algorithm/tree/main/chain</a></p>
-]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>排序算法一览</title>
-    <url>/posts/2c2cd033/</url>
-    <content><![CDATA[<h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><table>
-<thead>
-<tr>
-<th>排序算法</th>
-<th>时间复杂度</th>
-<th>是否基于比较</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>冒泡、插入、选择</td>
-<td>O(n**2)</td>
-<td>支持</td>
-<td>冒泡、插入、选择排序都有一个共同点，将待排序数列分为已排序和未排序两部分。在未排序的部分中查找一个最值，放到已排序数列的恰当位置。 具体到代码层面，外层循环的变量用于分割已排序和未排序数，内层循环的变量用于在未排序数中查找。从思路上看，这三种算法其实是一样的，所以时间复杂度也相同。</td>
-</tr>
-<tr>
-<td>快排、归并</td>
-<td>O(nlog(n))</td>
-<td>支持</td>
-<td>-</td>
-</tr>
-<tr>
-<td>桶、计数、基数</td>
-<td></td>
-<td></td>
-<td>-</td>
-</tr>
-</tbody></table>
-<h2 id="如何分析一个排序算法？"><a href="#如何分析一个排序算法？" class="headerlink" title="如何分析一个排序算法？"></a>如何分析一个排序算法？</h2><ul>
-<li><p>算法的执行效率</p>
-<ul>
-<li>最好、最坏、平均情况时间复杂度</li>
-<li>时间复杂度的系数、常数、低阶</li>
-<li>比较次数和交换次数</li>
-</ul>
-</li>
-<li><p>排序算法的内存消耗</p>
-<ul>
-<li>算法的内存消耗可以通过空间复杂度来衡量</li>
-</ul>
-</li>
-<li><p>排序算法的稳定性</p>
-<ul>
-<li>稳定的排序算法(原有排序不变)</li>
-<li>不稳定的排序算法(原有排序改变)</li>
-</ul>
-</li>
-</ul>
-<h2 id="冒泡排序（Bubble-Sort）"><a href="#冒泡排序（Bubble-Sort）" class="headerlink" title="冒泡排序（Bubble Sort）"></a>冒泡排序（Bubble Sort）</h2><blockquote>
-<p>冒泡排序: 比较相邻的两个元素，经过一次排序后，最大的数会冒泡到最后。</p>
-<p>时间复杂度：O（n**2）</p>
-<p>空间复杂度：O（1）</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    冒泡排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        exchange = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(length - i - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">                exchange = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><blockquote>
-<p>插入排序，取未排序区间中的元素，在已排序区间中找到合适的插入为止将其插入，并保证已排序区间一直有序，重复这个过程，直到未排序空间中的元素为空</p>
-<p>有序空间左边肯定最小的，只需要每次比较未排序空间的第一个；</p>
-<p>满有序度：n*(n-1)/2=15</p>
-<p>时间复杂度：O(n**2)</p>
-<p>空间复杂度：O(1)</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        value = arr[i]</span><br><span class="line">        j = i - <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> arr[j] &gt; value:</span><br><span class="line">            arr[j + <span class="number">1</span>] = arr[i]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        arr[j] = value</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><blockquote>
-<p>选择排序是一种简单的排序算法，其基本思想是每次从待排序的元素中选择最小的元素，将其放到已排序的序列的末尾，从而得到一个新的有序序列；</p>
-<p>时间复杂度：O(n**2)</p>
-<p>空间复杂度：O(1)</p>
-<p>是否稳定：不稳定</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    选择排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        min_index = i</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span>, length):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; arr[min_index]:</span><br><span class="line">                min_index = j</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-<h2 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h2><blockquote>
-<p>归并排序，使用了分治思想，将一个数组分开为左小右大的无数个数组，然后合并；</p>
-<p>时间复杂度：O(logn)</p>
-<p>空间复杂度：O(n)</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">import</span> math</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    middle = math.floor(<span class="built_in">len</span>(arr)/<span class="number">2</span>)</span><br><span class="line">    left, right = arr[<span class="number">0</span>:middle], arr[middle:]</span><br><span class="line">    <span class="keyword">return</span> merge(merge_sort(left), merge_sort(right))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span>(<span class="params">left, right</span>):</span></span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">while</span> left <span class="keyword">and</span> right:</span><br><span class="line">        <span class="keyword">if</span> left[<span class="number">0</span>] &lt;= right[<span class="number">0</span>]:</span><br><span class="line">            result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> left:</span><br><span class="line">        result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> right:</span><br><span class="line">        result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
-
-<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><blockquote>
-<p>快排的思想是这样的：如果要排序数组中下标从 p 到 r 之间的一组数据，我们选择 p 到 r 之间的任意一个数据作为 pivot（分区点）。</p>
-<p>空间复杂度：O(n)</p>
-<p>时间复杂度：O(log(n))</p>
-<p>是否稳定：否</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr:<span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    快速排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">    privot = arr[<span class="number">0</span>]</span><br><span class="line">    less = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= privot]</span><br><span class="line">    greater = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; privot]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> quick_sort(less) + [privot] + quick_sort(greater)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>归并排序的处理过程是由下到上的，先处理子问题，然后再合并。而快排正好相反，它的处理过程是由上到下的，先分区，然后再处理子问题。</p>
-<h2 id="线性排序"><a href="#线性排序" class="headerlink" title="线性排序"></a>线性排序</h2><p>时间复杂度为 O(n) 的排序算法：桶排序、计数排序、基数排序。这三种排序算法的时间复杂度是线性的。</p>
-<h3 id="桶排序"><a href="#桶排序" class="headerlink" title="桶排序"></a>桶排序</h3><blockquote>
-<p>核心思想是将要排序的数据分到几个有序的桶里，每个桶里的数据再单独进行排序。桶内的数据排序完之后，再把每个桶内的数据按照顺序依次取出，组成的序列就是有序的</p>
-</blockquote>
-<h3 id="计数排序"><a href="#计数排序" class="headerlink" title="计数排序"></a>计数排序</h3><blockquote>
-<p>计数排序只能用在数据范围不大的场景中，如果数据范围 k 比要排序的数据 n 大很多，就不适合用计数排序了。而且，计数排序只能给非负整数排序，如果要排序的数据是其他类型的，要将其在不改变相对大小的情况下，转化为非负整数。</p>
-</blockquote>
-<h3 id="基数排序"><a href="#基数排序" class="headerlink" title="基数排序"></a>基数排序</h3><blockquote>
-<p>基数排序对要排序的数据是有要求的，需要可以分割出独立的“位”来比较，而且位之间有递进的关系，如果 a 数据的高位比 b 数据大，那剩下的低位就不用比较了。除此之外，每一位的数据范围不能太大，要可以用线性排序算法来排序，否则，基数排序的时间复杂度就无法做到 O(n) 了。</p>
-</blockquote>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>三种排序算法的时间复杂度均为 O(n</strong>2)，空间复杂度为 O(1), 除选择排序均为稳定的算法；</p>
-<p>三者排序思想都是将元素分为已排序空间和未排序空间，<strong>冒泡排序的思想是在未排序的空间中，找到最大的数放置最未排序空间的末端；</strong></p>
-<p><strong>选择排序是在未排序空间中，找到最小的数，放置到最左端；插入排序的思想则是如何将一个数插入到已排序空间中并保持有序；</strong></p>
-<p><strong>而为何大多使用插入排序，主要原因是插入排序中的赋值语句较为简单， 较少的数据交换</strong></p>
-<hr>
 ]]></content>
       <categories>
         <category>数据结构与算法</category>
