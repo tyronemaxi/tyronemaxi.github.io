@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://www.tianzhichao.com/posts/a1a87ec3/</loc>
+    
+    <lastmod>2023-06-27</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://www.tianzhichao.com/posts/426e2f30/</loc>
     
     <lastmod>2023-06-27</lastmod>
@@ -408,14 +417,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/gunicorn/</loc>
+    <loc>https://www.tianzhichao.com/tags/Go/</loc>
     <lastmod>2023-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/linux/</loc>
+    <loc>https://www.tianzhichao.com/tags/Redis/</loc>
     <lastmod>2023-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -429,14 +438,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/Go/</loc>
+    <loc>https://www.tianzhichao.com/tags/gunicorn/</loc>
     <lastmod>2023-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/Redis/</loc>
+    <loc>https://www.tianzhichao.com/tags/linux/</loc>
     <lastmod>2023-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -494,6 +503,20 @@
   </url>
   
   <url>
+    <loc>https://www.tianzhichao.com/categories/Go/</loc>
+    <lastmod>2023-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.tianzhichao.com/categories/redis/</loc>
+    <lastmod>2023-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://www.tianzhichao.com/categories/gunicorn/</loc>
     <lastmod>2023-06-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -509,20 +532,6 @@
   
   <url>
     <loc>https://www.tianzhichao.com/categories/MySQL/</loc>
-    <lastmod>2023-06-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/categories/Go/</loc>
-    <lastmod>2023-06-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/categories/redis/</loc>
     <lastmod>2023-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
