@@ -365,6 +365,70 @@
       </tags>
   </entry>
   <entry>
+    <title>Redis 高可用方案——主从复制</title>
+    <url>/posts/fef928ba/</url>
+    <content><![CDATA[<h1 id="Redis-高可用方案之主从复制"><a href="#Redis-高可用方案之主从复制" class="headerlink" title="Redis 高可用方案之主从复制"></a>Redis 高可用方案之主从复制</h1><p>今天来学习一下 Redis 的高可用方案中的主从复制。主从复制是指当我们部署了拥有多台 Redis 结点的集群时，为了保证数据的一致性，将主节点的数据复制到从节点上的过程。</p>
+<p>主从复制主要的目的是：</p>
+<ul>
+<li><strong>数据冗余</strong>：主从复制实现了数据的热备份。</li>
+<li><strong>故障恢复</strong>：当主节点出现问题时，可以根据哨兵选举出另外的主节点提供服务。</li>
+<li><strong>负载均衡</strong>：在主从复制的基础上，配合读写分离，可以由主节点提供写服务，由从节点提供读服务，在写少读多的场景下，通过多个从节点负担读负载，提升 Redis 服务器的并发量。</li>
+<li><strong>高可用基石</strong>：除了上述作用之外，主从复制还是哨兵和集群能够实施的基础。</li>
+</ul>
+<h2 id="主从复制原理"><a href="#主从复制原理" class="headerlink" title="主从复制原理"></a>主从复制原理</h2><ul>
+<li>全量复制：例如第一次同步数据时</li>
+<li>增量复制：只会把主从库网络断连期间主库收到的命令，同步给从库</li>
+</ul>
+<p>在 Redis 复制的基础上，使用和配置主从复制非常简单，能使得从 Redis 服务器 能精确地复制主服务器的数据。 主要依靠三个机制：</p>
+<ul>
+<li><strong>当一个 master 实例和一个 slave 实例连接正常时</strong>，master 会发送一连串的命令流来保持对 slave 的更新，以便对 slave 的更新，以便将自身的数据集的改变复制给 slave: 包括客户端的写入、key 的过期或被逐出等待。</li>
+<li><strong>当 master 和 slave 之间的连接断开之后</strong>，因为网络问题、或者时主从意识连接超时，slave 重新连接上 master 并会尝试 进行部分重同步：这意味着它会<strong>尝试只获取在断在连接期间内丢失的命令流</strong>。</li>
+<li><strong>当无法进行部分重同步时</strong>，slave 会请求进行全量同步。这会涉及一个更为复杂的过程，例如 master 需要创建所有数据的快照，将之发送 给 slave，之后在数据集更改时持续发送命令流到 slave</li>
+</ul>
+<p>Redis 使用的默认是<strong>异步复制</strong>，其特点是低延迟和高性能，是绝大多数 Redis 用例的自然复制模式。但是， 从 Redis 服务器会异步地确认其从主 Redis 服务器周期接收到的数据量。</p>
+<h3 id="redis-复制过程"><a href="#redis-复制过程" class="headerlink" title="redis 复制过程"></a>redis 复制过程</h3><ol>
+<li>从节点执行 slaveof [masterIP] [masterPort] , 保存主节点信息</li>
+<li>从节点中的定时任务发现主节点信息，建立与主节点的 socket 连接</li>
+<li>从节点发送 Ping 信号，主节点返回 Pong, 互相通信</li>
+<li>连接建立后，主节点将所有数据发送给从节点（数据同步）</li>
+<li>主节点把当前的数据同步给从节点后，便完成了辅助的建立过程。接下来，主节点就会持续的把写命令发送给从节点， 保证主从数据一致性</li>
+</ol>
+<h2 id="为什么主从全量复制使用-RDB-而不使用-AOF"><a href="#为什么主从全量复制使用-RDB-而不使用-AOF" class="headerlink" title="为什么主从全量复制使用 RDB 而不使用 AOF ?"></a>为什么主从全量复制使用 RDB 而不使用 AOF ?</h2><p>RDB 文件内容是经过压缩的<strong>二进制数据</strong>（不同数据类型数据做了针对性优化），<strong>文件很小</strong>。而 AOF 文件记录的是每一次写操作的命令，写操作越多文件会越大，其中还包括对同一个 key 的多次冗余操作。<strong>在主从全量数据同步时，传输 RDB 文件可以尽量降低对主库机器网络带宽的消耗。</strong>对于二进制数据，从库直接按照 RDB 协议还原数据即可，速度会非常快，而 AOF 需要依次重放每个写命令，这个过程会经历冗长的处理逻辑，恢复速度相比 RDB 会慢很多。所以使用 RDB 进行主从全量复制的成本最低。</p>
+<h2 id="读写分离及其中的问题"><a href="#读写分离及其中的问题" class="headerlink" title="读写分离及其中的问题"></a>读写分离及其中的问题</h2><p>在主从复制基础上实现的读写分离，可以实现 Redis 的读负载均衡：由主节点提供写服务，由一个或多个从节点提供读服务；在读负载较大的应用场景下，可以大大提高 Redis 服务器的并发量。但是由于服务时异步的，也会存在相关问题：</p>
+<ul>
+<li><p>延迟与不一致问题</p>
+<p>由于主从复制的命令传播是异步的，延迟与数据一致性不可避免。若应用对数据不一致的接受程度较低，可能的优化措施包括：<strong>优化主从节点之间的网络环境</strong>（如同机房部署）；监控主从节点延迟（通过 offset ）判断，若从节点延迟较大，通知应用不再通过该从节点读取数据；<strong>使用集群同时扩展写负载和读负载等。</strong></p>
+</li>
+</ul>
+<p>在命令传播阶段以外的其他情况下，从节点的数据不一致可能更加严重，例如连接在数据同步阶段，或从节点失去与主节点连接时等。<strong>从节点的 slave-serve-stale-data 参数便与此有关：</strong>它控制这种情况下从节点的表现；如果为 yes (默认值)，则从节点仍然能够响应客户端的命令，如果为 no，则从节点只能响应 info\slaveof 等少数命令。<strong>若对数据一致性要求很高，则应设置为 no</strong></p>
+<ul>
+<li><p>数据过期问题</p>
+<p>在单机版 Redis 中，存在两种删除策略：</p>
+<ul>
+<li>惰性删除：服务器不会主动删除数据，只有当客户端查询某个数据时，服务器判断该数据是否过期，若过期则删除。</li>
+<li>定期删除：服务器指定定时任务删除过期数据，但是考虑到内存和 CPU （删除会释放内存，但是频繁删除操作对 CPU 不太友好），该删除的频率和执行时间都受到了限制。</li>
+</ul>
+<p>对于定期删除而言，Redis 每秒 10 次：</p>
+<ul>
+<li>测试随机的 20 个 keys 进行相关过期检测</li>
+<li>删除所有已经过期的 keys</li>
+<li>如果有多于 25% 的 keys 过期，重复步骤 1.</li>
+</ul>
+<p>当不断进行重复时，知道过期的 keys 的百分比低于25%，在任何给定的时刻，最多会清除 1/4 的过期 keys。</p>
+</li>
+</ul>
+<p>参考：</p>
+<p><a href="https://pdai.tech/md/db/nosql-redis/db-redis-x-copy.html">https://pdai.tech/md/db/nosql-redis/db-redis-x-copy.html</a></p>
+<p><a href="http://www.redis.cn/topics/replication.html">http://www.redis.cn/topics/replication.html</a></p>
+]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>Redis</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>python 中的序列协议一览</title>
     <url>/posts/73c8dd96/</url>
     <content><![CDATA[<h1 id="python-中的序列协议一览"><a href="#python-中的序列协议一览" class="headerlink" title="python 中的序列协议一览"></a>python 中的序列协议一览</h1><blockquote>
