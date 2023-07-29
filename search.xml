@@ -4899,4 +4899,98 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
         <tag>数据结构与算法</tag>
       </tags>
   </entry>
+  <entry>
+    <title>经典排序算法-冒泡/插入/选择排序</title>
+    <url>/posts/a90fa35e/</url>
+    <content><![CDATA[<h1 id="经典排序算法——冒泡、选择、插入"><a href="#经典排序算法——冒泡、选择、插入" class="headerlink" title="经典排序算法——冒泡、选择、插入"></a>经典排序算法——冒泡、选择、插入</h1><p>今天我们一起来回顾三种排序算法，这三种排序算法的平均时间复杂度都是 <code>O(n^2)</code>，都是属于原地排序的算法。</p>
+<h2 id="冒泡排序"><a href="#冒泡排序" class="headerlink" title="冒泡排序"></a>冒泡排序</h2><p>首先学习的是冒泡排序算法，我们还是使用 3W 方法来学习，What? Why? How?</p>
+<p>什么是冒泡排序？</p>
+<p><strong>冒泡排序指的是对于一组数据，只会操作相邻的两个数据，对其进行比较，判断是否满足大小关系，如果不满足则互换位置，一次冒泡至少会让一个数据移动到其该有的位置。</strong></p>
+<p>为什么要使用冒泡排序？</p>
+<p>对于一种排序算法，其需要从实现复杂度，空间复杂度，时间复杂度上来理解，对于冒泡排序而言，其时间复杂度为 <code>O（n^2）</code>，空间复杂度为 O(1)，且为原地的排序算法。</p>
+<p>如何实现冒泡排序？</p>
+<p>首先，我们可以通过一个例子来观察冒泡排序的具体细节。</p>
+<p>这是一组未排序的数据：<code>[9, 10, 2, 0, 2, 3, 0]</code></p>
+<table>
+<thead>
+<tr>
+<th>冒泡次数</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第一次</td>
+<td>[9,  2,  0,  2,  3,  0, 10]</td>
+</tr>
+<tr>
+<td>第二次</td>
+<td>[2,  0,  2,  3,  0,  9, 10]</td>
+</tr>
+<tr>
+<td>第三次</td>
+<td>[2,  0,  2,  0,  3,  9, 10]</td>
+</tr>
+<tr>
+<td>第四次</td>
+<td>[0,  2,  0,  2,  3,  9, 10]</td>
+</tr>
+<tr>
+<td>第五次</td>
+<td>[0,  0,  2,  2,  3,  9, 10]</td>
+</tr>
+<tr>
+<td>第六次</td>
+<td>[0,  0,  2,  2,  3,  9, 10]</td>
+</tr>
+<tr>
+<td>第七次</td>
+<td>[0,  0,  2,  2,  3,  9, 10]</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>以上就是冒泡排序的详细细节。</p>
+<p>从每次的排序过程中，我们可以看到，对于这组数组而言，其实是在构建有序范围和无序范围。例如，第一次冒泡，有序空间为：<code>arr[6:6]</code>, 无序空间为：<code>arr[0:6]</code></p>
+<p>现在：我们可以基于以上的结论实现冒泡排序了，本次使用的是 Python 编程。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">  <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">  冒泡排序</span></span><br><span class="line"><span class="string">  &quot;&quot;&quot;</span></span><br><span class="line">  n = <span class="built_in">len</span>(arr)</span><br><span class="line">  <span class="keyword">if</span> n &lt;= <span class="number">1</span>:</span><br><span class="line">    <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n):</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(n-i-<span class="number">1</span>):</span><br><span class="line">      <span class="keyword">if</span> arr[j] &gt; arr[j+<span class="number">1</span>]:</span><br><span class="line">        arr[j], arr[j+<span class="number">1</span>] = arr[j+<span class="number">1</span>], arr[j]</span><br><span class="line">  <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<p>然后在 5，6， 7 次排序的过程中，我们发现数据已经在第 5 次排序完成了。</p>
+<p>此时，我们可以进一步优化, 在一次冒泡中是否发生数据交换标识位来判断是否已经排序完成。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">  <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">  冒泡排序</span></span><br><span class="line"><span class="string">  &quot;&quot;&quot;</span></span><br><span class="line">  n = <span class="built_in">len</span>(arr)</span><br><span class="line">  <span class="keyword">if</span> n &lt;= <span class="number">1</span>:</span><br><span class="line">    <span class="keyword">return</span> arr</span><br><span class="line"> </span><br><span class="line">  <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n):</span><br><span class="line">    exchange = <span class="literal">False</span></span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(n-i-<span class="number">1</span>):</span><br><span class="line">      <span class="keyword">if</span> arr[j] &gt; arr[j+<span class="number">1</span>]:</span><br><span class="line">        arr[j], arr[j+<span class="number">1</span>] = arr[j+<span class="number">1</span>], arr[j]</span><br><span class="line">        exchange = <span class="literal">True</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">      <span class="keyword">break</span></span><br><span class="line"> </span><br><span class="line">  <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<p>以上就是冒泡排序的总结了</p>
+<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><p>在学习完冒泡排序后，我们接下来学习插入排序。</p>
+<p>什么是插入排序呢？</p>
+<p><strong>我们通过一个问题来学习插入排序，一个有序的数组，如何插入一个数据，使得其仍然有序？插入排序便是这样的思想，在每次排序时，构建有序空间，将无序空间中的数据放置在有序空间中该有的位置（满足大小关系）。</strong></p>
+<p>同样，插入排序的时间复杂度为 <code>o(n^2)</code>, 空间复杂度为 <code>O（1）</code>实现复杂度较于冒泡排序而言难度高一些。</p>
+<p>我们还是通过一个例子来学习插入排序。</p>
+<p>现在有一组未排序的数组 <code>[9, 10, 2, 0, 2, 3, 0]</code>。</p>
+<p>这里也是通过一个例子来看一下插入排序的详细过程。</p>
+<img src="/Users/tyronemaxi/Downloads/3031690552330_.pic_hd_副本.jpg" alt="3031690552330_.pic_hd_副本" style="zoom:10%;" />
+
+<p>现在使用 python 进行编程</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    插入排序</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        flag = arr[i]</span><br><span class="line">        j = i-<span class="number">1</span></span><br><span class="line">        </span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> flag &lt; arr[j]:</span><br><span class="line">            arr[j+<span class="number">1</span>] = arr[j]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line">        arr[j+<span class="number">1</span>] = flag</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> arr</span><br><span class="line">  </span><br></pre></td></tr></table></figure>
+
+<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><p>接下来，我们学习最后一个排序算法是选择排序。</p>
+<p>那么什么是选择排序呢？</p>
+<p>选择排序的实现原理和插入排序较为类似，也分为有序区间和无序区间，但是每次选择排序都是找到未排序中最小的元素，将其放置已排序空间末尾。</p>
+<p>其时间复杂度为 <code>O(n^2)</code>, 空间复杂度为 <code>O(1)</code>, 个人觉得实现复杂度较选择排序而言相对简单一些。</p>
+<p>同样，我们还是使用一个例子，观察其排序细节来进行学习。</p>
+<img src="/Users/tyronemaxi/Library/Application Support/typora-user-images/image-20230728233635871.png" alt="image-20230728233635871" style="zoom:30%;" />
+
+<p>在上面的例子中，我们可以看到，每次都查找未排序数组最小的值和有序数组末尾+1 的值进行交换，从而进行排序。</p>
+<p>现在，我们使用 python 来实现：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">  <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">  选择排序</span></span><br><span class="line"><span class="string">  &quot;&quot;&quot;</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(n):</span><br><span class="line">        min_index = i</span><br><span class="line">        min_value = arr[i]</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i, n):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; min_value:</span><br><span class="line">                min_index = j</span><br><span class="line">                min_value = arr[j]</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<p>今天学习的三种排序算法，在实际应用中较少，但是对于小规模的数据，用起来非常高效。但是插入排序还是挺有用的。</p>
+]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
 </search>
