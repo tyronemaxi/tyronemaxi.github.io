@@ -365,8 +365,8 @@
       </tags>
   </entry>
   <entry>
-    <title></title>
-    <url>/posts/0/</url>
+    <title>unix 中的五种 IO 模型</title>
+    <url>/posts/baf320b1/</url>
     <content><![CDATA[<h2 id="unix-中的五种-IO-模型"><a href="#unix-中的五种-IO-模型" class="headerlink" title="unix 中的五种 IO 模型"></a>unix 中的五种 IO 模型</h2><ul>
 <li>阻塞式 I/O</li>
 <li>非阻塞式 I/O</li>
@@ -413,6 +413,12 @@
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># epoll 并不一定比 select 好</span><br><span class="line"># 在高并发的情况下，连接活跃数不是很高，epoll 比 select 好</span><br><span class="line"># 并发性不高，同时连接很活跃，select 比 epoll 好</span><br></pre></td></tr></table></figure>
 
 ]]></content>
+      <categories>
+        <category>网络 IO 模型</category>
+      </categories>
+      <tags>
+        <tag>网络 IO 模型</tag>
+      </tags>
   </entry>
   <entry>
     <title>多进程编程</title>
@@ -2392,91 +2398,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>golang 垃圾回收机制</title>
-    <url>/posts/88f7796/</url>
-    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
-<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
-</blockquote>
-<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
-<thead>
-<tr>
-<th>版本</th>
-<th>GC 算法</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>v1.1</td>
-<td>STW(stop the world)</td>
-</tr>
-<tr>
-<td>v1.3</td>
-<td>Mark STW,Sweep（标记清除）</td>
-</tr>
-<tr>
-<td>v1.5</td>
-<td>三色标记</td>
-</tr>
-<tr>
-<td>v1.8</td>
-<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
-</tr>
-</tbody></table>
-<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
-<li><ol>
-<li>找出不可达对象，mark</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>回收标记好的对象</li>
-</ol>
-</li>
-</ul>
-<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
-<p>标记清除算法存在的问题</p>
-<ul>
-<li>stop the world 程序会暂停，即程序会出现卡顿</li>
-<li>标记需要扫描整个堆（heap）</li>
-<li>清除数据会产生 heap 碎片</li>
-</ul>
-<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
-<ul>
-<li><strong>灰色：对象还在标记队列中等待</strong></li>
-<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
-<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
-</ul>
-<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
-<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
-<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
-<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
-<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
-<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
-<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
-<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
-</ol>
-<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
-<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
-<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
-<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
-</li>
-<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
-</li>
-<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
-</li>
-</ol>
-]]></content>
-      <categories>
-        <category>Go</category>
-      </categories>
-      <tags>
-        <tag>Go</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -2600,6 +2521,91 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       <tags>
         <tag>Redis</tag>
         <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>golang 垃圾回收机制</title>
+    <url>/posts/88f7796/</url>
+    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
+<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
+</blockquote>
+<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
+<thead>
+<tr>
+<th>版本</th>
+<th>GC 算法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v1.1</td>
+<td>STW(stop the world)</td>
+</tr>
+<tr>
+<td>v1.3</td>
+<td>Mark STW,Sweep（标记清除）</td>
+</tr>
+<tr>
+<td>v1.5</td>
+<td>三色标记</td>
+</tr>
+<tr>
+<td>v1.8</td>
+<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
+</tr>
+</tbody></table>
+<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
+<li><ol>
+<li>找出不可达对象，mark</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>回收标记好的对象</li>
+</ol>
+</li>
+</ul>
+<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
+<p>标记清除算法存在的问题</p>
+<ul>
+<li>stop the world 程序会暂停，即程序会出现卡顿</li>
+<li>标记需要扫描整个堆（heap）</li>
+<li>清除数据会产生 heap 碎片</li>
+</ul>
+<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
+<ul>
+<li><strong>灰色：对象还在标记队列中等待</strong></li>
+<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
+<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
+</ul>
+<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
+<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
+<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
+<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
+<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
+<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
+<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
+<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
+</ol>
+<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
+<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
+<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
+<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
+</li>
+<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
+</li>
+<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Go</category>
+      </categories>
+      <tags>
+        <tag>Go</tag>
       </tags>
   </entry>
   <entry>
@@ -3003,85 +3009,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 
 
 <h2 id="refs"><a href="#refs" class="headerlink" title="refs"></a>refs</h2><p><a href="https://pyzh.readthedocs.io/en/latest/python-magic-methods-guide.html#id5">https://pyzh.readthedocs.io/en/latest/python-magic-methods-guide.html#id5</a></p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>面向对象的 SOLID 原则</title>
-    <url>/posts/b2c40e9d/</url>
-    <content><![CDATA[<h2 id="面向对象的-SOLID-原则"><a href="#面向对象的-SOLID-原则" class="headerlink" title="面向对象的 SOLID 原则"></a>面向对象的 SOLID 原则</h2><blockquote>
-<p>SOLID 原则是面向对象 class 设计的五条原则</p>
-<p>由 Robert C · Martin 提出的，其著作有 《代码整洁之道》《架构整洁之道》</p>
-</blockquote>
-<p>其目标是一致的：</p>
-<blockquote>
-<p>创建可多人协作的、易于理解的、易读的以及可测试的代码</p>
-</blockquote>
-<p>依次看一下 SOLID 原则：</p>
-<ul>
-<li>S 职责单一原则</li>
-<li>O 开闭原则</li>
-<li>L 里式替换原则</li>
-<li>I 接口隔离原则</li>
-<li>D 依赖倒置原则</li>
-</ul>
-<h2 id="SRP-Single-Responsibility-Principle"><a href="#SRP-Single-Responsibility-Principle" class="headerlink" title="SRP (Single Responsibility Principle)"></a>SRP (Single Responsibility Principle)</h2><blockquote>
-<p>职责单一原则——软件设计的低耦合、高内聚，提高内聚性来减少引起变化的原因</p>
-</blockquote>
-<p>核心思想：<strong>一个 Class 只做一件事情，并把这件事做好，其只有一个引起其变化的原则（职责变化）</strong></p>
-<p>因此，减少各个模块的依赖，确保一个 Class 只做一种工作。</p>
-<p>示例：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">User</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">create</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">delete</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">update_info</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Book</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">add</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">show</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"> </span><br></pre></td></tr></table></figure>
-
-<h2 id="OCP-Open-Closed-Principle"><a href="#OCP-Open-Closed-Principle" class="headerlink" title="OCP (Open/Closed Principle)"></a>OCP (Open/Closed Principle)</h2><blockquote>
-<p>开闭原则</p>
-</blockquote>
-<p>核心思想：<strong>模块是可扩展的，而不可修改的</strong></p>
-<p>当存在已有模块方法时，对于新的需求或者变化时，可以对现有代码进行扩展，以适应新的情况。</p>
-<p>对修改封闭，意味着一旦设计完成，就可以独立完成一些需求，而不要对类进行修改</p>
-<p><strong>当然，对于重构而言，该原则可适当调整。（随机应变）</strong></p>
-<h2 id="LSP-Liskov-substation-Principle"><a href="#LSP-Liskov-substation-Principle" class="headerlink" title="LSP (Liskov substation Principle)"></a>LSP (Liskov substation Principle)</h2><blockquote>
-<p>里氏代换原则</p>
-</blockquote>
-<p><strong>Rober C. Martin 将该原则最终简化为：  <code>Subtypes must be subsititutable for theire bases types</code>——子类必须能够替换成它们的父类</strong></p>
-<ul>
-<li><p>子类可以替换成它们的父类，并且经过替换之后，代码还能正常工作</p>
-</li>
-<li><p>在代码中，不应该出现 if/else 之类来对子类类型进行判断的条件。</p>
-</li>
-<li><p>LSP 原则是使代码符合开闭原则的一个重要保证，正是由于子类的可替换性才使得父类的模块在无需修改的情况下就可以扩展。</p>
-</li>
-</ul>
-<p><strong>LSP 原则其实对应 Python 中的继承和多态，即子类可以继承父类的属性和方法，子类也可以修改并扩展父类；</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Animal</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name, age</span>):</span></span><br><span class="line">    self.name = name</span><br><span class="line">    self.age = age</span><br><span class="line">    </span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">eat</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">sleep</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Dog</span>(<span class="params">Animal</span>):</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">sing</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;wangwang&quot;</span>)</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">sleep</span>():</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;sleep&quot;</span>)</span><br><span class="line">  </span><br></pre></td></tr></table></figure>
-
-<h2 id="ISP-Interface-Segregation-Principle"><a href="#ISP-Interface-Segregation-Principle" class="headerlink" title="ISP (Interface Segregation Principle)"></a>ISP (Interface Segregation Principle)</h2><blockquote>
-<p>接口隔离原则</p>
-</blockquote>
-<p>核心思想：使用专门的接口，而不是单一的总接口，即客户端不应该依赖那些它不需要的接口</p>
-<p>例如：总接口 Animal</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> abc <span class="keyword">import</span> ABCMeta, abstractmethod</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Animal</span>(<span class="params">metacalss=ABCMeta</span>):</span></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">walk</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">   </span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">swim</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fly</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    </span><br></pre></td></tr></table></figure>
-
-<p>但是，并不是所有的 Animal 都会飞，游泳，于是:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">WalkAnimal</span>(<span class="params">metaclass=abc.ABCMeta</span>):</span></span><br><span class="line"><span class="meta">    @abc.abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">walk</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;walking...&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SwimAnimal</span>(<span class="params">metaclass=abc.ABCMeta</span>):</span></span><br><span class="line"><span class="meta">    @abc.abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">swim</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FlyAnimal</span>(<span class="params">metaclass=abc.ABCMeta</span>):</span></span><br><span class="line"><span class="meta">    @abc.abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fly</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="DIP-Dependency-Inversion-Principle"><a href="#DIP-Dependency-Inversion-Principle" class="headerlink" title="DIP (Dependency Inversion Principle)"></a>DIP (Dependency Inversion Principle)</h2><blockquote>
-<p>依赖倒置原则</p>
-</blockquote>
-<p>高层模块不应该依赖于低层模块的实现，而是依赖于高层抽象。</p>
-<p>冰箱的开关不应该依赖于电灯的开关实现，而是依赖于一个抽象的<strong>开关标准接口</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> abc</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Switch</span>(<span class="params">metaclass=abc.ABCMeta</span>):</span></span><br><span class="line"><span class="meta">    @abc.abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">on</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @abc.abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">off</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Light</span>(<span class="params">Switch</span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">on</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;light on&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">off</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;light off&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Refrigerator</span>(<span class="params">Switch</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">on</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;refrigerator on&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">off</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;refrigerator off&quot;</span>)</span><br><span class="line">        </span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://www.freecodecamp.org/chinese/news/solid-principles/">https://www.freecodecamp.org/chinese/news/solid-principles/</a></p>
-<p><a href="https://www.51cto.com/article/667555.html">https://www.51cto.com/article/667555.html</a></p>
-<p> <a href="https://blog.csdn.net/weixin_51098806/article/details/123908651">https://blog.csdn.net/weixin_51098806/article/details/123908651</a></p>
 ]]></content>
       <categories>
         <category>Python</category>
@@ -3830,6 +3757,51 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>GIL 解释及探究</title>
+    <url>/posts/723b604d/</url>
+    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
+<blockquote>
+<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
+</blockquote>
+<blockquote>
+<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
+</blockquote>
+<ul>
+<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
+<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
+<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
+</ul>
+<p>常见的 Python 解释器还有：</p>
+<ul>
+<li>CPython</li>
+<li>IPython</li>
+<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
+<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
+<li>IronPython: .Net 平台</li>
+</ul>
+<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
+<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 <strong>Python 的线程就是 C 语言的 pthread</strong>, 它是通过操作系统调度算法调度执行的。</p>
+<p>python3.x 进行了优化，<strong>基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放</strong><br>GIL，触发系统的线程调度。</p>
+<p>而在python3.x中，<strong>GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），</strong><br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
+<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
+<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
+<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
+<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
+<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
+<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
+<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
+<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>iter()</title>
     <url>/posts/3a33b362/</url>
     <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
@@ -4164,51 +4136,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <p>对于 IO 密集型的任务，可以考虑多线程编程；</p>
 <p>多线程的缺点就是 GIL  的存在以及锁会影响性能；</p>
 <p>但是进程的创建和销毁会高于线程，所以要结合具体应用场景去使用哦</p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GIL 解释及探究</title>
-    <url>/posts/723b604d/</url>
-    <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
-<blockquote>
-<p>In CPython, the global interpreter lock, or GIL, is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</p>
-</blockquote>
-<blockquote>
-<p>在 CPython 解释器中，全局解释器锁 GIL 是在于执行 Python 字节码时，为了保护访问 Python 对象而阻止多个线程执行的一把互斥锁。<br>这把锁的存在主要是因为 CPython 解释器的内存管理不是线程安全的。然而直到今天 GIL 依旧存在，现在很多功能已经习惯于依赖它作为执行的保证。</p>
-</blockquote>
-<ul>
-<li>GIL 是存在于 CPython 解释器中的，属于解释器层级，而并非属于 Python 的语言特性。也就是说，如果你自己有能力<br>实现一个 Python 解释器，完全可以不用 GIL。</li>
-<li>GIL 是为了让解释器在执行 Python 代码时，同一时刻只有一个线程在运行，以此保证<code>内存管理是安全</code>的</li>
-<li>历史原因，现在很多 Python 项目已经习惯于依赖 GIL (开发者认为 Python 就是线程安全的，写代码时对共享资源的访问不会加锁)</li>
-</ul>
-<p>常见的 Python 解释器还有：</p>
-<ul>
-<li>CPython</li>
-<li>IPython</li>
-<li>PyPy: 目标是加快执行速度，采用 JIT 技术，对 Python 代码进行动态编译，可以显著提高代码的执行速度。</li>
-<li>Jpython: 运行在 Java 平台的 Python 解释器，可以把 Python 编译为 Java 字节码</li>
-<li>IronPython: .Net 平台</li>
-</ul>
-<h2 id="GIL-带来的问题"><a href="#GIL-带来的问题" class="headerlink" title="GIL 带来的问题"></a>GIL 带来的问题</h2><p>一个 Python 线程想要执行一段代码，必须先拿到 <code>GIL 锁</code>后才被允许执行，也就是说，即使我们使用了多线程，但同一时刻却只有一个线程在执行。</p>
-<h2 id="GIL-原理"><a href="#GIL-原理" class="headerlink" title="GIL 原理"></a>GIL 原理</h2><p>其实，由于 <strong>Python 的线程就是 C 语言的 pthread</strong>, 它是通过操作系统调度算法调度执行的。</p>
-<p>python3.x 进行了优化，<strong>基于固定时间的调度方式，就是每执行固定时间的字节码，或者遇到系统 IO 时，强制释放</strong><br>GIL，触发系统的线程调度。</p>
-<p>而在python3.x中，<strong>GIL不使用 ticks 计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），</strong><br>这样对<strong>CPU密集型程序更加友好，但依然没有解决GIL导致的同一时间只能执行一个线程的问题</strong>，所以效率依然不尽如人意。</p>
-<p><strong>多核多线程比单核多线程更差，原因是单核下多线程，每次释放GIL，唤醒的那个线程都能获取到GIL锁，所以能够无缝执行，<br>但多核下，CPU0释放GIL后，其他CPU上的线程都会进行竞争，但GIL可能会马上又被CPU0拿到，导致其他几个CPU上被唤醒后的线程会醒着等待到切换时间后又进入待调度状态，这样会造成线程颠簸(thrashing)，导致效率更低</strong></p>
-<p>而线程在调度时，又依赖系统的 CPU 环境，也就是在单核 CPU 或者多核 CPU 下，多线程在调度切换时的成本是不同的。</p>
-<p>如果多线程运行一个 <code>CPU 密集型任务</code>，那么 Python 多线程是无法提高运行效率的。</p>
-<p>如果需要运行 IO 密集型任务，Python 多线程是可以提高运行效率的。</p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><ul>
-<li>IO 密集型任务场景，可以使用多线程提高运行效率</li>
-<li>CPU 密集型任务场景，不使用多线程，推荐使用多进程方式部署运行</li>
-<li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
-<li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
-</ul>
 ]]></content>
       <categories>
         <category>Python</category>
@@ -4788,129 +4715,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>排序算法一览</title>
-    <url>/posts/2c2cd033/</url>
-    <content><![CDATA[<h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><table>
-<thead>
-<tr>
-<th>排序算法</th>
-<th>时间复杂度</th>
-<th>是否基于比较</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>冒泡、插入、选择</td>
-<td>O(n**2)</td>
-<td>支持</td>
-<td>冒泡、插入、选择排序都有一个共同点，将待排序数列分为已排序和未排序两部分。在未排序的部分中查找一个最值，放到已排序数列的恰当位置。 具体到代码层面，外层循环的变量用于分割已排序和未排序数，内层循环的变量用于在未排序数中查找。从思路上看，这三种算法其实是一样的，所以时间复杂度也相同。</td>
-</tr>
-<tr>
-<td>快排、归并</td>
-<td>O(nlog(n))</td>
-<td>支持</td>
-<td>-</td>
-</tr>
-<tr>
-<td>桶、计数、基数</td>
-<td></td>
-<td></td>
-<td>-</td>
-</tr>
-</tbody></table>
-<h2 id="如何分析一个排序算法？"><a href="#如何分析一个排序算法？" class="headerlink" title="如何分析一个排序算法？"></a>如何分析一个排序算法？</h2><ul>
-<li><p>算法的执行效率</p>
-<ul>
-<li>最好、最坏、平均情况时间复杂度</li>
-<li>时间复杂度的系数、常数、低阶</li>
-<li>比较次数和交换次数</li>
-</ul>
-</li>
-<li><p>排序算法的内存消耗</p>
-<ul>
-<li>算法的内存消耗可以通过空间复杂度来衡量</li>
-</ul>
-</li>
-<li><p>排序算法的稳定性</p>
-<ul>
-<li>稳定的排序算法(原有排序不变)</li>
-<li>不稳定的排序算法(原有排序改变)</li>
-</ul>
-</li>
-</ul>
-<h2 id="冒泡排序（Bubble-Sort）"><a href="#冒泡排序（Bubble-Sort）" class="headerlink" title="冒泡排序（Bubble Sort）"></a>冒泡排序（Bubble Sort）</h2><blockquote>
-<p>冒泡排序: 比较相邻的两个元素，经过一次排序后，最大的数会冒泡到最后。</p>
-<p>时间复杂度：O（n**2）</p>
-<p>空间复杂度：O（1）</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    冒泡排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        exchange = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(length - i - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">                exchange = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><blockquote>
-<p>插入排序，取未排序区间中的元素，在已排序区间中找到合适的插入为止将其插入，并保证已排序区间一直有序，重复这个过程，直到未排序空间中的元素为空</p>
-<p>有序空间左边肯定最小的，只需要每次比较未排序空间的第一个；</p>
-<p>满有序度：n*(n-1)/2=15</p>
-<p>时间复杂度：O(n**2)</p>
-<p>空间复杂度：O(1)</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        value = arr[i]</span><br><span class="line">        j = i - <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> arr[j] &gt; value:</span><br><span class="line">            arr[j + <span class="number">1</span>] = arr[i]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        arr[j] = value</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><blockquote>
-<p>选择排序是一种简单的排序算法，其基本思想是每次从待排序的元素中选择最小的元素，将其放到已排序的序列的末尾，从而得到一个新的有序序列；</p>
-<p>时间复杂度：O(n**2)</p>
-<p>空间复杂度：O(1)</p>
-<p>是否稳定：不稳定</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    选择排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        min_index = i</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span>, length):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; arr[min_index]:</span><br><span class="line">                min_index = j</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-<h2 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h2><blockquote>
-<p>归并排序，使用了分治思想，将一个数组分开为左小右大的无数个数组，然后合并；</p>
-<p>时间复杂度：O(logn)</p>
-<p>空间复杂度：O(n)</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">import</span> math</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    middle = math.floor(<span class="built_in">len</span>(arr)/<span class="number">2</span>)</span><br><span class="line">    left, right = arr[<span class="number">0</span>:middle], arr[middle:]</span><br><span class="line">    <span class="keyword">return</span> merge(merge_sort(left), merge_sort(right))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span>(<span class="params">left, right</span>):</span></span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">while</span> left <span class="keyword">and</span> right:</span><br><span class="line">        <span class="keyword">if</span> left[<span class="number">0</span>] &lt;= right[<span class="number">0</span>]:</span><br><span class="line">            result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> left:</span><br><span class="line">        result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> right:</span><br><span class="line">        result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
-
-<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><blockquote>
-<p>快排的思想是这样的：如果要排序数组中下标从 p 到 r 之间的一组数据，我们选择 p 到 r 之间的任意一个数据作为 pivot（分区点）。</p>
-<p>空间复杂度：O(n)</p>
-<p>时间复杂度：O(log(n))</p>
-<p>是否稳定：否</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr:<span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    快速排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">    privot = arr[<span class="number">0</span>]</span><br><span class="line">    less = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= privot]</span><br><span class="line">    greater = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; privot]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> quick_sort(less) + [privot] + quick_sort(greater)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>归并排序的处理过程是由下到上的，先处理子问题，然后再合并。而快排正好相反，它的处理过程是由上到下的，先分区，然后再处理子问题。</p>
-<h2 id="线性排序"><a href="#线性排序" class="headerlink" title="线性排序"></a>线性排序</h2><p>时间复杂度为 O(n) 的排序算法：桶排序、计数排序、基数排序。这三种排序算法的时间复杂度是线性的。</p>
-<h3 id="桶排序"><a href="#桶排序" class="headerlink" title="桶排序"></a>桶排序</h3><blockquote>
-<p>核心思想是将要排序的数据分到几个有序的桶里，每个桶里的数据再单独进行排序。桶内的数据排序完之后，再把每个桶内的数据按照顺序依次取出，组成的序列就是有序的</p>
-</blockquote>
-<h3 id="计数排序"><a href="#计数排序" class="headerlink" title="计数排序"></a>计数排序</h3><blockquote>
-<p>计数排序只能用在数据范围不大的场景中，如果数据范围 k 比要排序的数据 n 大很多，就不适合用计数排序了。而且，计数排序只能给非负整数排序，如果要排序的数据是其他类型的，要将其在不改变相对大小的情况下，转化为非负整数。</p>
-</blockquote>
-<h3 id="基数排序"><a href="#基数排序" class="headerlink" title="基数排序"></a>基数排序</h3><blockquote>
-<p>基数排序对要排序的数据是有要求的，需要可以分割出独立的“位”来比较，而且位之间有递进的关系，如果 a 数据的高位比 b 数据大，那剩下的低位就不用比较了。除此之外，每一位的数据范围不能太大，要可以用线性排序算法来排序，否则，基数排序的时间复杂度就无法做到 O(n) 了。</p>
-</blockquote>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>三种排序算法的时间复杂度均为 O(n</strong>2)，空间复杂度为 O(1), 除选择排序均为稳定的算法；</p>
-<p>三者排序思想都是将元素分为已排序空间和未排序空间，<strong>冒泡排序的思想是在未排序的空间中，找到最大的数放置最未排序空间的末端；</strong></p>
-<p><strong>选择排序是在未排序空间中，找到最小的数，放置到最左端；插入排序的思想则是如何将一个数插入到已排序空间中并保持有序；</strong></p>
-<p><strong>而为何大多使用插入排序，主要原因是插入排序中的赋值语句较为简单， 较少的数据交换</strong></p>
-<hr>
-]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>为什么使用链表&amp;&amp;实现</title>
     <url>/posts/2c2cd033/</url>
     <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
@@ -5050,6 +4854,129 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">middleNode</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        </span><br><span class="line">        n, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> cur:</span><br><span class="line">            n += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        k, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> k &lt; n // <span class="number">2</span>:</span><br><span class="line">            k += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> cur</span><br></pre></td></tr></table></figure>
 
 <h1 id="链表实现源码"><a href="#链表实现源码" class="headerlink" title="链表实现源码"></a>链表实现源码</h1><p><a href="https://github.com/tyronemaxi/algorithm/tree/main/chain">https://github.com/tyronemaxi/algorithm/tree/main/chain</a></p>
+]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>排序算法一览</title>
+    <url>/posts/2c2cd033/</url>
+    <content><![CDATA[<h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><table>
+<thead>
+<tr>
+<th>排序算法</th>
+<th>时间复杂度</th>
+<th>是否基于比较</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>冒泡、插入、选择</td>
+<td>O(n**2)</td>
+<td>支持</td>
+<td>冒泡、插入、选择排序都有一个共同点，将待排序数列分为已排序和未排序两部分。在未排序的部分中查找一个最值，放到已排序数列的恰当位置。 具体到代码层面，外层循环的变量用于分割已排序和未排序数，内层循环的变量用于在未排序数中查找。从思路上看，这三种算法其实是一样的，所以时间复杂度也相同。</td>
+</tr>
+<tr>
+<td>快排、归并</td>
+<td>O(nlog(n))</td>
+<td>支持</td>
+<td>-</td>
+</tr>
+<tr>
+<td>桶、计数、基数</td>
+<td></td>
+<td></td>
+<td>-</td>
+</tr>
+</tbody></table>
+<h2 id="如何分析一个排序算法？"><a href="#如何分析一个排序算法？" class="headerlink" title="如何分析一个排序算法？"></a>如何分析一个排序算法？</h2><ul>
+<li><p>算法的执行效率</p>
+<ul>
+<li>最好、最坏、平均情况时间复杂度</li>
+<li>时间复杂度的系数、常数、低阶</li>
+<li>比较次数和交换次数</li>
+</ul>
+</li>
+<li><p>排序算法的内存消耗</p>
+<ul>
+<li>算法的内存消耗可以通过空间复杂度来衡量</li>
+</ul>
+</li>
+<li><p>排序算法的稳定性</p>
+<ul>
+<li>稳定的排序算法(原有排序不变)</li>
+<li>不稳定的排序算法(原有排序改变)</li>
+</ul>
+</li>
+</ul>
+<h2 id="冒泡排序（Bubble-Sort）"><a href="#冒泡排序（Bubble-Sort）" class="headerlink" title="冒泡排序（Bubble Sort）"></a>冒泡排序（Bubble Sort）</h2><blockquote>
+<p>冒泡排序: 比较相邻的两个元素，经过一次排序后，最大的数会冒泡到最后。</p>
+<p>时间复杂度：O（n**2）</p>
+<p>空间复杂度：O（1）</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    冒泡排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        exchange = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(length - i - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">                exchange = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><blockquote>
+<p>插入排序，取未排序区间中的元素，在已排序区间中找到合适的插入为止将其插入，并保证已排序区间一直有序，重复这个过程，直到未排序空间中的元素为空</p>
+<p>有序空间左边肯定最小的，只需要每次比较未排序空间的第一个；</p>
+<p>满有序度：n*(n-1)/2=15</p>
+<p>时间复杂度：O(n**2)</p>
+<p>空间复杂度：O(1)</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        value = arr[i]</span><br><span class="line">        j = i - <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> arr[j] &gt; value:</span><br><span class="line">            arr[j + <span class="number">1</span>] = arr[i]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        arr[j] = value</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><blockquote>
+<p>选择排序是一种简单的排序算法，其基本思想是每次从待排序的元素中选择最小的元素，将其放到已排序的序列的末尾，从而得到一个新的有序序列；</p>
+<p>时间复杂度：O(n**2)</p>
+<p>空间复杂度：O(1)</p>
+<p>是否稳定：不稳定</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    选择排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        min_index = i</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span>, length):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; arr[min_index]:</span><br><span class="line">                min_index = j</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<h2 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h2><blockquote>
+<p>归并排序，使用了分治思想，将一个数组分开为左小右大的无数个数组，然后合并；</p>
+<p>时间复杂度：O(logn)</p>
+<p>空间复杂度：O(n)</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">import</span> math</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    middle = math.floor(<span class="built_in">len</span>(arr)/<span class="number">2</span>)</span><br><span class="line">    left, right = arr[<span class="number">0</span>:middle], arr[middle:]</span><br><span class="line">    <span class="keyword">return</span> merge(merge_sort(left), merge_sort(right))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span>(<span class="params">left, right</span>):</span></span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">while</span> left <span class="keyword">and</span> right:</span><br><span class="line">        <span class="keyword">if</span> left[<span class="number">0</span>] &lt;= right[<span class="number">0</span>]:</span><br><span class="line">            result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> left:</span><br><span class="line">        result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> right:</span><br><span class="line">        result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
+
+<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><blockquote>
+<p>快排的思想是这样的：如果要排序数组中下标从 p 到 r 之间的一组数据，我们选择 p 到 r 之间的任意一个数据作为 pivot（分区点）。</p>
+<p>空间复杂度：O(n)</p>
+<p>时间复杂度：O(log(n))</p>
+<p>是否稳定：否</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr:<span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    快速排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">    privot = arr[<span class="number">0</span>]</span><br><span class="line">    less = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= privot]</span><br><span class="line">    greater = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; privot]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> quick_sort(less) + [privot] + quick_sort(greater)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>归并排序的处理过程是由下到上的，先处理子问题，然后再合并。而快排正好相反，它的处理过程是由上到下的，先分区，然后再处理子问题。</p>
+<h2 id="线性排序"><a href="#线性排序" class="headerlink" title="线性排序"></a>线性排序</h2><p>时间复杂度为 O(n) 的排序算法：桶排序、计数排序、基数排序。这三种排序算法的时间复杂度是线性的。</p>
+<h3 id="桶排序"><a href="#桶排序" class="headerlink" title="桶排序"></a>桶排序</h3><blockquote>
+<p>核心思想是将要排序的数据分到几个有序的桶里，每个桶里的数据再单独进行排序。桶内的数据排序完之后，再把每个桶内的数据按照顺序依次取出，组成的序列就是有序的</p>
+</blockquote>
+<h3 id="计数排序"><a href="#计数排序" class="headerlink" title="计数排序"></a>计数排序</h3><blockquote>
+<p>计数排序只能用在数据范围不大的场景中，如果数据范围 k 比要排序的数据 n 大很多，就不适合用计数排序了。而且，计数排序只能给非负整数排序，如果要排序的数据是其他类型的，要将其在不改变相对大小的情况下，转化为非负整数。</p>
+</blockquote>
+<h3 id="基数排序"><a href="#基数排序" class="headerlink" title="基数排序"></a>基数排序</h3><blockquote>
+<p>基数排序对要排序的数据是有要求的，需要可以分割出独立的“位”来比较，而且位之间有递进的关系，如果 a 数据的高位比 b 数据大，那剩下的低位就不用比较了。除此之外，每一位的数据范围不能太大，要可以用线性排序算法来排序，否则，基数排序的时间复杂度就无法做到 O(n) 了。</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>三种排序算法的时间复杂度均为 O(n</strong>2)，空间复杂度为 O(1), 除选择排序均为稳定的算法；</p>
+<p>三者排序思想都是将元素分为已排序空间和未排序空间，<strong>冒泡排序的思想是在未排序的空间中，找到最大的数放置最未排序空间的末端；</strong></p>
+<p><strong>选择排序是在未排序空间中，找到最小的数，放置到最左端；插入排序的思想则是如何将一个数插入到已排序空间中并保持有序；</strong></p>
+<p><strong>而为何大多使用插入排序，主要原因是插入排序中的赋值语句较为简单， 较少的数据交换</strong></p>
+<hr>
 ]]></content>
       <categories>
         <category>数据结构与算法</category>

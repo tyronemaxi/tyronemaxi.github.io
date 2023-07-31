@@ -373,7 +373,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://www.tianzhichao.com/posts/0/">
+    <link itemprop="mainEntityOfPage" href="https://www.tianzhichao.com/posts/baf320b1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -387,7 +387,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/posts/0/" class="post-title-link" itemprop="url">未命名</a>
+            <a href="/posts/baf320b1/" class="post-title-link" itemprop="url">unix 中的五种 IO 模型</a>
         </h2>
 
         <div class="post-meta">
@@ -398,7 +398,16 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2023-07-31 21:10:35 / 修改时间：21:14:24" itemprop="dateCreated datePublished" datetime="2023-07-31T21:10:35+08:00">2023-07-31</time>
+              <time title="创建时间：2023-07-31 14:36:24 / 修改时间：21:39:55" itemprop="dateCreated datePublished" datetime="2023-07-31T14:36:24+08:00">2023-07-31</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BD%91%E7%BB%9C-IO-%E6%A8%A1%E5%9E%8B/" itemprop="url" rel="index"><span itemprop="name">网络 IO 模型</span></a>
+                </span>
             </span>
 
           <br>
@@ -426,52 +435,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="unix-中的五种-IO-模型"><a href="#unix-中的五种-IO-模型" class="headerlink" title="unix 中的五种 IO 模型"></a>unix 中的五种 IO 模型</h2><ul>
-<li>阻塞式 I/O</li>
-<li>非阻塞式 I/O</li>
-<li>I/O 多路复用</li>
-<li>信号驱动式 I/O</li>
-<li>异步 I/O （POSIX 的 aio_系列函数）</li>
-</ul>
-<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="./image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
-
-<p>当采用阻塞式时，必须等待任务处理完成才能继续。<strong>其整体的逻辑是链式的</strong></p>
-<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="./image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
-
-<p>当采用非阻塞时，需要消耗 CPU 去做轮询的工作来得知任务是否处理完成，适用于多个不同类型任务的机制，但是采用 recvfrom 轮询的方式，不但消耗了 cpu 资源，也会增加代码的复杂度。</p>
-<h4 id="I-O-多路复用"><a href="#I-O-多路复用" class="headerlink" title="I/O 多路复用"></a>I/O 多路复用</h4><p>I/O 多路复用应用非常广泛，这里重点介绍一下：</p>
-<p>IO 多路复用是一种高效的编程模型<strong>，用于同时监控多个 IO 的可读，可写或异常状态，从而实现在单个线程中处理多个 IO 任务的能力</strong>。它通常用于网络编程中，以提高程序的并发性和性能。</p>
-<img src="./image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
-
-<p>select 是阻塞的，可以监听多个文件句柄，当某一个文件句柄的状态发生变化时，会立即返回。</p>
-<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="./image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
-
-
-
-<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="./image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
-
-
-
-<p>其相对于 IO 多路复用而言，少了将数据从内核复制到用户空间的步骤，节省了时间</p>
-<h4 id="select-poll-epoll"><a href="#select-poll-epoll" class="headerlink" title="select\poll\epoll"></a>select\poll\epoll</h4><blockquote>
-<p><code>select</code>、<code>poll</code>和<code>epoll</code>是用于<strong>实现IO多路复用的系统调用或函数。它们在不同的操作系统中提供了类似的功能，允许程序同时监视多个IO对象的状态。</strong></p>
-<p>这些IO多路复用机制在网络编程中经常使用，特别是在服务器端的开发中，以处理大量并发的IO操作。它们允许程序同时监听多个套接字的可读、可写或异常状态，并在其中至少有一个套接字就绪时通知应用程序进行相应的处理。</p>
-<p>下面是对<code>select</code>、<code>poll</code>和<code>epoll</code>的简要解释：</p>
-<ol>
-<li><code>select</code>：<code>select</code>是最古老和最常见的IO多路复用机制之一。它使用三个文件描述符集合（读、写和异常）来检查多个IO对象的状态。然后，它会阻塞等待，直到其中至少一个IO对象就绪或达到超时时间。然后，它返回就绪的IO对象，应用程序可以对其进行相应的操作。**<code>select</code>在每次调用时都需要重新构建文件描述符集合，效率较低。**</li>
-<li><code>poll</code>：<code>poll</code>是相对于<code>select</code>更现代和高效的IO多路复用机制。类似于<code>select</code>，<code>poll</code>使用一个文件描述符数组来检查多个IO对象的状态。<strong>与<code>select</code>不同的是，<code>poll</code>不需要重新构建文件描述符集合，可以直接使用数组，从而提高了效率</strong>。它也能够处理更大的文件描述符数量。</li>
-<li><code>epoll</code>：<code>epoll</code>是在Linux系统中提供的高效的IO多路复用机制。它引入了三个主要的概念：<code>epoll_create</code>、<code>epoll_ctl</code>和<code>epoll_wait</code>。<code>epoll_create</code>用于创建一个epoll对象，<code>epoll_ctl</code>用于向epoll对象注册或删除IO对象，<code>epoll_wait</code>用于等待IO对象就绪。与<code>select</code>和<code>poll</code>不同，<code>epoll</code>使用了事件驱动的方式，只通知就绪的IO对象，从而避免了遍历整个IO对象集合的开销，提高了性能和扩展性。它还支持边缘触发（edge-triggered）和水平触发（level-triggered）两种模式。</li>
-</ol>
-<p>需要注意的是，这些IO多路复用机制的具体使用和细节可能因操作系统而异。在选择使用哪个机制时，需要考虑操作系统的支持、应用程序的需求以及性能等因素。对于大多数情况，<code>epoll</code>在Linux系统中通常是最佳选择，因为它提供了更高的性能和扩展性。</p>
-</blockquote>
-<p>简单概括：</p>
-<p>select 函数监听的文件描述符分为三类，分别是 writefds、readfds 和 exceptfds。调用后 select 函数会阻塞，直到有描述符就绪（有数据 可读、可写、或者有 except）或者超时（timeout 指定等待的时间，如果立即返回设置为 null 即可），函数返回。当 select 函数返回后，可以 通过遍历 fdset，来找到就绪的描述符。</p>
-<p><strong>select 目前几乎在所有平台上都支持，其良好的跨平台支持也是它的一个优点。select 的一个缺点在于单个进程能够监视的文件描述符的数量存在最大限制，在 linux 上一般为 1024，可以通过修改宏定义甚至重新编译内核的方式提升这一限制，但是这样也会造成效率的降低。</strong></p>
-<p>epool 是在 2.6 内核中提出的，是之前的 select 和 poll 的增强版本。相对于 select 和 poll 而言，epoll 更加灵活，没有描述符限制。epoll 使用一个文件描述符对象来管理多个描述符，将用户关系的文件描述符的事件存放于内核的一个事件表中，这样在用户空间和内核空间的 copy 只需要一次。</p>
-<p>epoll 的查询效率非常高，其背后的数据结构是因为其存储结构是一个红黑树实现的。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># epoll 并不一定比 select 好</span><br><span class="line"># 在高并发的情况下，连接活跃数不是很高，epoll 比 select 好</span><br><span class="line"># 并发性不高，同时连接很活跃，select 比 epoll 好</span><br></pre></td></tr></table></figure>
-
-
+          <p>unix 中的五种 IO 模型</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/posts/baf320b1/">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1229,7 +1201,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">46</span>
+          <span class="site-state-item-count">45</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1282,12 +1254,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">195k</span>
+    <span title="站点总字数">192k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">2:57</span>
+    <span title="站点阅读时长">2:55</span>
 </div>
 <!--
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

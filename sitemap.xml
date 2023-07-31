@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://www.tianzhichao.com/posts/0/</loc>
+    <loc>https://www.tianzhichao.com/posts/baf320b1/</loc>
     
     <lastmod>2023-07-31</lastmod>
     
@@ -191,7 +191,7 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/posts/a165b642/</loc>
+    <loc>https://www.tianzhichao.com/posts/26a608fc/</loc>
     
     <lastmod>2023-05-10</lastmod>
     
@@ -200,7 +200,7 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/posts/26a608fc/</loc>
+    <loc>https://www.tianzhichao.com/posts/a165b642/</loc>
     
     <lastmod>2023-05-10</lastmod>
     
@@ -248,15 +248,6 @@
     <loc>https://www.tianzhichao.com/posts/ac41cac4/</loc>
     
     <lastmod>2023-05-10</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://www.tianzhichao.com/posts/b2c40e9d/</loc>
-    
-    <lastmod>2023-02-09</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -487,14 +478,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/Go/</loc>
+    <loc>https://www.tianzhichao.com/tags/MySQL/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/MySQL/</loc>
+    <loc>https://www.tianzhichao.com/tags/Go/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -515,14 +506,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/%E7%BD%91%E7%BB%9C-IO-%E6%A8%A1%E5%9E%8B/</loc>
+    <loc>https://www.tianzhichao.com/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/</loc>
+    <loc>https://www.tianzhichao.com/tags/%E7%BD%91%E7%BB%9C-IO-%E6%A8%A1%E5%9E%8B/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -580,14 +571,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/MySQL/</loc>
+    <loc>https://www.tianzhichao.com/categories/gunicorn/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/gunicorn/</loc>
+    <loc>https://www.tianzhichao.com/categories/MySQL/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -601,14 +592,14 @@
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/%E7%BD%91%E7%BB%9C-IO-%E6%A8%A1%E5%9E%8B/</loc>
+    <loc>https://www.tianzhichao.com/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://www.tianzhichao.com/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/</loc>
+    <loc>https://www.tianzhichao.com/categories/%E7%BD%91%E7%BB%9C-IO-%E6%A8%A1%E5%9E%8B/</loc>
     <lastmod>2023-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
