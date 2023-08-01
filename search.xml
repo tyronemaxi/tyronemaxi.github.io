@@ -797,6 +797,61 @@
       </tags>
   </entry>
   <entry>
+    <title>IO 多路复用原理及实现</title>
+    <url>/posts/99dcd5a7/</url>
+    <content><![CDATA[<h1 id="IO-多路复用原理及实现"><a href="#IO-多路复用原理及实现" class="headerlink" title="IO 多路复用原理及实现"></a>IO 多路复用原理及实现</h1><blockquote>
+<p>IO 多路复用是一种用于提高程序性能的网络编程技术。它通过在一个线程内同时监听多个输入输出流（通常是网络套接字），实现了在单个线程中处理多个并发的 IO 操作。这样可以避免创建大量的线程或进程，从而减少资源消耗和提高程序的并发处理能力。</p>
+</blockquote>
+<p><strong>今天我们一起学习 IO 多路复用的网络模型。在学习之前，请允许我介绍一下什么是 IO 多路复用模型？以及为什么要用到它？</strong></p>
+<p>在传统的阻塞 IO 模型中，当一个线程处理一个 IO 操作时，如果 IO 操作未完成，线程会被阻塞，无法处理其他的 IO 操作，这会导致效率低下。当然在非阻塞式的 IO 模型中，可以通过轮询的方式去获取任务是否处理完成，适用于不同类型任务的机制，但是这样也会特别消耗 cpu 资源，增加代码的复杂度。</p>
+<p>IO 多路复用则是很好的避免了这些，其是基于 select/pool/epool 系统函数来监听多个 IO 的状态，当某个 IO 的状态发生改变时，调用回调函数，从而实现在单个线程中处理多个 IO 任务的能力，提高并发。</p>
+<p>其中有 Nginx, Tornado, netty 等开源框架，都使用了 IO 多路复用模型，被广泛使用。</p>
+<p>关于 unix io 模型的种类，这篇文章有详细介绍：<a href="http://localhost:4000/posts/baf320b1/">http://localhost:4000/posts/baf320b1/</a></p>
+<h2 id="select-amp-amp-poll-amp-amp-epoll"><a href="#select-amp-amp-poll-amp-amp-epoll" class="headerlink" title="select &amp;&amp; poll &amp;&amp; epoll"></a>select &amp;&amp; poll &amp;&amp; epoll</h2><p>在介绍 IO 多路复用之前，先介绍一下这三个系统调用函数，其在不同的操作系统中提供了类似的功能，运行程序同时监听多个 IO 对象的状态。</p>
+<h3 id="select"><a href="#select" class="headerlink" title="select"></a>select</h3><p>select 是最古老和最常见的 IO 多路复用机制之一，<strong>它使用三个文件描述符集合（读、写、异常）来检查多个 IO 对象的状态</strong>，然后其会阻塞等待，直到其中至少一个 IO 对象就绪或达到超时时间。然后其就会返回就绪的 IO 对象，应用程序可以对其进行相应的操作。</p>
+<p><strong>但是 select 每次在调用时都会重新构建文件的描述符集合，效率较低。</strong></p>
+<h3 id="pool"><a href="#pool" class="headerlink" title="pool"></a>pool</h3><p>pool 相对于 select 而言，<strong>是更加现代化和高效的 IO 多路复用机制</strong>。<strong>pool 使用一个文件描述符组来检查多个 IO 对象的状态</strong>。与 select 不同的是，pool 不需要重新构建文件描述符集合，可以直接使用数组，从而提高了效率。<strong>它也能处理更大的文件描述符数量。</strong></p>
+<h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 是在 linux 系统中提供的高效的 IO 多路复用机制。它引入了 三个重要的概念：<code>epoll_create</code>，<code>epoll_ctl</code> 和 <code>epoll_wait </code>。epoll_create 用于创建一个 epoll 对象，epoll_ctl 用于向 epoll 对象注册或者删除 IO 对象，epoll_wait 用于等待 IO 对象就绪。<strong>与 select 和 poll 不同的是，epoll 使用了事件驱动的方式，只通知就绪的 IO 对象，从而避免了遍历整个 IO 对象集合的开销</strong>，提高了性能和可扩展性。其还支持边缘触发和水平触发两种模式。</p>
+<p>对比：对于 select 和 poll 而言，进程需要不断轮询每个文件描述符状态，以确定哪些描述符已经就绪，这种方式叫做轮询式（polling）。这样的轮询机制在文件描述符较小的情况下还可以接受，但是随着文件描述符数量的增多，效率会明显降低，因为大部分时间都在空转浪费 CPU 资源。</p>
+<p>epoll 通过时间驱动的方式解决了这个问题。在使用 epoll 的时候，进程首先会注册一组文件描述符到 Epoll 实例中，然后调用 Epoll 等待函数，例如 <code>epoll_wait()</code> 。epoll 等待函数会将进程置于阻塞的状态，直到以下三种事件之一发生：</p>
+<ul>
+<li> 文件描述符变为可读状态（有数据可以从该文件描述符读取）</li>
+<li>文件描述符可写（可以向该文件描述符写入数据）</li>
+<li>文件描述符异常（例如关闭）</li>
+</ul>
+<p>一旦有任何一个就绪事件发生，Epoll 等待函数就会立即返回，并且告知进程哪些文件描述符已经就绪。这样，进程就只需要处理那些真正需要处理的就绪事件，而不需要遍历所有的文件描述符，进而减少了不必要的 CPU 开销。</p>
+<p>通过事件驱动的方式，Epoll 在高并发环境中具有更好的性能，因为它避免了不必要的轮询，并且只关注真正需要处理的事件。这使得 Epoll 成为在 Linux 系统上进行高性能网络编程的首选技术之一。</p>
+<h2 id="IO-多路复用的实现"><a href="#IO-多路复用的实现" class="headerlink" title="IO 多路复用的实现"></a>IO 多路复用的实现</h2><p>为了更好的介绍 IO 多路复用网络模型，我们先说结论：</p>
+<p><strong>IO 多路复用实则是 回调+事件循环+ select(poll, epoll) 完成的， 通过在一个线程中监听多个网络套接字完成高并发。</strong></p>
+<p>首先，我先介绍一下 python 中的 select 函数，用于监听文件描述符的状态</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> selectors <span class="keyword">import</span> DefaultSelector, EVENT_READ, EVENT_WRITE</span><br></pre></td></tr></table></figure>
+
+<p>selectors 是一个高级 I/O 复用库。它建立在 select 模块原型的基础上， 其定义了一个 BaseSelector 抽象基类，以及多个实际的实现（KqueueSelector, EpollSelector），它们可被用于在多个文件对象上等待 I/O 就绪通知。</p>
+<p>详情可见：<a href="https://docs.python.org/zh-cn/3/library/selectors.html">https://docs.python.org/zh-cn/3/library/selectors.html</a></p>
+<p>好的，基本的准备工作已经介绍完了，接下来，我们将使用以上的知识实现一个 爬虫的工作，对一系列网页进行爬取工作。</p>
+<p>首先定义一个 <code>Fetcher</code> 类，用于完成 socket client 的封装</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">Author: tyrone</span></span><br><span class="line"><span class="string">File: select_test.py</span></span><br><span class="line"><span class="string">Time: 2023/7/8</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="comment"># 通过非阻塞io实现http请求</span></span><br><span class="line"><span class="comment"># select + 回调 + 事件循环</span></span><br><span class="line"><span class="comment">#  并发性高</span></span><br><span class="line"><span class="comment"># 使用单线程</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">from</span> urllib.parse <span class="keyword">import</span> urlparse</span><br><span class="line"><span class="keyword">from</span> selectors <span class="keyword">import</span> DefaultSelector, EVENT_READ, EVENT_WRITE</span><br><span class="line"></span><br><span class="line">selector = DefaultSelector()</span><br><span class="line"><span class="comment"># 使用select完成http请求</span></span><br><span class="line">urls = []</span><br><span class="line">stop = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fetcher</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">connected</span>(<span class="params">self, key</span>):</span></span><br><span class="line">        selector.unregister(key.fd)</span><br><span class="line">        self.client.send(</span><br><span class="line">            <span class="string">&quot;GET &#123;&#125; HTTP/1.1\r\nHost:&#123;&#125;\r\nConnection:close\r\n\r\n&quot;</span>.<span class="built_in">format</span>(self.path, self.host).encode(<span class="string">&quot;utf8&quot;</span>))</span><br><span class="line">        selector.register(self.client.fileno(), EVENT_READ, self.readable)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">readable</span>(<span class="params">self, key</span>):</span></span><br><span class="line">        d = self.client.recv(<span class="number">1024</span>)</span><br><span class="line">        <span class="keyword">if</span> d:</span><br><span class="line">            self.data += d</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            selector.unregister(key.fd)</span><br><span class="line">            data = self.data.decode(<span class="string">&quot;utf8&quot;</span>)</span><br><span class="line">            html_data = data.split(<span class="string">&quot;\r\n\r\n&quot;</span>)[<span class="number">1</span>]</span><br><span class="line">            <span class="built_in">print</span>(html_data)</span><br><span class="line">            self.client.close()</span><br><span class="line">            urls.remove(self.spider_url)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> urls:  <span class="comment"># 判断是否已抓取完成</span></span><br><span class="line">                <span class="keyword">global</span> stop</span><br><span class="line">                stop = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_url</span>(<span class="params">self, url</span>):</span></span><br><span class="line">        self.spider_url = url</span><br><span class="line">        url = urlparse(url)</span><br><span class="line">        self.host = url.netloc</span><br><span class="line">        self.path = url.path</span><br><span class="line">        self.data = <span class="string">b&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> self.path == <span class="string">&quot;&quot;</span>:</span><br><span class="line">            self.path = <span class="string">&quot;/&quot;</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 建立socket连接</span></span><br><span class="line">        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">        self.client.setblocking(<span class="literal">False</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self.client.connect((self.host, <span class="number">80</span>))  <span class="comment"># 阻塞不会消耗cpu</span></span><br><span class="line">        <span class="keyword">except</span> BlockingIOError <span class="keyword">as</span> e:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 注册</span></span><br><span class="line">        selector.register(self.client.fileno(), EVENT_WRITE, self.connected)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">loop</span>():</span></span><br><span class="line">    <span class="comment"># 事件循环，不停的请求socket的状态并调用对应的回调函数</span></span><br><span class="line">    <span class="comment"># 1. select本身是不支持register模式</span></span><br><span class="line">    <span class="comment"># 2. socket状态变化以后的回调是由程序员完成的</span></span><br><span class="line">    <span class="keyword">while</span> <span class="keyword">not</span> stop:</span><br><span class="line">        ready = selector.select()</span><br><span class="line">        <span class="keyword">for</span> key, mask <span class="keyword">in</span> ready:</span><br><span class="line">            call_back = key.data</span><br><span class="line">            call_back(key)</span><br><span class="line">    <span class="comment"># 回调+事件循环+select(poll\epoll)</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    fetcher = Fetcher()</span><br><span class="line">    <span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line">    start_time = time.time()</span><br><span class="line">    <span class="keyword">for</span> url <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">20</span>):</span><br><span class="line">        url = <span class="string">&quot;http://shop.projectsedu.com/goods/&#123;&#125;/&quot;</span>.<span class="built_in">format</span>(url)</span><br><span class="line">        urls.append(url)</span><br><span class="line">        fetcher = Fetcher()</span><br><span class="line">        fetcher.get_url(url)</span><br><span class="line">    loop()</span><br><span class="line">    <span class="built_in">print</span>(time.time() - start_time)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>在上述的代码中，其中比较重要的概念是：</p>
+<ul>
+<li>回调，即当文件描述符的状态发生变化时，应该回调什么函数去处理：<code>selector.register(self.client.fileno(), EVENT_WRITE, self.connected)</code> &amp;&amp; <code>selector.register(self.client.fileno(), EVENT_READ, self.readable)</code></li>
+<li>事件循环函数，控制整个进程的循环回调</li>
+<li>回调结束标志位的结束</li>
+</ul>
+<p>于是，我们就实现了一个 IO 多路复用的模型。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了一个 IO  多路复用模型的 python 代码实现，主要目的是介绍什么是 IO 多路复用模型，为什么要用到 IO 多路复用网络模型，以及其重要组成。</p>
+<p>其实 IO 多路复用的设计理念是协程设计的基础，协程也是基于 select(poll, epoll) + 回调 + 事件循环实现的。</p>
+]]></content>
+      <categories>
+        <category>IO 多路复用原理及实现</category>
+      </categories>
+      <tags>
+        <tag>IO 多路复用原理及实现</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>python 中的序列协议一览</title>
     <url>/posts/73c8dd96/</url>
     <content><![CDATA[<h1 id="python-中的序列协议一览"><a href="#python-中的序列协议一览" class="headerlink" title="python 中的序列协议一览"></a>python 中的序列协议一览</h1><blockquote>
