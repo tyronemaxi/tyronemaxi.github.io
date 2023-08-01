@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://www.tianzhichao.com/posts/f8c31c0f/</loc>
+    
+    <lastmod>2023-08-01</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://www.tianzhichao.com/posts/99dcd5a7/</loc>
     
     <lastmod>2023-08-01</lastmod>
@@ -551,6 +560,13 @@
     <priority>0.2</priority>
   </url>
   
+  <url>
+    <loc>https://www.tianzhichao.com/tags/%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E5%8F%8A%E4%BD%BF%E7%94%A8/</loc>
+    <lastmod>2023-08-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
 
   
   <url>
@@ -639,6 +655,13 @@
   
   <url>
     <loc>https://www.tianzhichao.com/categories/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%E5%8E%9F%E7%90%86%E5%8F%8A%E5%AE%9E%E7%8E%B0/</loc>
+    <lastmod>2023-08-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.tianzhichao.com/categories/%E5%8D%8F%E7%A8%8B%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E5%8F%8A%E4%BD%BF%E7%94%A8/</loc>
     <lastmod>2023-08-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
