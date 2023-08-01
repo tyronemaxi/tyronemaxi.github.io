@@ -716,10 +716,10 @@
 <p><strong>以上就是全部内容了，上述原则都是为了写出可读，可扩展，可复用，稳定的代码。代码设计讲究均衡和适合，在了解这些原则的时候也要清楚一点，就是不要强搬硬套，避免过度设计</strong></p>
 ]]></content>
       <categories>
-        <category>Python</category>
+        <category>设计原则</category>
       </categories>
       <tags>
-        <tag>Python</tag>
+        <tag>设计原则</tag>
       </tags>
   </entry>
   <entry>
@@ -2646,10 +2646,10 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <p>软件设计：<a href="https://l1nwatch.gitbook.io/python-design-mode/">https://l1nwatch.gitbook.io/python-design-mode/</a></p>
 ]]></content>
       <categories>
-        <category>Python</category>
+        <category>设计模式</category>
       </categories>
       <tags>
-        <tag>Python</tag>
+        <tag>设计模式</tag>
       </tags>
   </entry>
   <entry>
