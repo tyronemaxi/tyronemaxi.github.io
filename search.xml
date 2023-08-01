@@ -374,22 +374,22 @@
 <li>信号驱动式 I/O</li>
 <li>异步 I/O （POSIX 的 aio_系列函数）</li>
 </ul>
-<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="./image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
+<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
 
 <p>当采用阻塞式时，必须等待任务处理完成才能继续。<strong>其整体的逻辑是链式的</strong></p>
-<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="./image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
+<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
 
 <p>当采用非阻塞时，需要消耗 CPU 去做轮询的工作来得知任务是否处理完成，适用于多个不同类型任务的机制，但是采用 recvfrom 轮询的方式，不但消耗了 cpu 资源，也会增加代码的复杂度。</p>
 <h4 id="I-O-多路复用"><a href="#I-O-多路复用" class="headerlink" title="I/O 多路复用"></a>I/O 多路复用</h4><p>I/O 多路复用应用非常广泛，这里重点介绍一下：</p>
 <p>IO 多路复用是一种高效的编程模型<strong>，用于同时监控多个 IO 的可读，可写或异常状态，从而实现在单个线程中处理多个 IO 任务的能力</strong>。它通常用于网络编程中，以提高程序的并发性和性能。</p>
-<img src="./image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
+<img src="image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
 
 <p>select 是阻塞的，可以监听多个文件句柄，当某一个文件句柄的状态发生变化时，会立即返回。</p>
-<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="./image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
+<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
 
 
 
-<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="./image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
+<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
 
 
 
@@ -2398,6 +2398,91 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>golang 垃圾回收机制</title>
+    <url>/posts/88f7796/</url>
+    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
+<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
+</blockquote>
+<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
+<thead>
+<tr>
+<th>版本</th>
+<th>GC 算法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v1.1</td>
+<td>STW(stop the world)</td>
+</tr>
+<tr>
+<td>v1.3</td>
+<td>Mark STW,Sweep（标记清除）</td>
+</tr>
+<tr>
+<td>v1.5</td>
+<td>三色标记</td>
+</tr>
+<tr>
+<td>v1.8</td>
+<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
+</tr>
+</tbody></table>
+<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
+<li><ol>
+<li>找出不可达对象，mark</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>回收标记好的对象</li>
+</ol>
+</li>
+</ul>
+<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
+<p>标记清除算法存在的问题</p>
+<ul>
+<li>stop the world 程序会暂停，即程序会出现卡顿</li>
+<li>标记需要扫描整个堆（heap）</li>
+<li>清除数据会产生 heap 碎片</li>
+</ul>
+<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
+<ul>
+<li><strong>灰色：对象还在标记队列中等待</strong></li>
+<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
+<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
+</ul>
+<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
+<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
+<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
+<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
+<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
+<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
+<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
+<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
+<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
+</ol>
+<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
+<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
+<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
+<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
+</li>
+<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
+</li>
+<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Go</category>
+      </categories>
+      <tags>
+        <tag>Go</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Cache &amp;&amp; DB 数据一致性</title>
     <url>/posts/c4a988da/</url>
     <content><![CDATA[<h1 id="Redis、MySQL-如何保证数据一致性？"><a href="#Redis、MySQL-如何保证数据一致性？" class="headerlink" title="Redis、MySQL 如何保证数据一致性？"></a>Redis、MySQL 如何保证数据一致性？</h1><blockquote>
@@ -2521,91 +2606,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       <tags>
         <tag>Redis</tag>
         <tag>MySQL</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>golang 垃圾回收机制</title>
-    <url>/posts/88f7796/</url>
-    <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
-<p><strong>垃圾回收 (Garbage Collection, 简称 GC)是编程语言中自动的内存管理机制，清除不再使用的对象，释放对应内存</strong>。</p>
-</blockquote>
-<h2 id="Golang-GC-各版本变化"><a href="#Golang-GC-各版本变化" class="headerlink" title="Golang GC 各版本变化"></a>Golang GC 各版本变化</h2><table>
-<thead>
-<tr>
-<th>版本</th>
-<th>GC 算法</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>v1.1</td>
-<td>STW(stop the world)</td>
-</tr>
-<tr>
-<td>v1.3</td>
-<td>Mark STW,Sweep（标记清除）</td>
-</tr>
-<tr>
-<td>v1.5</td>
-<td>三色标记</td>
-</tr>
-<tr>
-<td>v1.8</td>
-<td>Hybrid wire barrier (三色标记基础加入写屏障)</td>
-</tr>
-</tbody></table>
-<h3 id="标记清除算法（mark-and-sweep-v1-3"><a href="#标记清除算法（mark-and-sweep-v1-3" class="headerlink" title="标记清除算法（mark and sweep, v1.3)"></a>标记清除算法（mark and sweep, v1.3)</h3><ul>
-<li><ol>
-<li>找出不可达对象，mark</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>回收标记好的对象</li>
-</ol>
-</li>
-</ul>
-<p>mark and sweep 算法在执行的时候，需要程序暂停，即 stop the world</p>
-<p>标记清除算法存在的问题</p>
-<ul>
-<li>stop the world 程序会暂停，即程序会出现卡顿</li>
-<li>标记需要扫描整个堆（heap）</li>
-<li>清除数据会产生 heap 碎片</li>
-</ul>
-<h2 id="三色并发标记法-v-1-5"><a href="#三色并发标记法-v-1-5" class="headerlink" title="三色并发标记法(v 1.5)"></a>三色并发标记法(v 1.5)</h2><p>该算法是在 v1.5 版本开始使用，这里的三色，对应垃圾回收过程中对象的三种状态：</p>
-<ul>
-<li><strong>灰色：对象还在标记队列中等待</strong></li>
-<li><strong>黑色：对象已被标记，该对象不会在本次 GC 中被清理</strong></li>
-<li><strong>白色：对象未被标记，该对象将会在本次 GC 中被清理</strong></li>
-</ul>
-<h2 id="三色标记法的过程-v1-5"><a href="#三色标记法的过程-v1-5" class="headerlink" title="三色标记法的过程(v1.5)"></a>三色标记法的过程(v1.5)</h2><ol>
-<li><p>初始阶段，<strong>所有对象都是白色：</strong></p>
-<img src="/images/go/GC_1.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 开始扫描，<strong>从根节点开始遍历</strong>，A 和 F 是根节点，将其标记为灰色对象, <strong>即根节点先置灰。</strong></p>
-<img src="/images/go/GC_2.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 继续扫描灰色对象，<strong>将根节点的子节点标记为灰色对象</strong>。A 的子节点 B C D 被标记为灰色对象，A 被标记为黑色对象。F 没有子节点，也被标记为黑色对象，<strong>即根节点置黑，子节点置灰</strong></p>
-<img src="/images/go/GC_3.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>GC 会<strong>循环遍历灰色对象，直到灰色对象之中没有节点结束</strong>。B、C、D没有子节点，会变为黑色对象，<strong>即循环遍历所有节点，将所有父节点置黑。</strong></p>
-<img src="/images/go/GC_4.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>未被标记的 E、G、H 为白色对象，GC 便会回收这些白色对象，<strong>即回收未被标记的白色对象</strong>。</p>
-<img src="/images/go/GC_5.png" width = "500" height = "350" alt="" align=center /></li>
-<li><p>这一轮垃圾回收结束后，<strong>GC 会进行进一步操作，将黑色对象重新变为白色对象，供下一次垃圾回收使用</strong>。</p>
-<img src="/images/go/GC_6.png" width = "500" height = "350" alt="" align=center /></li>
-</ol>
-<h2 id="垃圾回收优化-写屏障"><a href="#垃圾回收优化-写屏障" class="headerlink" title="垃圾回收优化-写屏障"></a>垃圾回收优化-写屏障</h2><p>STW (stop the world) 的目的是防止 GC 扫描时内存变化而停掉 goroutine, 而<strong>写屏障就是让 goroutine 与 GC 同时运行的手段</strong>。<br>虽然写屏障不能完全消除 STW，但是可以大大减少 STW 的时间。写屏障类似一种开关，在 GC 的特定时间开启，开启后指针传递时会把指针标记，即本轮不回收，下次GC时再确定。<br>GC 过程中新分配的内存会被立即标记，用的并不是写屏障技术，也即 GC 过程中分配的内存不会在本轮 GC 中回收。</p>
-<h2 id="垃圾回收优化-Mutator-Assist"><a href="#垃圾回收优化-Mutator-Assist" class="headerlink" title="垃圾回收优化-Mutator-Assist"></a>垃圾回收优化-Mutator-Assist</h2><p>为防止内存分配过快、在 GC 执行过程中，如果 goroutine 需要分配内存，那么这个 goroutine 会参与一部分 GC 的工作，这个机制叫做 Mutator Assist。</p>
-<h2 id="垃圾回收触发机制"><a href="#垃圾回收触发机制" class="headerlink" title="垃圾回收触发机制"></a>垃圾回收触发机制</h2><ol>
-<li><p>每次内存分配时都会检查当前内存分配量是否 已经到达阈值，如果达到就立即启动 GC。内存增长率由环境变量<code>GOGC</code> 控制，默认是 100，即每当内存扩大一倍时启动 GC。<br>之后堆内存达到上一次垃圾手机的 2 倍才会触发 GC.</p>
-</li>
-<li><p>默认情况下，最长 2 分钟触发一次 GC。</p>
-</li>
-<li><p>程序代码中也可以使用 runtime.GC() 来手动触发 GC。这主要用于 GC 性能测试和统计。</p>
-</li>
-</ol>
-]]></content>
-      <categories>
-        <category>Go</category>
-      </categories>
-      <tags>
-        <tag>Go</tag>
       </tags>
   </entry>
   <entry>
@@ -3051,6 +3051,192 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">producer</span>(<span class="params">c</span>):</span></span><br><span class="line">    <span class="built_in">next</span>(c)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">        time.sleep(<span class="number">1</span>)</span><br><span class="line">        c.send(i)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;producer: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    c.close()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">consumer</span>():</span></span><br><span class="line">    i = <span class="literal">None</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        j = <span class="keyword">yield</span> i</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;consumer: <span class="subst">&#123;j&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    c = consumer()</span><br><span class="line">    producer(c)</span><br></pre></td></tr></table></figure>
 
 <p>上述例子中，consumer 消费者是一个生成器，每次执行到 yield 时挂起，等待生产者的输入，生产者依次调用 send 方法，传入外部值到 消费者中，这样，我们就实现了一个（伪）并发。</p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>多线程编程</title>
+    <url>/posts/341a9d02/</url>
+    <content><![CDATA[<h1 id="多线程编程"><a href="#多线程编程" class="headerlink" title="多线程编程"></a>多线程编程</h1><p>今天我们一起来探讨多线程编程。</p>
+<p>首先，什么是线程？</p>
+<p>线程相较于进程而言，是 CPU 调度的基本单位，线程是依赖于进程的。对于一个进程而言，其下有多个线程，线程共享进程的资源，线程之间会有竞态。</p>
+<p>对于 IO 密集型的程序而言，线程和进程的性能相差不大。</p>
+<p>接下来，我们将一起来学习 python 中的多线程编程。</p>
+<h2 id="简单使用"><a href="#简单使用" class="headerlink" title="简单使用"></a>简单使用</h2><p>在 python 中，对于线程的操作库是 <code>threading</code> 模块。我们模拟一下抓取网页的功能：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html</span>(<span class="params">n</span>):</span></span><br><span class="line">    time.sleep(n)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;get html success!&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t = threading.Thread(target=get_html, args=(<span class="number">2</span>,))</span><br><span class="line"></span><br><span class="line">    t.start()</span><br><span class="line">    t.join()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;finished&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>如果我需要并发去抓取不同的网页，应该如何操作呢？</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html_1</span>(<span class="params">url</span>):</span></span><br><span class="line">    time.sleep(<span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get html 1 <span class="subst">&#123;url&#125;</span> success!&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html_2</span>(<span class="params">url</span>):</span></span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get html 2 <span class="subst">&#123;url&#125;</span> success!&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t1 = threading.Thread(target=get_html_1, args=(<span class="string">&quot;www.baidu.com&quot;</span>,))</span><br><span class="line">    t2 = threading.Thread(target=get_html_2, args=(<span class="string">&quot;www.souhu.com&quot;</span>,))</span><br><span class="line"></span><br><span class="line">    t1.start()</span><br><span class="line">    t1.join() <span class="comment"># 阻塞</span></span><br><span class="line">    t2.start()</span><br><span class="line">    t2.join() <span class="comment"># 阻塞</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;finished&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>当然，除了以上的使用线程的方式外，我们还可以通过继承+重写 run 的方法来实现：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GetHtmlDetail</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">__init</span>(<span class="params">self, name</span>):</span></span><br><span class="line">    <span class="built_in">super</span>().__init__(name=name)</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;running&quot;</span>)</span><br><span class="line"></span><br><span class="line">t1 = GetHtmlDetail(<span class="string">&quot;1&quot;</span>)</span><br><span class="line"></span><br><span class="line">t1.start()</span><br><span class="line">t1.join()</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="线程间的通信"><a href="#线程间的通信" class="headerlink" title="线程间的通信"></a>线程间的通信</h2><p>在前文中，我介绍了线程是依赖进程的，共享进程的资源，在线程间的通信中，我们可以通过共享变量来进行线程间的通信。当然，也可以通过 Queue 等方式进行通信。</p>
+<h3 id="共享变量"><a href="#共享变量" class="headerlink" title="共享变量"></a>共享变量</h3><p>同样，我们也是实现一个生产者-消费者来模拟线程间的通信：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line">queue = []</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Producer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">global</span> queue</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">10</span>):</span><br><span class="line">            time.sleep(<span class="number">1</span>)</span><br><span class="line">            queue.append(i)</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;produce: <span class="subst">&#123;i&#125;</span> in queue&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Consumer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">global</span> queue</span><br><span class="line">        time.sleep(<span class="number">10</span>)</span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            <span class="keyword">if</span> queue:</span><br><span class="line">                time.sleep(<span class="number">1</span>)</span><br><span class="line">                data = queue.pop(<span class="number">0</span>)</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">f&quot;consumer data: <span class="subst">&#123;data&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">   p = Producer()</span><br><span class="line">   c = Consumer()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   p.start()</span><br><span class="line">   c.start()</span><br><span class="line"></span><br><span class="line">   p.join()</span><br><span class="line">   c.join()</span><br></pre></td></tr></table></figure>
+
+<p>以上实现了一个生产者-消费者模型，演示了线程之间通过全局变量进行通信。由于 <code>queue=[]</code> 是非阻塞的，则先在 consumer 中 time.sleep(10) 等待生产物料就绪。在实际的应用中，我们一般不推荐共享变量的方式来完成线程通信，这是因为<strong>全局变量不是线程安全的，那么就会引发一些错误，接下来我们来看一下 Queue.</strong></p>
+<h3 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h3><p>接下来，我将使用 <code>Queue</code> 来演示，在 python 中 <code>from queue import Queue</code>，其中的 Queue 是多线程安全的。我这里将演示，使用多个消费者来消费一个生产者。</p>
+<p>queue.Queue 是一个阻塞队列，故会等待 data 的传入然后消费</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> queue <span class="keyword">import</span> Queue</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Producer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">10</span>):</span><br><span class="line">            time.sleep(<span class="number">1</span>)</span><br><span class="line">            queue.put(i)</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;produce: <span class="subst">&#123;i&#125;</span> in queue&quot;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>):</span><br><span class="line">            queue.put(<span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Consumer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__(name=name)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            data = queue.get()</span><br><span class="line">            <span class="keyword">if</span> data <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">f&quot;consumer: <span class="subst">&#123;self.name&#125;</span> exiting&quot;</span>)</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;consumer: <span class="subst">&#123;self.name&#125;</span> data: <span class="subst">&#123;data&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    queue = Queue(maxsize=<span class="number">100</span>)  <span class="comment"># 避免内存泄露</span></span><br><span class="line">    p = Producer()</span><br><span class="line">    c1 = Consumer(<span class="string">&quot;c1&quot;</span>)</span><br><span class="line">    c2 = Consumer(<span class="string">&quot;c2&quot;</span>)</span><br><span class="line"></span><br><span class="line">    p.start()</span><br><span class="line">    c1.start()</span><br><span class="line">    c2.start()</span><br><span class="line"></span><br><span class="line">    p.join()</span><br><span class="line">    c1.join()</span><br><span class="line">    c2.join()</span><br></pre></td></tr></table></figure>
+
+<p>那么为什么 Queue 是线程安全的呢？这是因为在每个操作之时都会进行获取锁和释放锁的操作。感兴趣的同学可以自行查阅学习。</p>
+<h2 id="线程同步"><a href="#线程同步" class="headerlink" title="线程同步"></a>线程同步</h2><p>在多线程编程中，我们需要考虑线程同步，那么什么是线程同步以及为什么需要线程同步呢？</p>
+<p>我们通过一个例子来解释为什么需要线程同步？</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line">a = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        a += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">desc</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        a -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t1 = threading.Thread(target=add)</span><br><span class="line">    t2 = threading.Thread(target=desc)</span><br><span class="line"></span><br><span class="line">    t1.start()</span><br><span class="line">    t2.start()</span><br><span class="line"></span><br><span class="line">    t1.join()</span><br><span class="line">    t2.join()</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(a)</span><br></pre></td></tr></table></figure>
+
+<p>在上面的例子中，我们对一个全局编程进行操作，但是我们发现打印结果每次都不一样，且不为 0</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">-307326</span><br></pre></td></tr></table></figure>
+
+<p>这是为什么呢？这是因为 python GIL 的存在，<strong>GIL 是基于固定时间的调度方式，每次执行固定时间的字节码</strong>，导致 t1 还未完成执行完成时切换到了 t2，导致不是我们预期的结果。</p>
+<h3 id="Lock-amp-amp-Lock"><a href="#Lock-amp-amp-Lock" class="headerlink" title="Lock &amp;&amp; Lock"></a>Lock &amp;&amp; Lock</h3><p>那么如何解决这个问题呢？这就涉及到了线程的锁操作：Lock &amp;&amp; RLock</p>
+<p>这里简单介绍一下这二者的区别：</p>
+<blockquote>
+<ol>
+<li><code>threading.Lock</code>：<ul>
+<li><code>Lock</code> 是一个简单的互斥锁（Mutex），也被称为普通锁。</li>
+<li>它只有两个状态：锁定（locked）和未锁定（unlocked）。</li>
+<li>一旦某个线程获取了 <code>Lock</code>，其他线程就无法获取该锁，直到锁被释放。</li>
+<li>即使是同一个线程多次调用 <code>Lock</code> 的 <code>acquire()</code> 方法，也会导致该线程被阻塞，因为它已经持有了该锁。</li>
+</ul>
+</li>
+<li><code>threading.RLock</code>：<ul>
+<li><code>RLock</code> 是可重入锁（Reentrant Lock）。</li>
+<li>可重入锁允许一个线程多次获得同一个锁而不会发生阻塞，前提是该线程已经持有了这个锁。也就是说，一个线程可以多次调用 <code>RLock</code> 的 <code>acquire()</code> 方法而不会被阻塞，只要它在之前已经获得了该锁，并且对应的 <code>release()</code> 方法的次数和 <code>acquire()</code> 方法的次数相等即可释放该锁。</li>
+<li>这种机制允许线程在递归或嵌套函数调用中安全地多次获取同一个锁，避免了死锁的可能性。</li>
+</ul>
+</li>
+</ol>
+</blockquote>
+<p>现在，我们就可以利用 锁 对以上的代码进行改造，达到我们想要的结果：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line">a = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">lock = threading.Lock()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">global</span> lock</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        lock.acquire()</span><br><span class="line">        a += <span class="number">1</span></span><br><span class="line">        lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">desc</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">global</span> lock</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        lock.acquire()</span><br><span class="line">        a -= <span class="number">1</span></span><br><span class="line">        lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t1 = threading.Thread(target=add)</span><br><span class="line">    t2 = threading.Thread(target=desc)</span><br><span class="line"></span><br><span class="line">    t1.start()</span><br><span class="line">    t2.start()</span><br><span class="line"></span><br><span class="line">    t1.join()</span><br><span class="line">    t2.join()</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(a)</span><br></pre></td></tr></table></figure>
+
+<p>结果输出为 0；</p>
+<p>当然，在使用锁的时候要结合应用场景，锁会影响性能且容器导致死锁，在使用时，要谨慎。</p>
+<h3 id="Condition"><a href="#Condition" class="headerlink" title="Condition"></a>Condition</h3><p>用于复杂的线程间的同步，例如我们要完成两个 AI 机器人的问答交互，应该如何实现呢？</p>
+<p>我们这里通过一个例子来进行学习：</p>
+<p>这里我们将使用两个线程模拟两个 AI 机器人的对话，实现效果是这样的：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">天猫精灵: 小爱同学</span><br><span class="line">小爱: 我在</span><br><span class="line">天猫精灵: 我们来对古诗吧</span><br><span class="line">小爱: 好啊</span><br><span class="line">天猫精灵: 我住长江头</span><br><span class="line">小爱: 我住长江尾</span><br></pre></td></tr></table></figure>
+
+<p>我们一般是先使用锁的机制来运行：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import threading</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">class XiaoAi(threading.Thread):</span><br><span class="line">    def __init__(self, lock):</span><br><span class="line">        super().__init__(name=&quot;小爱&quot;)</span><br><span class="line">        self.lock = lock</span><br><span class="line"></span><br><span class="line">    def run(self):</span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我在&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 好啊&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我住长江尾&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">class Tianmao(threading.Thread):</span><br><span class="line">    def __init__(self, lock):</span><br><span class="line">        super().__init__(name=&quot;天猫精灵&quot;)</span><br><span class="line">        self.lock = lock</span><br><span class="line"></span><br><span class="line">    def run(self):</span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 小爱同学&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我们来对古诗吧&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我住长江头&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    lock = threading.RLock()</span><br><span class="line">    xiaoai = XiaoAi(lock)</span><br><span class="line">    tianmao = Tianmao(lock)</span><br><span class="line"></span><br><span class="line">    tianmao.start()</span><br><span class="line">    xiaoai.start()</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>现实是：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">天猫精灵: 小爱同学</span><br><span class="line">天猫精灵: 我们来对古诗吧</span><br><span class="line">天猫精灵: 我住长江头</span><br><span class="line">小爱: 我在</span><br><span class="line">小爱: 好啊</span><br><span class="line">小爱: 我住长江尾</span><br></pre></td></tr></table></figure>
+
+<p>这里我们可以看到，两个 AI 机器人并没有完成交互的对话，这是为什么呢？</p>
+<p>我们知道在 python 语言中，有 GIL 全局解释器锁的机制，其背后代码运行的原理是：<strong>基于固定时间的调度方式，每次执行固定时间的字节码，或者遇到系统 IO 时，强制释放。</strong></p>
+<p>在上述代码中，在一个固定时间内，天猫精灵就运行完了所有的代码，这样是不可行的。</p>
+<p>于是，我们可以采用 <code>threading.Condition()</code>来实现：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">XiaoAi</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, con</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__(name=<span class="string">&quot;小爱&quot;</span>)</span><br><span class="line">        self.con = con</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">with</span> self.con:</span><br><span class="line">            self.con.wait()  <span class="comment"># wait() 方法只能通过 notify 唤醒</span></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我在&quot;</span>)</span><br><span class="line">            self.con.notify()</span><br><span class="line">    </span><br><span class="line">            self.con.wait()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 好啊&quot;</span>)</span><br><span class="line">            self.con.notify()</span><br><span class="line">    </span><br><span class="line">            self.con.wait()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我住长江尾&quot;</span>)</span><br><span class="line">            self.con.notify()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Tianmao</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, con</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__(name=<span class="string">&quot;天猫精灵&quot;</span>)</span><br><span class="line">        self.con = con</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">with</span> self.con:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 小爱同学&quot;</span>)</span><br><span class="line">            self.con.notify()  <span class="comment"># 通知调用了 wait() 方的线程</span></span><br><span class="line">            self.con.wait()  <span class="comment"># 等待通知</span></span><br><span class="line"></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我们来对古诗吧&quot;</span>)</span><br><span class="line">            self.con.notify()  <span class="comment"># 通知调用了 wait() 方的线程</span></span><br><span class="line">            self.con.wait()  <span class="comment"># 等待通知</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我住长江头&quot;</span>)</span><br><span class="line">            self.con.notify()  <span class="comment"># 通知调用了 wait() 方的线程</span></span><br><span class="line">            self.con.wait()  <span class="comment"># 等待通知</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    con = threading.Condition()</span><br><span class="line">    xiaoai = XiaoAi(con)</span><br><span class="line">    tianmao = Tianmao(con)</span><br><span class="line"></span><br><span class="line">    xiaoai.start()  <span class="comment"># 先 wait</span></span><br><span class="line">    tianmao.start()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>启动顺序很重要，要先 wait, 后 notify</li>
+<li>代码逻辑很重要，要先 <code>with self.con:</code>, 后嵌套 wait() 后 notify</li>
+</ul>
+<p>效果如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">天猫精灵: 小爱同学</span><br><span class="line">小爱: 我在</span><br><span class="line">天猫精灵: 我们来对古诗吧</span><br><span class="line">小爱: 好啊</span><br><span class="line">天猫精灵: 我住长江头</span><br><span class="line">小爱: 我住长江尾</span><br></pre></td></tr></table></figure>
+
+<p>那么这是如何实现的呢？通过代码逻辑来了解</p>
+<p>当小爱同学启动时，会调用 <code>con.wait()</code> 方法，等待被唤醒，当天猫精灵启动时，会调用 <code>con.notify</code> 方法，通知小爱同学，打印语句，然后通过 <code> con.notiry()</code> 通知天猫打印语句。这样循环打印，就完成了两个线程的同步对话机制。</p>
+<p>那么这是如何实现的呢？通过代码逻辑来了解</p>
+<p>当小爱同学启动时，会调用 <code>con.wait()</code> 方法，等待被唤醒，当天猫精灵启动时，会调用 <code>con.notify</code> 方法，通知小爱同学，打印语句，然后通过 <code> con.notiry()</code> 通知天猫打印语句。这样循环打印，就完成了两个线程的同步对话机制。</p>
+<p>现在我们来通过解析 Condition 源码的方式来了解其内部运行的原理是如何的？</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Condition</span>:</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Class that implements a condition variable.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    A condition variable allows one or more threads to wait until they are</span></span><br><span class="line"><span class="string">    notified by another thread.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    If the lock argument is given and not None, it must be a Lock or RLock</span></span><br><span class="line"><span class="string">    object, and it is used as the underlying lock. Otherwise, a new RLock object</span></span><br><span class="line"><span class="string">    is created and used as the underlying lock.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, lock=<span class="literal">None</span></span>):</span></span><br><span class="line">        <span class="keyword">if</span> lock <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            lock = RLock()</span><br><span class="line">        self._lock = lock</span><br><span class="line">        <span class="comment"># Export the lock&#x27;s acquire() and release() methods</span></span><br><span class="line">        self.acquire = lock.acquire</span><br><span class="line">        self.release = lock.release</span><br><span class="line">        <span class="comment"># If the lock defines _release_save() and/or _acquire_restore(),</span></span><br><span class="line">        <span class="comment"># these override the default implementations (which just call</span></span><br><span class="line">        <span class="comment"># release() and acquire() on the lock).  Ditto for _is_owned().</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self._release_save = lock._release_save</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self._acquire_restore = lock._acquire_restore</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self._is_owned = lock._is_owned</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">        self._waiters = _deque()</span><br><span class="line">       <span class="function"><span class="keyword">def</span> <span class="title">notify</span>(<span class="params">self, n=<span class="number">1</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Wake up one or more threads waiting on this condition, if any.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        If the calling thread has not acquired the lock when this method is</span></span><br><span class="line"><span class="string">        called, a RuntimeError is raised.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        This method wakes up at most n of the threads waiting for the condition</span></span><br><span class="line"><span class="string">        variable; it is a no-op if no threads are waiting.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self._is_owned():</span><br><span class="line">            <span class="keyword">raise</span> RuntimeError(<span class="string">&quot;cannot notify on un-acquired lock&quot;</span>)</span><br><span class="line">        all_waiters = self._waiters</span><br><span class="line">        waiters_to_notify = _deque(_islice(all_waiters, n))</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> waiters_to_notify:</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">for</span> waiter <span class="keyword">in</span> waiters_to_notify:</span><br><span class="line">            waiter.release()</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                all_waiters.remove(waiter)</span><br><span class="line">            <span class="keyword">except</span> ValueError:</span><br><span class="line">                <span class="keyword">pass</span></span><br><span class="line">              </span><br><span class="line">      <span class="function"><span class="keyword">def</span> <span class="title">wait</span>(<span class="params">self, timeout=<span class="literal">None</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Wait until notified or until a timeout occurs.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        If the calling thread has not acquired the lock when this method is</span></span><br><span class="line"><span class="string">        called, a RuntimeError is raised.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        This method releases the underlying lock, and then blocks until it is</span></span><br><span class="line"><span class="string">        awakened by a notify() or notify_all() call for the same condition</span></span><br><span class="line"><span class="string">        variable in another thread, or until the optional timeout occurs. Once</span></span><br><span class="line"><span class="string">        awakened or timed out, it re-acquires the lock and returns.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        When the timeout argument is present and not None, it should be a</span></span><br><span class="line"><span class="string">        floating point number specifying a timeout for the operation in seconds</span></span><br><span class="line"><span class="string">        (or fractions thereof).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        When the underlying lock is an RLock, it is not released using its</span></span><br><span class="line"><span class="string">        release() method, since this may not actually unlock the lock when it</span></span><br><span class="line"><span class="string">        was acquired multiple times recursively. Instead, an internal interface</span></span><br><span class="line"><span class="string">        of the RLock class is used, which really unlocks it even when it has</span></span><br><span class="line"><span class="string">        been recursively acquired several times. Another internal interface is</span></span><br><span class="line"><span class="string">        then used to restore the recursion level when the lock is reacquired.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self._is_owned():</span><br><span class="line">            <span class="keyword">raise</span> RuntimeError(<span class="string">&quot;cannot wait on un-acquired lock&quot;</span>)</span><br><span class="line">        waiter = _allocate_lock()</span><br><span class="line">        waiter.acquire()</span><br><span class="line">        self._waiters.append(waiter)</span><br><span class="line">        saved_state = self._release_save()</span><br><span class="line">        gotit = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">try</span>:    <span class="comment"># restore state no matter what (e.g., KeyboardInterrupt)</span></span><br><span class="line">            <span class="keyword">if</span> timeout <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                waiter.acquire()</span><br><span class="line">                gotit = <span class="literal">True</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">if</span> timeout &gt; <span class="number">0</span>:</span><br><span class="line">                    gotit = waiter.acquire(<span class="literal">True</span>, timeout)</span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    gotit = waiter.acquire(<span class="literal">False</span>)</span><br><span class="line">            <span class="keyword">return</span> gotit</span><br><span class="line">        <span class="keyword">finally</span>:</span><br><span class="line">            self._acquire_restore(saved_state)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> gotit:</span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    self._waiters.remove(waiter)</span><br><span class="line">                <span class="keyword">except</span> ValueError:</span><br><span class="line">                    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<p>首先，我们来看一下 <code>__init__</code> 部分，这里其实也是用到了锁机制——<code>RLock()</code> ；</p>
+<p>然后就是这里的 <code>self._waiters = _deque()</code> ，这里其实是借助了一个 collection 中的 双端队列，是可阻塞的；</p>
+<p><strong>condition 实际上是有两层锁，一把底层锁（conditino._lock）会在线程调用了 wait 方法的时候释放，并且在每次调用 <code>wait()</code>时，会生成一把锁，然后放入 <code>self._waiters</code> 中等待被释放，当调用了 <code>notify</code> 方法时，就会获取队列中的锁，然后释放。</strong></p>
+<h3 id="信号量-Semaphore"><a href="#信号量-Semaphore" class="headerlink" title="信号量-Semaphore"></a>信号量-Semaphore</h3><blockquote>
+<p>在 Python 中的 threading 模块中，Semaphore（信号量）是一种用于线程同步的机制。<strong>它可以控制同时访问某个资源的线程数量</strong>。Semaphore 维护着一个内部计数器，可以通过 acquire() 和 release() 方法来增加或减少计数器的值。</p>
+</blockquote>
+<p>例如我现在有个爬虫脚本，我们知道，某些网站对于爬虫是有一些反爬机制的，避免一些异常流量，避免多个线程的爬虫导致的网站崩溃。那么我们要如何正确有效的进行资源的爬取呢？</p>
+<p>答案是：通过 Semaphore 模块，控制线程的创建并设置一定时间间隔取爬取</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> threading <span class="keyword">import</span> Thread</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HtmlSpider</span>(<span class="params">Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, url, sem</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        self.url = url</span><br><span class="line">        self.sem = sem</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;got html text success&quot;</span>)</span><br><span class="line">        self.sem.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UrlProducer</span>(<span class="params">Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, sem</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        self.sem = sem</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">20</span>):</span><br><span class="line">            self.sem.acquire()</span><br><span class="line">            html_thread = HtmlSpider(<span class="string">&quot;https://www.baidu.com&quot;</span>, self.sem)</span><br><span class="line">            html_thread.start()</span><br><span class="line">            </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    sem = threading.Semaphore(<span class="number">3</span>)</span><br><span class="line">    url_producer = UrlProducer(sem)</span><br><span class="line">    url_producer.start()</span><br></pre></td></tr></table></figure>
+
+
+
+<p>通过上述代码，在创建 20 个线程的过程中，就可以实现每次创建 3 个线程，而不是一次性创建 20 个了。</p>
+<p>其实，Semaphore 也是基于 Condition 进行创建使用的：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Semaphore</span>:</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;This class implements semaphore objects.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Semaphores manage a counter representing the number of release() calls minus</span></span><br><span class="line"><span class="string">    the number of acquire() calls, plus an initial value. The acquire() method</span></span><br><span class="line"><span class="string">    blocks if necessary until it can return without making the counter</span></span><br><span class="line"><span class="string">    negative. If not given, value defaults to 1.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># After Tim Peters&#x27; semaphore class, but not quite the same (no maximum)</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, value=<span class="number">1</span></span>):</span></span><br><span class="line">        <span class="keyword">if</span> value &lt; <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&quot;semaphore initial value must be &gt;= 0&quot;</span>)</span><br><span class="line">        self._cond = Condition(Lock())</span><br><span class="line">        self._value = value</span><br></pre></td></tr></table></figure>
+
+<p>关于详细信息可参考源码</p>
+<h3 id="TreadPoolExecutor-线程池"><a href="#TreadPoolExecutor-线程池" class="headerlink" title="TreadPoolExecutor 线程池"></a>TreadPoolExecutor 线程池</h3><p>为什么需要线程池？</p>
+<blockquote>
+<p>线程池是一种并发编程的技术，用于管理和复用线程。它由一组预先创建的线程组成，这些线程可以被重复使用来执行多个任务。线程池的主要目的是优化线程的创建和销毁过程，以提高程序的性能和资源利用率。</p>
+<p>以下是一些使用线程池的好处：</p>
+<ol>
+<li>降低线程创建和销毁的开销：线程的创建和销毁是一项开销较高的操作，涉及到操作系统的调度和资源管理。通过使用线程池，可以预先创建一组线程，并重复使用它们来执行多个任务，避免了频繁的创建和销毁线程的开销。</li>
+<li>提高系统的响应性：在多线程环境下，任务提交给线程池后可以立即开始执行，而不需要等待新线程的创建。这样可以大大减少任务的等待时间，提高系统的响应性和吞吐量。</li>
+<li>控制并发数量：线程池可以通过设置最大线程数来限制并发执行的任务数量。这可以帮助我们控制系统资源的使用，避免过多的线程竞争和资源抢占导致的性能下降或系统崩溃。</li>
+<li>提供任务排队和调度机制：线程池通常提供了任务队列，用于存储待执行的任务。当线程池中的线程空闲时，它们可以从任务队列中获取任务并执行。这种任务调度机制可以有效地平衡任务的执行，并确保任务按照预期的顺序和优先级进行处理。</li>
+<li>资源管理和监控：线程池可以提供一些额外的功能，如线程超时管理、线程数动态调整、异常处理等。它们可以帮助我们更好地管理和监控线程的行为，提高程序的稳定性和可靠性。</li>
+</ol>
+<p>总之，线程池是一种有效管理线程的技术，它能够提高程序的性能、响应性和资源利用率。通过合理配置线程池的大小和参数，可以更好地控制线程的并发数量，避免资源竞争和性能问题，提供更好的用户体验和系统可靠性。</p>
+</blockquote>
+<p>简单使用</p>
+<ul>
+<li>ThreadPoolExecutor()  线程池对象</li>
+<li>task.submit 注册函数到线程池中</li>
+<li>task.cancel 取消 task 的运行</li>
+<li>task.result 线程的运行结果</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> concurrent <span class="keyword">import</span> futures</span><br><span class="line"><span class="keyword">from</span> concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED</span><br><span class="line"></span><br><span class="line"><span class="comment"># futures 可以让多进程和多线程编码接口一致</span></span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html</span>(<span class="params">times</span>):</span></span><br><span class="line">    time.sleep(times)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get page <span class="subst">&#123;times&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> times</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    executor = ThreadPoolExecutor(max_workers=<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># # 通过 submit 函数提交执行的函数到线程池中，submit 是立即返回</span></span><br><span class="line">    <span class="comment"># task1 = executor.submit(get_html, (3,))</span></span><br><span class="line">    <span class="comment"># task2 = executor.submit(get_html, (2,))</span></span><br><span class="line">    <span class="comment">#</span></span><br><span class="line">    <span class="comment"># print(task1.done())</span></span><br><span class="line">    <span class="comment"># print(task2.cancel())</span></span><br><span class="line">    <span class="comment"># time.sleep(3)</span></span><br><span class="line">    <span class="comment"># print(task1.done())</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 获取已经成功的 task 的返回</span></span><br><span class="line">    urls = [<span class="number">3</span>, <span class="number">2</span>, <span class="number">4</span>]</span><br><span class="line">    all_task = [executor.submit(get_html, url) <span class="keyword">for</span> url <span class="keyword">in</span> urls]</span><br><span class="line">    <span class="comment"># wait 控制主线程的推出</span></span><br><span class="line">    wait(all_task, return_when=FIRST_COMPLETED)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;main&quot;</span>)</span><br><span class="line">    <span class="keyword">for</span> future <span class="keyword">in</span> as_completed(all_task):</span><br><span class="line">        data = future.result()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;get <span class="subst">&#123;data&#125;</span> page&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># # 通过 executor 的 map 获取已经完成的值</span></span><br><span class="line">    <span class="comment"># for data in executor.map(get_html, urls):</span></span><br><span class="line">    <span class="comment">#     print(f&quot;get &#123;data&#125; page&quot;)</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ThreadPoolExecutor</span>(<span class="params">_base.Executor</span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Used to assign unique thread names when thread_name_prefix is not supplied.</span></span><br><span class="line">    _counter = itertools.count().__next__</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, max_workers=<span class="literal">None</span>, thread_name_prefix=<span class="string">&#x27;&#x27;</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Initializes a new ThreadPoolExecutor instance.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        Args:</span></span><br><span class="line"><span class="string">            max_workers: The maximum number of threads that can be used to</span></span><br><span class="line"><span class="string">                execute the given calls.</span></span><br><span class="line"><span class="string">            thread_name_prefix: An optional name prefix to give our threads.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> max_workers <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="comment"># Use this number because ThreadPoolExecutor is often</span></span><br><span class="line">            <span class="comment"># used to overlap I/O instead of CPU work.</span></span><br><span class="line">            max_workers = (os.cpu_count() <span class="keyword">or</span> <span class="number">1</span>) * <span class="number">5</span></span><br><span class="line">        <span class="keyword">if</span> max_workers &lt;= <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&quot;max_workers must be greater than 0&quot;</span>)</span><br><span class="line"></span><br><span class="line">        self._max_workers = max_workers</span><br><span class="line">        self._work_queue = queue.Queue()</span><br><span class="line">        self._threads = <span class="built_in">set</span>()</span><br><span class="line">        self._shutdown = <span class="literal">False</span></span><br><span class="line">        self._shutdown_lock = threading.Lock()</span><br><span class="line">        self._thread_name_prefix = (thread_name_prefix <span class="keyword">or</span></span><br><span class="line">                                    (<span class="string">&quot;ThreadPoolExecutor-%d&quot;</span> % self._counter()))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">submit</span>(<span class="params">self, fn, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">with</span> self._shutdown_lock:</span><br><span class="line">            <span class="keyword">if</span> self._shutdown:</span><br><span class="line">                <span class="keyword">raise</span> RuntimeError(<span class="string">&#x27;cannot schedule new futures after shutdown&#x27;</span>)</span><br><span class="line"></span><br><span class="line">            f = _base.Future()</span><br><span class="line">            w = _WorkItem(f, fn, args, kwargs)</span><br><span class="line"></span><br><span class="line">            self._work_queue.put(w)</span><br><span class="line">            self._adjust_thread_count()</span><br><span class="line">            <span class="keyword">return</span> f</span><br><span class="line">    submit.__doc__ = _base.Executor.submit.__doc__</span><br></pre></td></tr></table></figure>
+
+<p>在上述的源码中，我们通过 submit 函数模块可以比较清楚的看到一个 函数 是如何注册到 Future 中的</p>
+<ul>
+<li><p>创建一个锁 <code>Thread.Lock()</code> 保证线程安全</p>
+</li>
+<li><p>创建 Future() 实例 并将其作为参数传递到 work_item 中, 并 put 到 队列中</p>
+<ul>
+<li><strong>Future——未来对象，可以理解为 task 的容器对象，其中包含了 task 的执行情况，理解 Future 的设计理念是 Python 异步编程中的关键；</strong></li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Future</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Represents the result of an asynchronous computation.&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Initializes the future. Should not be called by clients.&quot;&quot;&quot;</span></span><br><span class="line">        self._condition = threading.Condition()</span><br><span class="line">        self._state = PENDING</span><br><span class="line">        self._result = <span class="literal">None</span></span><br><span class="line">        self._exception = <span class="literal">None</span></span><br><span class="line">        self._waiters = []</span><br><span class="line">        self._done_callbacks = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_invoke_callbacks</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">for</span> callback <span class="keyword">in</span> self._done_callbacks:</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                callback(self)</span><br><span class="line">            <span class="keyword">except</span> Exception:</span><br><span class="line">                LOGGER.exception(<span class="string">&#x27;exception calling callback for %r&#x27;</span>, self)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到其中也使用了 <code>threading.Condition</code> 来控制线程的管理</p>
+<ul>
+<li>_workItem</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_WorkItem</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, future, fn, args, kwargs</span>):</span></span><br><span class="line">        self.future = future</span><br><span class="line">        self.fn = fn</span><br><span class="line">        self.args = args</span><br><span class="line">        self.kwargs = kwargs</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.future.set_running_or_notify_cancel():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            result = self.fn(*self.args, **self.kwargs)</span><br><span class="line">        <span class="keyword">except</span> BaseException <span class="keyword">as</span> exc:</span><br><span class="line">            self.future.set_exception(exc)</span><br><span class="line">            <span class="comment"># Break a reference cycle with the exception &#x27;exc&#x27;</span></span><br><span class="line">            self = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.future.set_result(result)</span><br></pre></td></tr></table></figure>
+
+<p>其中比较重要的代码为：<code>result = self.fn(*self.args, **self.kwargs)</code> &amp;&amp; <code>self.future.set_result(result)</code></p>
+</li>
+</ul>
+<p>​        分别是 运行函数，并获取结果，以及将结果保存至 future 中</p>
+<ul>
+<li>_adjust_thread_count() 函数，控制线程池的大小</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_adjust_thread_count</span>(<span class="params">self</span>):</span></span><br><span class="line">      <span class="comment"># When the executor gets lost, the weakref callback will wake up</span></span><br><span class="line">      <span class="comment"># the worker threads.</span></span><br><span class="line">      <span class="function"><span class="keyword">def</span> <span class="title">weakref_cb</span>(<span class="params">_, q=self._work_queue</span>):</span></span><br><span class="line">        q.put(<span class="literal">None</span>)</span><br><span class="line">        <span class="comment"># TODO(bquinlan): Should avoid creating new threads if there are more</span></span><br><span class="line">        <span class="comment"># idle threads than items in the work queue.</span></span><br><span class="line">        num_threads = <span class="built_in">len</span>(self._threads)</span><br><span class="line">        <span class="keyword">if</span> num_threads &lt; self._max_workers:</span><br><span class="line">          thread_name = <span class="string">&#x27;%s_%d&#x27;</span> % (self._thread_name_prefix <span class="keyword">or</span> self,</span><br><span class="line">                                   num_threads)</span><br><span class="line">          t = threading.Thread(name=thread_name, target=_worker,</span><br><span class="line">                               args=(weakref.ref(self, weakref_cb),</span><br><span class="line">                                     self._work_queue))</span><br><span class="line">          t.daemon = <span class="literal">True</span></span><br><span class="line">          t.start()</span><br><span class="line">          self._threads.add(t)</span><br><span class="line">          _threads_queues[t] = self._work_queue</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>target = _worker() 运行函数的主体对象</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_worker</span>(<span class="params">executor_reference, work_queue</span>):</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            work_item = work_queue.get(block=<span class="literal">True</span>)</span><br><span class="line">            <span class="keyword">if</span> work_item <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">                work_item.run()</span><br><span class="line">                <span class="comment"># Delete references to object. See issue16284</span></span><br><span class="line">                <span class="keyword">del</span> work_item</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            executor = executor_reference()</span><br><span class="line">            <span class="comment"># Exit if:</span></span><br><span class="line">            <span class="comment">#   - The interpreter is shutting down OR</span></span><br><span class="line">            <span class="comment">#   - The executor that owns the worker has been collected OR</span></span><br><span class="line">            <span class="comment">#   - The executor that owns the worker has been shutdown.</span></span><br><span class="line">            <span class="keyword">if</span> _shutdown <span class="keyword">or</span> executor <span class="keyword">is</span> <span class="literal">None</span> <span class="keyword">or</span> executor._shutdown:</span><br><span class="line">                <span class="comment"># Notice other workers</span></span><br><span class="line">                work_queue.put(<span class="literal">None</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            <span class="keyword">del</span> executor</span><br><span class="line">    <span class="keyword">except</span> BaseException:</span><br><span class="line">        _base.LOGGER.critical(<span class="string">&#x27;Exception in worker&#x27;</span>, exc_info=<span class="literal">True</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这里不断从 wok_queue 中获取 work_item 实例，然后调用其 run 方法，然后销毁依赖；</p>
+</li>
+<li><p>_threads_queues 是继承自 MutableMapping 保存线程池中的队列对象</p>
+</li>
+</ul>
+<p>以上就是多线程编程的全部内容</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>在实际的开发工作中，对于 CPU 密集型的任务，可以考虑多进程编程；</p>
+<p>对于 IO 密集型的任务，可以考虑多线程编程；</p>
+<p>多线程的缺点就是 GIL  的存在以及锁会影响性能；</p>
+<p>但是进程的创建和销毁会高于线程，所以要结合具体应用场景去使用哦</p>
 ]]></content>
       <categories>
         <category>Python</category>
@@ -3959,192 +4145,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>多线程编程</title>
-    <url>/posts/341a9d02/</url>
-    <content><![CDATA[<h1 id="多线程编程"><a href="#多线程编程" class="headerlink" title="多线程编程"></a>多线程编程</h1><p>今天我们一起来探讨多线程编程。</p>
-<p>首先，什么是线程？</p>
-<p>线程相较于进程而言，是 CPU 调度的基本单位，线程是依赖于进程的。对于一个进程而言，其下有多个线程，线程共享进程的资源，线程之间会有竞态。</p>
-<p>对于 IO 密集型的程序而言，线程和进程的性能相差不大。</p>
-<p>接下来，我们将一起来学习 python 中的多线程编程。</p>
-<h2 id="简单使用"><a href="#简单使用" class="headerlink" title="简单使用"></a>简单使用</h2><p>在 python 中，对于线程的操作库是 <code>threading</code> 模块。我们模拟一下抓取网页的功能：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html</span>(<span class="params">n</span>):</span></span><br><span class="line">    time.sleep(n)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;get html success!&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t = threading.Thread(target=get_html, args=(<span class="number">2</span>,))</span><br><span class="line"></span><br><span class="line">    t.start()</span><br><span class="line">    t.join()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;finished&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<p>如果我需要并发去抓取不同的网页，应该如何操作呢？</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html_1</span>(<span class="params">url</span>):</span></span><br><span class="line">    time.sleep(<span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get html 1 <span class="subst">&#123;url&#125;</span> success!&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html_2</span>(<span class="params">url</span>):</span></span><br><span class="line">    time.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get html 2 <span class="subst">&#123;url&#125;</span> success!&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t1 = threading.Thread(target=get_html_1, args=(<span class="string">&quot;www.baidu.com&quot;</span>,))</span><br><span class="line">    t2 = threading.Thread(target=get_html_2, args=(<span class="string">&quot;www.souhu.com&quot;</span>,))</span><br><span class="line"></span><br><span class="line">    t1.start()</span><br><span class="line">    t1.join() <span class="comment"># 阻塞</span></span><br><span class="line">    t2.start()</span><br><span class="line">    t2.join() <span class="comment"># 阻塞</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;finished&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>当然，除了以上的使用线程的方式外，我们还可以通过继承+重写 run 的方法来实现：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">GetHtmlDetail</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">__init</span>(<span class="params">self, name</span>):</span></span><br><span class="line">    <span class="built_in">super</span>().__init__(name=name)</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;running&quot;</span>)</span><br><span class="line"></span><br><span class="line">t1 = GetHtmlDetail(<span class="string">&quot;1&quot;</span>)</span><br><span class="line"></span><br><span class="line">t1.start()</span><br><span class="line">t1.join()</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="线程间的通信"><a href="#线程间的通信" class="headerlink" title="线程间的通信"></a>线程间的通信</h2><p>在前文中，我介绍了线程是依赖进程的，共享进程的资源，在线程间的通信中，我们可以通过共享变量来进行线程间的通信。当然，也可以通过 Queue 等方式进行通信。</p>
-<h3 id="共享变量"><a href="#共享变量" class="headerlink" title="共享变量"></a>共享变量</h3><p>同样，我们也是实现一个生产者-消费者来模拟线程间的通信：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line">queue = []</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Producer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">global</span> queue</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">10</span>):</span><br><span class="line">            time.sleep(<span class="number">1</span>)</span><br><span class="line">            queue.append(i)</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;produce: <span class="subst">&#123;i&#125;</span> in queue&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Consumer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">global</span> queue</span><br><span class="line">        time.sleep(<span class="number">10</span>)</span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            <span class="keyword">if</span> queue:</span><br><span class="line">                time.sleep(<span class="number">1</span>)</span><br><span class="line">                data = queue.pop(<span class="number">0</span>)</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">f&quot;consumer data: <span class="subst">&#123;data&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">   p = Producer()</span><br><span class="line">   c = Consumer()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   p.start()</span><br><span class="line">   c.start()</span><br><span class="line"></span><br><span class="line">   p.join()</span><br><span class="line">   c.join()</span><br></pre></td></tr></table></figure>
-
-<p>以上实现了一个生产者-消费者模型，演示了线程之间通过全局变量进行通信。由于 <code>queue=[]</code> 是非阻塞的，则先在 consumer 中 time.sleep(10) 等待生产物料就绪。在实际的应用中，我们一般不推荐共享变量的方式来完成线程通信，这是因为<strong>全局变量不是线程安全的，那么就会引发一些错误，接下来我们来看一下 Queue.</strong></p>
-<h3 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h3><p>接下来，我将使用 <code>Queue</code> 来演示，在 python 中 <code>from queue import Queue</code>，其中的 Queue 是多线程安全的。我这里将演示，使用多个消费者来消费一个生产者。</p>
-<p>queue.Queue 是一个阻塞队列，故会等待 data 的传入然后消费</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> queue <span class="keyword">import</span> Queue</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Producer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">10</span>):</span><br><span class="line">            time.sleep(<span class="number">1</span>)</span><br><span class="line">            queue.put(i)</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;produce: <span class="subst">&#123;i&#125;</span> in queue&quot;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">2</span>):</span><br><span class="line">            queue.put(<span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Consumer</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, name</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__(name=name)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            data = queue.get()</span><br><span class="line">            <span class="keyword">if</span> data <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">f&quot;consumer: <span class="subst">&#123;self.name&#125;</span> exiting&quot;</span>)</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;consumer: <span class="subst">&#123;self.name&#125;</span> data: <span class="subst">&#123;data&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    queue = Queue(maxsize=<span class="number">100</span>)  <span class="comment"># 避免内存泄露</span></span><br><span class="line">    p = Producer()</span><br><span class="line">    c1 = Consumer(<span class="string">&quot;c1&quot;</span>)</span><br><span class="line">    c2 = Consumer(<span class="string">&quot;c2&quot;</span>)</span><br><span class="line"></span><br><span class="line">    p.start()</span><br><span class="line">    c1.start()</span><br><span class="line">    c2.start()</span><br><span class="line"></span><br><span class="line">    p.join()</span><br><span class="line">    c1.join()</span><br><span class="line">    c2.join()</span><br></pre></td></tr></table></figure>
-
-<p>那么为什么 Queue 是线程安全的呢？这是因为在每个操作之时都会进行获取锁和释放锁的操作。感兴趣的同学可以自行查阅学习。</p>
-<h2 id="线程同步"><a href="#线程同步" class="headerlink" title="线程同步"></a>线程同步</h2><p>在多线程编程中，我们需要考虑线程同步，那么什么是线程同步以及为什么需要线程同步呢？</p>
-<p>我们通过一个例子来解释为什么需要线程同步？</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line">a = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        a += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">desc</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        a -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t1 = threading.Thread(target=add)</span><br><span class="line">    t2 = threading.Thread(target=desc)</span><br><span class="line"></span><br><span class="line">    t1.start()</span><br><span class="line">    t2.start()</span><br><span class="line"></span><br><span class="line">    t1.join()</span><br><span class="line">    t2.join()</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(a)</span><br></pre></td></tr></table></figure>
-
-<p>在上面的例子中，我们对一个全局编程进行操作，但是我们发现打印结果每次都不一样，且不为 0</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">-307326</span><br></pre></td></tr></table></figure>
-
-<p>这是为什么呢？这是因为 python GIL 的存在，<strong>GIL 是基于固定时间的调度方式，每次执行固定时间的字节码</strong>，导致 t1 还未完成执行完成时切换到了 t2，导致不是我们预期的结果。</p>
-<h3 id="Lock-amp-amp-Lock"><a href="#Lock-amp-amp-Lock" class="headerlink" title="Lock &amp;&amp; Lock"></a>Lock &amp;&amp; Lock</h3><p>那么如何解决这个问题呢？这就涉及到了线程的锁操作：Lock &amp;&amp; RLock</p>
-<p>这里简单介绍一下这二者的区别：</p>
-<blockquote>
-<ol>
-<li><code>threading.Lock</code>：<ul>
-<li><code>Lock</code> 是一个简单的互斥锁（Mutex），也被称为普通锁。</li>
-<li>它只有两个状态：锁定（locked）和未锁定（unlocked）。</li>
-<li>一旦某个线程获取了 <code>Lock</code>，其他线程就无法获取该锁，直到锁被释放。</li>
-<li>即使是同一个线程多次调用 <code>Lock</code> 的 <code>acquire()</code> 方法，也会导致该线程被阻塞，因为它已经持有了该锁。</li>
-</ul>
-</li>
-<li><code>threading.RLock</code>：<ul>
-<li><code>RLock</code> 是可重入锁（Reentrant Lock）。</li>
-<li>可重入锁允许一个线程多次获得同一个锁而不会发生阻塞，前提是该线程已经持有了这个锁。也就是说，一个线程可以多次调用 <code>RLock</code> 的 <code>acquire()</code> 方法而不会被阻塞，只要它在之前已经获得了该锁，并且对应的 <code>release()</code> 方法的次数和 <code>acquire()</code> 方法的次数相等即可释放该锁。</li>
-<li>这种机制允许线程在递归或嵌套函数调用中安全地多次获取同一个锁，避免了死锁的可能性。</li>
-</ul>
-</li>
-</ol>
-</blockquote>
-<p>现在，我们就可以利用 锁 对以上的代码进行改造，达到我们想要的结果：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line">a = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">lock = threading.Lock()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">global</span> lock</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        lock.acquire()</span><br><span class="line">        a += <span class="number">1</span></span><br><span class="line">        lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">desc</span>():</span></span><br><span class="line">    <span class="keyword">global</span> a</span><br><span class="line">    <span class="keyword">global</span> lock</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>):</span><br><span class="line">        lock.acquire()</span><br><span class="line">        a -= <span class="number">1</span></span><br><span class="line">        lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    t1 = threading.Thread(target=add)</span><br><span class="line">    t2 = threading.Thread(target=desc)</span><br><span class="line"></span><br><span class="line">    t1.start()</span><br><span class="line">    t2.start()</span><br><span class="line"></span><br><span class="line">    t1.join()</span><br><span class="line">    t2.join()</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(a)</span><br></pre></td></tr></table></figure>
-
-<p>结果输出为 0；</p>
-<p>当然，在使用锁的时候要结合应用场景，锁会影响性能且容器导致死锁，在使用时，要谨慎。</p>
-<h3 id="Condition"><a href="#Condition" class="headerlink" title="Condition"></a>Condition</h3><p>用于复杂的线程间的同步，例如我们要完成两个 AI 机器人的问答交互，应该如何实现呢？</p>
-<p>我们这里通过一个例子来进行学习：</p>
-<p>这里我们将使用两个线程模拟两个 AI 机器人的对话，实现效果是这样的：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">天猫精灵: 小爱同学</span><br><span class="line">小爱: 我在</span><br><span class="line">天猫精灵: 我们来对古诗吧</span><br><span class="line">小爱: 好啊</span><br><span class="line">天猫精灵: 我住长江头</span><br><span class="line">小爱: 我住长江尾</span><br></pre></td></tr></table></figure>
-
-<p>我们一般是先使用锁的机制来运行：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import threading</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">class XiaoAi(threading.Thread):</span><br><span class="line">    def __init__(self, lock):</span><br><span class="line">        super().__init__(name=&quot;小爱&quot;)</span><br><span class="line">        self.lock = lock</span><br><span class="line"></span><br><span class="line">    def run(self):</span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我在&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 好啊&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我住长江尾&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">class Tianmao(threading.Thread):</span><br><span class="line">    def __init__(self, lock):</span><br><span class="line">        super().__init__(name=&quot;天猫精灵&quot;)</span><br><span class="line">        self.lock = lock</span><br><span class="line"></span><br><span class="line">    def run(self):</span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 小爱同学&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我们来对古诗吧&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line">        self.lock.acquire()</span><br><span class="line">        print(f&quot;&#123;self.name&#125;: 我住长江头&quot;)</span><br><span class="line">        self.lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    lock = threading.RLock()</span><br><span class="line">    xiaoai = XiaoAi(lock)</span><br><span class="line">    tianmao = Tianmao(lock)</span><br><span class="line"></span><br><span class="line">    tianmao.start()</span><br><span class="line">    xiaoai.start()</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p>现实是：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">天猫精灵: 小爱同学</span><br><span class="line">天猫精灵: 我们来对古诗吧</span><br><span class="line">天猫精灵: 我住长江头</span><br><span class="line">小爱: 我在</span><br><span class="line">小爱: 好啊</span><br><span class="line">小爱: 我住长江尾</span><br></pre></td></tr></table></figure>
-
-<p>这里我们可以看到，两个 AI 机器人并没有完成交互的对话，这是为什么呢？</p>
-<p>我们知道在 python 语言中，有 GIL 全局解释器锁的机制，其背后代码运行的原理是：<strong>基于固定时间的调度方式，每次执行固定时间的字节码，或者遇到系统 IO 时，强制释放。</strong></p>
-<p>在上述代码中，在一个固定时间内，天猫精灵就运行完了所有的代码，这样是不可行的。</p>
-<p>于是，我们可以采用 <code>threading.Condition()</code>来实现：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">XiaoAi</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, con</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__(name=<span class="string">&quot;小爱&quot;</span>)</span><br><span class="line">        self.con = con</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">with</span> self.con:</span><br><span class="line">            self.con.wait()  <span class="comment"># wait() 方法只能通过 notify 唤醒</span></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我在&quot;</span>)</span><br><span class="line">            self.con.notify()</span><br><span class="line">    </span><br><span class="line">            self.con.wait()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 好啊&quot;</span>)</span><br><span class="line">            self.con.notify()</span><br><span class="line">    </span><br><span class="line">            self.con.wait()</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我住长江尾&quot;</span>)</span><br><span class="line">            self.con.notify()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Tianmao</span>(<span class="params">threading.Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, con</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__(name=<span class="string">&quot;天猫精灵&quot;</span>)</span><br><span class="line">        self.con = con</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">with</span> self.con:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 小爱同学&quot;</span>)</span><br><span class="line">            self.con.notify()  <span class="comment"># 通知调用了 wait() 方的线程</span></span><br><span class="line">            self.con.wait()  <span class="comment"># 等待通知</span></span><br><span class="line"></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我们来对古诗吧&quot;</span>)</span><br><span class="line">            self.con.notify()  <span class="comment"># 通知调用了 wait() 方的线程</span></span><br><span class="line">            self.con.wait()  <span class="comment"># 等待通知</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;self.name&#125;</span>: 我住长江头&quot;</span>)</span><br><span class="line">            self.con.notify()  <span class="comment"># 通知调用了 wait() 方的线程</span></span><br><span class="line">            self.con.wait()  <span class="comment"># 等待通知</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    con = threading.Condition()</span><br><span class="line">    xiaoai = XiaoAi(con)</span><br><span class="line">    tianmao = Tianmao(con)</span><br><span class="line"></span><br><span class="line">    xiaoai.start()  <span class="comment"># 先 wait</span></span><br><span class="line">    tianmao.start()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>启动顺序很重要，要先 wait, 后 notify</li>
-<li>代码逻辑很重要，要先 <code>with self.con:</code>, 后嵌套 wait() 后 notify</li>
-</ul>
-<p>效果如下：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">天猫精灵: 小爱同学</span><br><span class="line">小爱: 我在</span><br><span class="line">天猫精灵: 我们来对古诗吧</span><br><span class="line">小爱: 好啊</span><br><span class="line">天猫精灵: 我住长江头</span><br><span class="line">小爱: 我住长江尾</span><br></pre></td></tr></table></figure>
-
-<p>那么这是如何实现的呢？通过代码逻辑来了解</p>
-<p>当小爱同学启动时，会调用 <code>con.wait()</code> 方法，等待被唤醒，当天猫精灵启动时，会调用 <code>con.notify</code> 方法，通知小爱同学，打印语句，然后通过 <code> con.notiry()</code> 通知天猫打印语句。这样循环打印，就完成了两个线程的同步对话机制。</p>
-<p>那么这是如何实现的呢？通过代码逻辑来了解</p>
-<p>当小爱同学启动时，会调用 <code>con.wait()</code> 方法，等待被唤醒，当天猫精灵启动时，会调用 <code>con.notify</code> 方法，通知小爱同学，打印语句，然后通过 <code> con.notiry()</code> 通知天猫打印语句。这样循环打印，就完成了两个线程的同步对话机制。</p>
-<p>现在我们来通过解析 Condition 源码的方式来了解其内部运行的原理是如何的？</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Condition</span>:</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Class that implements a condition variable.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    A condition variable allows one or more threads to wait until they are</span></span><br><span class="line"><span class="string">    notified by another thread.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    If the lock argument is given and not None, it must be a Lock or RLock</span></span><br><span class="line"><span class="string">    object, and it is used as the underlying lock. Otherwise, a new RLock object</span></span><br><span class="line"><span class="string">    is created and used as the underlying lock.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, lock=<span class="literal">None</span></span>):</span></span><br><span class="line">        <span class="keyword">if</span> lock <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            lock = RLock()</span><br><span class="line">        self._lock = lock</span><br><span class="line">        <span class="comment"># Export the lock&#x27;s acquire() and release() methods</span></span><br><span class="line">        self.acquire = lock.acquire</span><br><span class="line">        self.release = lock.release</span><br><span class="line">        <span class="comment"># If the lock defines _release_save() and/or _acquire_restore(),</span></span><br><span class="line">        <span class="comment"># these override the default implementations (which just call</span></span><br><span class="line">        <span class="comment"># release() and acquire() on the lock).  Ditto for _is_owned().</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self._release_save = lock._release_save</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self._acquire_restore = lock._acquire_restore</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self._is_owned = lock._is_owned</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">        self._waiters = _deque()</span><br><span class="line">       <span class="function"><span class="keyword">def</span> <span class="title">notify</span>(<span class="params">self, n=<span class="number">1</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Wake up one or more threads waiting on this condition, if any.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        If the calling thread has not acquired the lock when this method is</span></span><br><span class="line"><span class="string">        called, a RuntimeError is raised.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        This method wakes up at most n of the threads waiting for the condition</span></span><br><span class="line"><span class="string">        variable; it is a no-op if no threads are waiting.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self._is_owned():</span><br><span class="line">            <span class="keyword">raise</span> RuntimeError(<span class="string">&quot;cannot notify on un-acquired lock&quot;</span>)</span><br><span class="line">        all_waiters = self._waiters</span><br><span class="line">        waiters_to_notify = _deque(_islice(all_waiters, n))</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> waiters_to_notify:</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">for</span> waiter <span class="keyword">in</span> waiters_to_notify:</span><br><span class="line">            waiter.release()</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                all_waiters.remove(waiter)</span><br><span class="line">            <span class="keyword">except</span> ValueError:</span><br><span class="line">                <span class="keyword">pass</span></span><br><span class="line">              </span><br><span class="line">      <span class="function"><span class="keyword">def</span> <span class="title">wait</span>(<span class="params">self, timeout=<span class="literal">None</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Wait until notified or until a timeout occurs.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        If the calling thread has not acquired the lock when this method is</span></span><br><span class="line"><span class="string">        called, a RuntimeError is raised.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        This method releases the underlying lock, and then blocks until it is</span></span><br><span class="line"><span class="string">        awakened by a notify() or notify_all() call for the same condition</span></span><br><span class="line"><span class="string">        variable in another thread, or until the optional timeout occurs. Once</span></span><br><span class="line"><span class="string">        awakened or timed out, it re-acquires the lock and returns.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        When the timeout argument is present and not None, it should be a</span></span><br><span class="line"><span class="string">        floating point number specifying a timeout for the operation in seconds</span></span><br><span class="line"><span class="string">        (or fractions thereof).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        When the underlying lock is an RLock, it is not released using its</span></span><br><span class="line"><span class="string">        release() method, since this may not actually unlock the lock when it</span></span><br><span class="line"><span class="string">        was acquired multiple times recursively. Instead, an internal interface</span></span><br><span class="line"><span class="string">        of the RLock class is used, which really unlocks it even when it has</span></span><br><span class="line"><span class="string">        been recursively acquired several times. Another internal interface is</span></span><br><span class="line"><span class="string">        then used to restore the recursion level when the lock is reacquired.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self._is_owned():</span><br><span class="line">            <span class="keyword">raise</span> RuntimeError(<span class="string">&quot;cannot wait on un-acquired lock&quot;</span>)</span><br><span class="line">        waiter = _allocate_lock()</span><br><span class="line">        waiter.acquire()</span><br><span class="line">        self._waiters.append(waiter)</span><br><span class="line">        saved_state = self._release_save()</span><br><span class="line">        gotit = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">try</span>:    <span class="comment"># restore state no matter what (e.g., KeyboardInterrupt)</span></span><br><span class="line">            <span class="keyword">if</span> timeout <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                waiter.acquire()</span><br><span class="line">                gotit = <span class="literal">True</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">if</span> timeout &gt; <span class="number">0</span>:</span><br><span class="line">                    gotit = waiter.acquire(<span class="literal">True</span>, timeout)</span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    gotit = waiter.acquire(<span class="literal">False</span>)</span><br><span class="line">            <span class="keyword">return</span> gotit</span><br><span class="line">        <span class="keyword">finally</span>:</span><br><span class="line">            self._acquire_restore(saved_state)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> gotit:</span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    self._waiters.remove(waiter)</span><br><span class="line">                <span class="keyword">except</span> ValueError:</span><br><span class="line">                    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
-
-<p>首先，我们来看一下 <code>__init__</code> 部分，这里其实也是用到了锁机制——<code>RLock()</code> ；</p>
-<p>然后就是这里的 <code>self._waiters = _deque()</code> ，这里其实是借助了一个 collection 中的 双端队列，是可阻塞的；</p>
-<p><strong>condition 实际上是有两层锁，一把底层锁（conditino._lock）会在线程调用了 wait 方法的时候释放，并且在每次调用 <code>wait()</code>时，会生成一把锁，然后放入 <code>self._waiters</code> 中等待被释放，当调用了 <code>notify</code> 方法时，就会获取队列中的锁，然后释放。</strong></p>
-<h3 id="信号量-Semaphore"><a href="#信号量-Semaphore" class="headerlink" title="信号量-Semaphore"></a>信号量-Semaphore</h3><blockquote>
-<p>在 Python 中的 threading 模块中，Semaphore（信号量）是一种用于线程同步的机制。<strong>它可以控制同时访问某个资源的线程数量</strong>。Semaphore 维护着一个内部计数器，可以通过 acquire() 和 release() 方法来增加或减少计数器的值。</p>
-</blockquote>
-<p>例如我现在有个爬虫脚本，我们知道，某些网站对于爬虫是有一些反爬机制的，避免一些异常流量，避免多个线程的爬虫导致的网站崩溃。那么我们要如何正确有效的进行资源的爬取呢？</p>
-<p>答案是：通过 Semaphore 模块，控制线程的创建并设置一定时间间隔取爬取</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> threading <span class="keyword">import</span> Thread</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HtmlSpider</span>(<span class="params">Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, url, sem</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        self.url = url</span><br><span class="line">        self.sem = sem</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;got html text success&quot;</span>)</span><br><span class="line">        self.sem.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UrlProducer</span>(<span class="params">Thread</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, sem</span>):</span></span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        self.sem = sem</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">20</span>):</span><br><span class="line">            self.sem.acquire()</span><br><span class="line">            html_thread = HtmlSpider(<span class="string">&quot;https://www.baidu.com&quot;</span>, self.sem)</span><br><span class="line">            html_thread.start()</span><br><span class="line">            </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    sem = threading.Semaphore(<span class="number">3</span>)</span><br><span class="line">    url_producer = UrlProducer(sem)</span><br><span class="line">    url_producer.start()</span><br></pre></td></tr></table></figure>
-
-
-
-<p>通过上述代码，在创建 20 个线程的过程中，就可以实现每次创建 3 个线程，而不是一次性创建 20 个了。</p>
-<p>其实，Semaphore 也是基于 Condition 进行创建使用的：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Semaphore</span>:</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;This class implements semaphore objects.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Semaphores manage a counter representing the number of release() calls minus</span></span><br><span class="line"><span class="string">    the number of acquire() calls, plus an initial value. The acquire() method</span></span><br><span class="line"><span class="string">    blocks if necessary until it can return without making the counter</span></span><br><span class="line"><span class="string">    negative. If not given, value defaults to 1.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># After Tim Peters&#x27; semaphore class, but not quite the same (no maximum)</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, value=<span class="number">1</span></span>):</span></span><br><span class="line">        <span class="keyword">if</span> value &lt; <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&quot;semaphore initial value must be &gt;= 0&quot;</span>)</span><br><span class="line">        self._cond = Condition(Lock())</span><br><span class="line">        self._value = value</span><br></pre></td></tr></table></figure>
-
-<p>关于详细信息可参考源码</p>
-<h3 id="TreadPoolExecutor-线程池"><a href="#TreadPoolExecutor-线程池" class="headerlink" title="TreadPoolExecutor 线程池"></a>TreadPoolExecutor 线程池</h3><p>为什么需要线程池？</p>
-<blockquote>
-<p>线程池是一种并发编程的技术，用于管理和复用线程。它由一组预先创建的线程组成，这些线程可以被重复使用来执行多个任务。线程池的主要目的是优化线程的创建和销毁过程，以提高程序的性能和资源利用率。</p>
-<p>以下是一些使用线程池的好处：</p>
-<ol>
-<li>降低线程创建和销毁的开销：线程的创建和销毁是一项开销较高的操作，涉及到操作系统的调度和资源管理。通过使用线程池，可以预先创建一组线程，并重复使用它们来执行多个任务，避免了频繁的创建和销毁线程的开销。</li>
-<li>提高系统的响应性：在多线程环境下，任务提交给线程池后可以立即开始执行，而不需要等待新线程的创建。这样可以大大减少任务的等待时间，提高系统的响应性和吞吐量。</li>
-<li>控制并发数量：线程池可以通过设置最大线程数来限制并发执行的任务数量。这可以帮助我们控制系统资源的使用，避免过多的线程竞争和资源抢占导致的性能下降或系统崩溃。</li>
-<li>提供任务排队和调度机制：线程池通常提供了任务队列，用于存储待执行的任务。当线程池中的线程空闲时，它们可以从任务队列中获取任务并执行。这种任务调度机制可以有效地平衡任务的执行，并确保任务按照预期的顺序和优先级进行处理。</li>
-<li>资源管理和监控：线程池可以提供一些额外的功能，如线程超时管理、线程数动态调整、异常处理等。它们可以帮助我们更好地管理和监控线程的行为，提高程序的稳定性和可靠性。</li>
-</ol>
-<p>总之，线程池是一种有效管理线程的技术，它能够提高程序的性能、响应性和资源利用率。通过合理配置线程池的大小和参数，可以更好地控制线程的并发数量，避免资源竞争和性能问题，提供更好的用户体验和系统可靠性。</p>
-</blockquote>
-<p>简单使用</p>
-<ul>
-<li>ThreadPoolExecutor()  线程池对象</li>
-<li>task.submit 注册函数到线程池中</li>
-<li>task.cancel 取消 task 的运行</li>
-<li>task.result 线程的运行结果</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> concurrent <span class="keyword">import</span> futures</span><br><span class="line"><span class="keyword">from</span> concurrent.futures <span class="keyword">import</span> ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED</span><br><span class="line"></span><br><span class="line"><span class="comment"># futures 可以让多进程和多线程编码接口一致</span></span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_html</span>(<span class="params">times</span>):</span></span><br><span class="line">    time.sleep(times)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get page <span class="subst">&#123;times&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> times</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    executor = ThreadPoolExecutor(max_workers=<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># # 通过 submit 函数提交执行的函数到线程池中，submit 是立即返回</span></span><br><span class="line">    <span class="comment"># task1 = executor.submit(get_html, (3,))</span></span><br><span class="line">    <span class="comment"># task2 = executor.submit(get_html, (2,))</span></span><br><span class="line">    <span class="comment">#</span></span><br><span class="line">    <span class="comment"># print(task1.done())</span></span><br><span class="line">    <span class="comment"># print(task2.cancel())</span></span><br><span class="line">    <span class="comment"># time.sleep(3)</span></span><br><span class="line">    <span class="comment"># print(task1.done())</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 获取已经成功的 task 的返回</span></span><br><span class="line">    urls = [<span class="number">3</span>, <span class="number">2</span>, <span class="number">4</span>]</span><br><span class="line">    all_task = [executor.submit(get_html, url) <span class="keyword">for</span> url <span class="keyword">in</span> urls]</span><br><span class="line">    <span class="comment"># wait 控制主线程的推出</span></span><br><span class="line">    wait(all_task, return_when=FIRST_COMPLETED)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;main&quot;</span>)</span><br><span class="line">    <span class="keyword">for</span> future <span class="keyword">in</span> as_completed(all_task):</span><br><span class="line">        data = future.result()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;get <span class="subst">&#123;data&#125;</span> page&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># # 通过 executor 的 map 获取已经完成的值</span></span><br><span class="line">    <span class="comment"># for data in executor.map(get_html, urls):</span></span><br><span class="line">    <span class="comment">#     print(f&quot;get &#123;data&#125; page&quot;)</span></span><br></pre></td></tr></table></figure>
-
-
-
-<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ThreadPoolExecutor</span>(<span class="params">_base.Executor</span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Used to assign unique thread names when thread_name_prefix is not supplied.</span></span><br><span class="line">    _counter = itertools.count().__next__</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, max_workers=<span class="literal">None</span>, thread_name_prefix=<span class="string">&#x27;&#x27;</span></span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Initializes a new ThreadPoolExecutor instance.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        Args:</span></span><br><span class="line"><span class="string">            max_workers: The maximum number of threads that can be used to</span></span><br><span class="line"><span class="string">                execute the given calls.</span></span><br><span class="line"><span class="string">            thread_name_prefix: An optional name prefix to give our threads.</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> max_workers <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="comment"># Use this number because ThreadPoolExecutor is often</span></span><br><span class="line">            <span class="comment"># used to overlap I/O instead of CPU work.</span></span><br><span class="line">            max_workers = (os.cpu_count() <span class="keyword">or</span> <span class="number">1</span>) * <span class="number">5</span></span><br><span class="line">        <span class="keyword">if</span> max_workers &lt;= <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">&quot;max_workers must be greater than 0&quot;</span>)</span><br><span class="line"></span><br><span class="line">        self._max_workers = max_workers</span><br><span class="line">        self._work_queue = queue.Queue()</span><br><span class="line">        self._threads = <span class="built_in">set</span>()</span><br><span class="line">        self._shutdown = <span class="literal">False</span></span><br><span class="line">        self._shutdown_lock = threading.Lock()</span><br><span class="line">        self._thread_name_prefix = (thread_name_prefix <span class="keyword">or</span></span><br><span class="line">                                    (<span class="string">&quot;ThreadPoolExecutor-%d&quot;</span> % self._counter()))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">submit</span>(<span class="params">self, fn, *args, **kwargs</span>):</span></span><br><span class="line">        <span class="keyword">with</span> self._shutdown_lock:</span><br><span class="line">            <span class="keyword">if</span> self._shutdown:</span><br><span class="line">                <span class="keyword">raise</span> RuntimeError(<span class="string">&#x27;cannot schedule new futures after shutdown&#x27;</span>)</span><br><span class="line"></span><br><span class="line">            f = _base.Future()</span><br><span class="line">            w = _WorkItem(f, fn, args, kwargs)</span><br><span class="line"></span><br><span class="line">            self._work_queue.put(w)</span><br><span class="line">            self._adjust_thread_count()</span><br><span class="line">            <span class="keyword">return</span> f</span><br><span class="line">    submit.__doc__ = _base.Executor.submit.__doc__</span><br></pre></td></tr></table></figure>
-
-<p>在上述的源码中，我们通过 submit 函数模块可以比较清楚的看到一个 函数 是如何注册到 Future 中的</p>
-<ul>
-<li><p>创建一个锁 <code>Thread.Lock()</code> 保证线程安全</p>
-</li>
-<li><p>创建 Future() 实例 并将其作为参数传递到 work_item 中, 并 put 到 队列中</p>
-<ul>
-<li><strong>Future——未来对象，可以理解为 task 的容器对象，其中包含了 task 的执行情况，理解 Future 的设计理念是 Python 异步编程中的关键；</strong></li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Future</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;Represents the result of an asynchronous computation.&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="string">&quot;&quot;&quot;Initializes the future. Should not be called by clients.&quot;&quot;&quot;</span></span><br><span class="line">        self._condition = threading.Condition()</span><br><span class="line">        self._state = PENDING</span><br><span class="line">        self._result = <span class="literal">None</span></span><br><span class="line">        self._exception = <span class="literal">None</span></span><br><span class="line">        self._waiters = []</span><br><span class="line">        self._done_callbacks = []</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_invoke_callbacks</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">for</span> callback <span class="keyword">in</span> self._done_callbacks:</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                callback(self)</span><br><span class="line">            <span class="keyword">except</span> Exception:</span><br><span class="line">                LOGGER.exception(<span class="string">&#x27;exception calling callback for %r&#x27;</span>, self)</span><br></pre></td></tr></table></figure>
-
-<p>可以看到其中也使用了 <code>threading.Condition</code> 来控制线程的管理</p>
-<ul>
-<li>_workItem</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_WorkItem</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, future, fn, args, kwargs</span>):</span></span><br><span class="line">        self.future = future</span><br><span class="line">        self.fn = fn</span><br><span class="line">        self.args = args</span><br><span class="line">        self.kwargs = kwargs</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.future.set_running_or_notify_cancel():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            result = self.fn(*self.args, **self.kwargs)</span><br><span class="line">        <span class="keyword">except</span> BaseException <span class="keyword">as</span> exc:</span><br><span class="line">            self.future.set_exception(exc)</span><br><span class="line">            <span class="comment"># Break a reference cycle with the exception &#x27;exc&#x27;</span></span><br><span class="line">            self = <span class="literal">None</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.future.set_result(result)</span><br></pre></td></tr></table></figure>
-
-<p>其中比较重要的代码为：<code>result = self.fn(*self.args, **self.kwargs)</code> &amp;&amp; <code>self.future.set_result(result)</code></p>
-</li>
-</ul>
-<p>​        分别是 运行函数，并获取结果，以及将结果保存至 future 中</p>
-<ul>
-<li>_adjust_thread_count() 函数，控制线程池的大小</li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_adjust_thread_count</span>(<span class="params">self</span>):</span></span><br><span class="line">      <span class="comment"># When the executor gets lost, the weakref callback will wake up</span></span><br><span class="line">      <span class="comment"># the worker threads.</span></span><br><span class="line">      <span class="function"><span class="keyword">def</span> <span class="title">weakref_cb</span>(<span class="params">_, q=self._work_queue</span>):</span></span><br><span class="line">        q.put(<span class="literal">None</span>)</span><br><span class="line">        <span class="comment"># TODO(bquinlan): Should avoid creating new threads if there are more</span></span><br><span class="line">        <span class="comment"># idle threads than items in the work queue.</span></span><br><span class="line">        num_threads = <span class="built_in">len</span>(self._threads)</span><br><span class="line">        <span class="keyword">if</span> num_threads &lt; self._max_workers:</span><br><span class="line">          thread_name = <span class="string">&#x27;%s_%d&#x27;</span> % (self._thread_name_prefix <span class="keyword">or</span> self,</span><br><span class="line">                                   num_threads)</span><br><span class="line">          t = threading.Thread(name=thread_name, target=_worker,</span><br><span class="line">                               args=(weakref.ref(self, weakref_cb),</span><br><span class="line">                                     self._work_queue))</span><br><span class="line">          t.daemon = <span class="literal">True</span></span><br><span class="line">          t.start()</span><br><span class="line">          self._threads.add(t)</span><br><span class="line">          _threads_queues[t] = self._work_queue</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>target = _worker() 运行函数的主体对象</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_worker</span>(<span class="params">executor_reference, work_queue</span>):</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            work_item = work_queue.get(block=<span class="literal">True</span>)</span><br><span class="line">            <span class="keyword">if</span> work_item <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">                work_item.run()</span><br><span class="line">                <span class="comment"># Delete references to object. See issue16284</span></span><br><span class="line">                <span class="keyword">del</span> work_item</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            executor = executor_reference()</span><br><span class="line">            <span class="comment"># Exit if:</span></span><br><span class="line">            <span class="comment">#   - The interpreter is shutting down OR</span></span><br><span class="line">            <span class="comment">#   - The executor that owns the worker has been collected OR</span></span><br><span class="line">            <span class="comment">#   - The executor that owns the worker has been shutdown.</span></span><br><span class="line">            <span class="keyword">if</span> _shutdown <span class="keyword">or</span> executor <span class="keyword">is</span> <span class="literal">None</span> <span class="keyword">or</span> executor._shutdown:</span><br><span class="line">                <span class="comment"># Notice other workers</span></span><br><span class="line">                work_queue.put(<span class="literal">None</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            <span class="keyword">del</span> executor</span><br><span class="line">    <span class="keyword">except</span> BaseException:</span><br><span class="line">        _base.LOGGER.critical(<span class="string">&#x27;Exception in worker&#x27;</span>, exc_info=<span class="literal">True</span>)</span><br></pre></td></tr></table></figure>
-
-<p>这里不断从 wok_queue 中获取 work_item 实例，然后调用其 run 方法，然后销毁依赖；</p>
-</li>
-<li><p>_threads_queues 是继承自 MutableMapping 保存线程池中的队列对象</p>
-</li>
-</ul>
-<p>以上就是多线程编程的全部内容</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>在实际的开发工作中，对于 CPU 密集型的任务，可以考虑多进程编程；</p>
-<p>对于 IO 密集型的任务，可以考虑多线程编程；</p>
-<p>多线程的缺点就是 GIL  的存在以及锁会影响性能；</p>
-<p>但是进程的创建和销毁会高于线程，所以要结合具体应用场景去使用哦</p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Redis 高可用方案</title>
     <url>/posts/7c68620a/</url>
     <content><![CDATA[<h1 id="Redis-高可用方案"><a href="#Redis-高可用方案" class="headerlink" title="Redis 高可用方案"></a>Redis 高可用方案</h1><p>Redis 高可用方式主要有以下四种：</p>
@@ -4715,6 +4715,129 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>排序算法一览</title>
+    <url>/posts/2c2cd033/</url>
+    <content><![CDATA[<h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><table>
+<thead>
+<tr>
+<th>排序算法</th>
+<th>时间复杂度</th>
+<th>是否基于比较</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>冒泡、插入、选择</td>
+<td>O(n**2)</td>
+<td>支持</td>
+<td>冒泡、插入、选择排序都有一个共同点，将待排序数列分为已排序和未排序两部分。在未排序的部分中查找一个最值，放到已排序数列的恰当位置。 具体到代码层面，外层循环的变量用于分割已排序和未排序数，内层循环的变量用于在未排序数中查找。从思路上看，这三种算法其实是一样的，所以时间复杂度也相同。</td>
+</tr>
+<tr>
+<td>快排、归并</td>
+<td>O(nlog(n))</td>
+<td>支持</td>
+<td>-</td>
+</tr>
+<tr>
+<td>桶、计数、基数</td>
+<td></td>
+<td></td>
+<td>-</td>
+</tr>
+</tbody></table>
+<h2 id="如何分析一个排序算法？"><a href="#如何分析一个排序算法？" class="headerlink" title="如何分析一个排序算法？"></a>如何分析一个排序算法？</h2><ul>
+<li><p>算法的执行效率</p>
+<ul>
+<li>最好、最坏、平均情况时间复杂度</li>
+<li>时间复杂度的系数、常数、低阶</li>
+<li>比较次数和交换次数</li>
+</ul>
+</li>
+<li><p>排序算法的内存消耗</p>
+<ul>
+<li>算法的内存消耗可以通过空间复杂度来衡量</li>
+</ul>
+</li>
+<li><p>排序算法的稳定性</p>
+<ul>
+<li>稳定的排序算法(原有排序不变)</li>
+<li>不稳定的排序算法(原有排序改变)</li>
+</ul>
+</li>
+</ul>
+<h2 id="冒泡排序（Bubble-Sort）"><a href="#冒泡排序（Bubble-Sort）" class="headerlink" title="冒泡排序（Bubble Sort）"></a>冒泡排序（Bubble Sort）</h2><blockquote>
+<p>冒泡排序: 比较相邻的两个元素，经过一次排序后，最大的数会冒泡到最后。</p>
+<p>时间复杂度：O（n**2）</p>
+<p>空间复杂度：O（1）</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    冒泡排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        exchange = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(length - i - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">                exchange = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><blockquote>
+<p>插入排序，取未排序区间中的元素，在已排序区间中找到合适的插入为止将其插入，并保证已排序区间一直有序，重复这个过程，直到未排序空间中的元素为空</p>
+<p>有序空间左边肯定最小的，只需要每次比较未排序空间的第一个；</p>
+<p>满有序度：n*(n-1)/2=15</p>
+<p>时间复杂度：O(n**2)</p>
+<p>空间复杂度：O(1)</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        value = arr[i]</span><br><span class="line">        j = i - <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> arr[j] &gt; value:</span><br><span class="line">            arr[j + <span class="number">1</span>] = arr[i]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        arr[j] = value</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><blockquote>
+<p>选择排序是一种简单的排序算法，其基本思想是每次从待排序的元素中选择最小的元素，将其放到已排序的序列的末尾，从而得到一个新的有序序列；</p>
+<p>时间复杂度：O(n**2)</p>
+<p>空间复杂度：O(1)</p>
+<p>是否稳定：不稳定</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    选择排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        min_index = i</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span>, length):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; arr[min_index]:</span><br><span class="line">                min_index = j</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
+
+<h2 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h2><blockquote>
+<p>归并排序，使用了分治思想，将一个数组分开为左小右大的无数个数组，然后合并；</p>
+<p>时间复杂度：O(logn)</p>
+<p>空间复杂度：O(n)</p>
+<p>是否稳定：是</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">import</span> math</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    middle = math.floor(<span class="built_in">len</span>(arr)/<span class="number">2</span>)</span><br><span class="line">    left, right = arr[<span class="number">0</span>:middle], arr[middle:]</span><br><span class="line">    <span class="keyword">return</span> merge(merge_sort(left), merge_sort(right))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span>(<span class="params">left, right</span>):</span></span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">while</span> left <span class="keyword">and</span> right:</span><br><span class="line">        <span class="keyword">if</span> left[<span class="number">0</span>] &lt;= right[<span class="number">0</span>]:</span><br><span class="line">            result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> left:</span><br><span class="line">        result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> right:</span><br><span class="line">        result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
+
+<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><blockquote>
+<p>快排的思想是这样的：如果要排序数组中下标从 p 到 r 之间的一组数据，我们选择 p 到 r 之间的任意一个数据作为 pivot（分区点）。</p>
+<p>空间复杂度：O(n)</p>
+<p>时间复杂度：O(log(n))</p>
+<p>是否稳定：否</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr:<span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    快速排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">    privot = arr[<span class="number">0</span>]</span><br><span class="line">    less = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= privot]</span><br><span class="line">    greater = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; privot]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> quick_sort(less) + [privot] + quick_sort(greater)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>归并排序的处理过程是由下到上的，先处理子问题，然后再合并。而快排正好相反，它的处理过程是由上到下的，先分区，然后再处理子问题。</p>
+<h2 id="线性排序"><a href="#线性排序" class="headerlink" title="线性排序"></a>线性排序</h2><p>时间复杂度为 O(n) 的排序算法：桶排序、计数排序、基数排序。这三种排序算法的时间复杂度是线性的。</p>
+<h3 id="桶排序"><a href="#桶排序" class="headerlink" title="桶排序"></a>桶排序</h3><blockquote>
+<p>核心思想是将要排序的数据分到几个有序的桶里，每个桶里的数据再单独进行排序。桶内的数据排序完之后，再把每个桶内的数据按照顺序依次取出，组成的序列就是有序的</p>
+</blockquote>
+<h3 id="计数排序"><a href="#计数排序" class="headerlink" title="计数排序"></a>计数排序</h3><blockquote>
+<p>计数排序只能用在数据范围不大的场景中，如果数据范围 k 比要排序的数据 n 大很多，就不适合用计数排序了。而且，计数排序只能给非负整数排序，如果要排序的数据是其他类型的，要将其在不改变相对大小的情况下，转化为非负整数。</p>
+</blockquote>
+<h3 id="基数排序"><a href="#基数排序" class="headerlink" title="基数排序"></a>基数排序</h3><blockquote>
+<p>基数排序对要排序的数据是有要求的，需要可以分割出独立的“位”来比较，而且位之间有递进的关系，如果 a 数据的高位比 b 数据大，那剩下的低位就不用比较了。除此之外，每一位的数据范围不能太大，要可以用线性排序算法来排序，否则，基数排序的时间复杂度就无法做到 O(n) 了。</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>三种排序算法的时间复杂度均为 O(n</strong>2)，空间复杂度为 O(1), 除选择排序均为稳定的算法；</p>
+<p>三者排序思想都是将元素分为已排序空间和未排序空间，<strong>冒泡排序的思想是在未排序的空间中，找到最大的数放置最未排序空间的末端；</strong></p>
+<p><strong>选择排序是在未排序空间中，找到最小的数，放置到最左端；插入排序的思想则是如何将一个数插入到已排序空间中并保持有序；</strong></p>
+<p><strong>而为何大多使用插入排序，主要原因是插入排序中的赋值语句较为简单， 较少的数据交换</strong></p>
+<hr>
+]]></content>
+      <categories>
+        <category>数据结构与算法</category>
+      </categories>
+      <tags>
+        <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>为什么使用链表&amp;&amp;实现</title>
     <url>/posts/2c2cd033/</url>
     <content><![CDATA[<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
@@ -4854,129 +4977,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Definition for singly-linked list.</span></span><br><span class="line"><span class="comment"># class ListNode:</span></span><br><span class="line"><span class="comment">#     def __init__(self, val=0, next=None):</span></span><br><span class="line"><span class="comment">#         self.val = val</span></span><br><span class="line"><span class="comment">#         self.next = next</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">middleNode</span>(<span class="params">self, head: ListNode</span>) -&gt; ListNode:</span></span><br><span class="line">        </span><br><span class="line">        n, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> cur:</span><br><span class="line">            n += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        k, cur = <span class="number">0</span>, head</span><br><span class="line">        <span class="keyword">while</span> k &lt; n // <span class="number">2</span>:</span><br><span class="line">            k += <span class="number">1</span></span><br><span class="line">            cur = cur.<span class="built_in">next</span></span><br><span class="line">        <span class="keyword">return</span> cur</span><br></pre></td></tr></table></figure>
 
 <h1 id="链表实现源码"><a href="#链表实现源码" class="headerlink" title="链表实现源码"></a>链表实现源码</h1><p><a href="https://github.com/tyronemaxi/algorithm/tree/main/chain">https://github.com/tyronemaxi/algorithm/tree/main/chain</a></p>
-]]></content>
-      <categories>
-        <category>数据结构与算法</category>
-      </categories>
-      <tags>
-        <tag>数据结构与算法</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>排序算法一览</title>
-    <url>/posts/2c2cd033/</url>
-    <content><![CDATA[<h1 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h1><table>
-<thead>
-<tr>
-<th>排序算法</th>
-<th>时间复杂度</th>
-<th>是否基于比较</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>冒泡、插入、选择</td>
-<td>O(n**2)</td>
-<td>支持</td>
-<td>冒泡、插入、选择排序都有一个共同点，将待排序数列分为已排序和未排序两部分。在未排序的部分中查找一个最值，放到已排序数列的恰当位置。 具体到代码层面，外层循环的变量用于分割已排序和未排序数，内层循环的变量用于在未排序数中查找。从思路上看，这三种算法其实是一样的，所以时间复杂度也相同。</td>
-</tr>
-<tr>
-<td>快排、归并</td>
-<td>O(nlog(n))</td>
-<td>支持</td>
-<td>-</td>
-</tr>
-<tr>
-<td>桶、计数、基数</td>
-<td></td>
-<td></td>
-<td>-</td>
-</tr>
-</tbody></table>
-<h2 id="如何分析一个排序算法？"><a href="#如何分析一个排序算法？" class="headerlink" title="如何分析一个排序算法？"></a>如何分析一个排序算法？</h2><ul>
-<li><p>算法的执行效率</p>
-<ul>
-<li>最好、最坏、平均情况时间复杂度</li>
-<li>时间复杂度的系数、常数、低阶</li>
-<li>比较次数和交换次数</li>
-</ul>
-</li>
-<li><p>排序算法的内存消耗</p>
-<ul>
-<li>算法的内存消耗可以通过空间复杂度来衡量</li>
-</ul>
-</li>
-<li><p>排序算法的稳定性</p>
-<ul>
-<li>稳定的排序算法(原有排序不变)</li>
-<li>不稳定的排序算法(原有排序改变)</li>
-</ul>
-</li>
-</ul>
-<h2 id="冒泡排序（Bubble-Sort）"><a href="#冒泡排序（Bubble-Sort）" class="headerlink" title="冒泡排序（Bubble Sort）"></a>冒泡排序（Bubble Sort）</h2><blockquote>
-<p>冒泡排序: 比较相邻的两个元素，经过一次排序后，最大的数会冒泡到最后。</p>
-<p>时间复杂度：O（n**2）</p>
-<p>空间复杂度：O（1）</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bubble_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    冒泡排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        exchange = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(length - i - <span class="number">1</span>):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &gt; arr[j + <span class="number">1</span>]:</span><br><span class="line">                arr[j], arr[j + <span class="number">1</span>] = arr[j + <span class="number">1</span>], arr[j]</span><br><span class="line">                exchange = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> exchange:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="插入排序"><a href="#插入排序" class="headerlink" title="插入排序"></a>插入排序</h2><blockquote>
-<p>插入排序，取未排序区间中的元素，在已排序区间中找到合适的插入为止将其插入，并保证已排序区间一直有序，重复这个过程，直到未排序空间中的元素为空</p>
-<p>有序空间左边肯定最小的，只需要每次比较未排序空间的第一个；</p>
-<p>满有序度：n*(n-1)/2=15</p>
-<p>时间复杂度：O(n**2)</p>
-<p>空间复杂度：O(1)</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">insert_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    n = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, n):</span><br><span class="line">        value = arr[i]</span><br><span class="line">        j = i - <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> j &gt;= <span class="number">0</span> <span class="keyword">and</span> arr[j] &gt; value:</span><br><span class="line">            arr[j + <span class="number">1</span>] = arr[i]</span><br><span class="line">            j -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        arr[j] = value</span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="选择排序"><a href="#选择排序" class="headerlink" title="选择排序"></a>选择排序</h2><blockquote>
-<p>选择排序是一种简单的排序算法，其基本思想是每次从待排序的元素中选择最小的元素，将其放到已排序的序列的末尾，从而得到一个新的有序序列；</p>
-<p>时间复杂度：O(n**2)</p>
-<p>空间复杂度：O(1)</p>
-<p>是否稳定：不稳定</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">change_sort</span>(<span class="params">arr: <span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    选择排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    length = <span class="built_in">len</span>(arr)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(length):</span><br><span class="line">        min_index = i</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i+<span class="number">1</span>, length):</span><br><span class="line">            <span class="keyword">if</span> arr[j] &lt; arr[min_index]:</span><br><span class="line">                min_index = j</span><br><span class="line"></span><br><span class="line">        arr[i], arr[min_index] = arr[min_index], arr[i]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> arr</span><br></pre></td></tr></table></figure>
-
-<h2 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h2><blockquote>
-<p>归并排序，使用了分治思想，将一个数组分开为左小右大的无数个数组，然后合并；</p>
-<p>时间复杂度：O(logn)</p>
-<p>空间复杂度：O(n)</p>
-<p>是否稳定：是</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge_sort</span>(<span class="params">arr</span>):</span></span><br><span class="line">    <span class="keyword">import</span> math</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line">    middle = math.floor(<span class="built_in">len</span>(arr)/<span class="number">2</span>)</span><br><span class="line">    left, right = arr[<span class="number">0</span>:middle], arr[middle:]</span><br><span class="line">    <span class="keyword">return</span> merge(merge_sort(left), merge_sort(right))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span>(<span class="params">left, right</span>):</span></span><br><span class="line">    result = []</span><br><span class="line">    <span class="keyword">while</span> left <span class="keyword">and</span> right:</span><br><span class="line">        <span class="keyword">if</span> left[<span class="number">0</span>] &lt;= right[<span class="number">0</span>]:</span><br><span class="line">            result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> left:</span><br><span class="line">        result.append(left.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">while</span> right:</span><br><span class="line">        result.append(right.pop(<span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
-
-<h2 id="快速排序"><a href="#快速排序" class="headerlink" title="快速排序"></a>快速排序</h2><blockquote>
-<p>快排的思想是这样的：如果要排序数组中下标从 p 到 r 之间的一组数据，我们选择 p 到 r 之间的任意一个数据作为 pivot（分区点）。</p>
-<p>空间复杂度：O(n)</p>
-<p>时间复杂度：O(log(n))</p>
-<p>是否稳定：否</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">quick_sort</span>(<span class="params">arr:<span class="built_in">list</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    快速排序</span></span><br><span class="line"><span class="string">    :param arr:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(arr) &lt; <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> arr</span><br><span class="line"></span><br><span class="line">    privot = arr[<span class="number">0</span>]</span><br><span class="line">    less = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &lt;= privot]</span><br><span class="line">    greater = [i <span class="keyword">for</span> i <span class="keyword">in</span> arr[<span class="number">1</span>:] <span class="keyword">if</span> i &gt; privot]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> quick_sort(less) + [privot] + quick_sort(greater)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>归并排序的处理过程是由下到上的，先处理子问题，然后再合并。而快排正好相反，它的处理过程是由上到下的，先分区，然后再处理子问题。</p>
-<h2 id="线性排序"><a href="#线性排序" class="headerlink" title="线性排序"></a>线性排序</h2><p>时间复杂度为 O(n) 的排序算法：桶排序、计数排序、基数排序。这三种排序算法的时间复杂度是线性的。</p>
-<h3 id="桶排序"><a href="#桶排序" class="headerlink" title="桶排序"></a>桶排序</h3><blockquote>
-<p>核心思想是将要排序的数据分到几个有序的桶里，每个桶里的数据再单独进行排序。桶内的数据排序完之后，再把每个桶内的数据按照顺序依次取出，组成的序列就是有序的</p>
-</blockquote>
-<h3 id="计数排序"><a href="#计数排序" class="headerlink" title="计数排序"></a>计数排序</h3><blockquote>
-<p>计数排序只能用在数据范围不大的场景中，如果数据范围 k 比要排序的数据 n 大很多，就不适合用计数排序了。而且，计数排序只能给非负整数排序，如果要排序的数据是其他类型的，要将其在不改变相对大小的情况下，转化为非负整数。</p>
-</blockquote>
-<h3 id="基数排序"><a href="#基数排序" class="headerlink" title="基数排序"></a>基数排序</h3><blockquote>
-<p>基数排序对要排序的数据是有要求的，需要可以分割出独立的“位”来比较，而且位之间有递进的关系，如果 a 数据的高位比 b 数据大，那剩下的低位就不用比较了。除此之外，每一位的数据范围不能太大，要可以用线性排序算法来排序，否则，基数排序的时间复杂度就无法做到 O(n) 了。</p>
-</blockquote>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>三种排序算法的时间复杂度均为 O(n</strong>2)，空间复杂度为 O(1), 除选择排序均为稳定的算法；</p>
-<p>三者排序思想都是将元素分为已排序空间和未排序空间，<strong>冒泡排序的思想是在未排序的空间中，找到最大的数放置最未排序空间的末端；</strong></p>
-<p><strong>选择排序是在未排序空间中，找到最小的数，放置到最左端；插入排序的思想则是如何将一个数插入到已排序空间中并保持有序；</strong></p>
-<p><strong>而为何大多使用插入排序，主要原因是插入排序中的赋值语句较为简单， 较少的数据交换</strong></p>
-<hr>
 ]]></content>
       <categories>
         <category>数据结构与算法</category>

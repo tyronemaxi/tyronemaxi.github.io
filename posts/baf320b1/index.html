@@ -33,7 +33,7 @@
 <meta property="og:image" content="https://www.tianzhichao.com/posts/baf320b1/image-20230708103516479.png">
 <meta property="og:image" content="https://www.tianzhichao.com/posts/baf320b1/image-20230708104117935.png">
 <meta property="article:published_time" content="2023-07-31T06:36:24.000Z">
-<meta property="article:modified_time" content="2023-07-31T13:39:55.714Z">
+<meta property="article:modified_time" content="2023-08-01T03:30:21.802Z">
 <meta property="article:author" content="Tyrone">
 <meta property="article:tag" content="网络 IO 模型">
 <meta name="twitter:card" content="summary">
@@ -213,10 +213,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2023-07-31 14:36:24 / 修改时间：21:39:55" itemprop="dateCreated datePublished" datetime="2023-07-31T14:36:24+08:00">2023-07-31</time>
+              <time title="创建时间：2023-07-31 14:36:24" itemprop="dateCreated datePublished" datetime="2023-07-31T14:36:24+08:00">2023-07-31</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-08-01 11:30:21" itemprop="dateModified" datetime="2023-08-01T11:30:21+08:00">2023-08-01</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -267,22 +273,22 @@
 <li>信号驱动式 I/O</li>
 <li>异步 I/O （POSIX 的 aio_系列函数）</li>
 </ul>
-<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="./image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
+<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
 
 <p>当采用阻塞式时，必须等待任务处理完成才能继续。<strong>其整体的逻辑是链式的</strong></p>
-<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="./image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
+<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
 
 <p>当采用非阻塞时，需要消耗 CPU 去做轮询的工作来得知任务是否处理完成，适用于多个不同类型任务的机制，但是采用 recvfrom 轮询的方式，不但消耗了 cpu 资源，也会增加代码的复杂度。</p>
 <h4 id="I-O-多路复用"><a href="#I-O-多路复用" class="headerlink" title="I/O 多路复用"></a>I/O 多路复用</h4><p>I/O 多路复用应用非常广泛，这里重点介绍一下：</p>
 <p>IO 多路复用是一种高效的编程模型<strong>，用于同时监控多个 IO 的可读，可写或异常状态，从而实现在单个线程中处理多个 IO 任务的能力</strong>。它通常用于网络编程中，以提高程序的并发性和性能。</p>
-<img src="./image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
+<img src="image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
 
 <p>select 是阻塞的，可以监听多个文件句柄，当某一个文件句柄的状态发生变化时，会立即返回。</p>
-<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="./image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
+<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
 
 
 
-<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="./image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
+<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
 
 
 
