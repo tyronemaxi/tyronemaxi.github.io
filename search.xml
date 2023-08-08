@@ -192,7 +192,7 @@
 <h3 id="aiohttp"><a href="#aiohttp" class="headerlink" title="aiohttp"></a>aiohttp</h3><p>待补充</p>
 ]]></content>
       <categories>
-        <category>协程实现原理及使用</category>
+        <category>python</category>
       </categories>
       <tags>
         <tag>协程实现原理及使用</tag>
@@ -3968,35 +3968,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>iter()</title>
-    <url>/posts/3a33b362/</url>
-    <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
-<blockquote>
-<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
-</blockquote>
-<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
-<li><p>iter(object[, sentinel])</p>
-</li>
-<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
-</li>
-<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
-</li>
-</ul>
-<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>常用 linux 命令</title>
     <url>/posts/92072779/</url>
     <content><![CDATA[<h1 id="linx-面试题"><a href="#linx-面试题" class="headerlink" title="linx 面试题"></a>linx 面试题</h1><p>参考：<a href="https://segmentfault.com/a/1190000040007585">https://segmentfault.com/a/1190000040007585</a><br><a href="https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/">https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/</a></p>
@@ -4183,6 +4154,35 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
 <li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
 </ul>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>iter()</title>
+    <url>/posts/3a33b362/</url>
+    <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
+<blockquote>
+<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
+</blockquote>
+<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
+<li><p>iter(object[, sentinel])</p>
+</li>
+<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
+</li>
+<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
+</li>
+</ul>
+<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
+
 ]]></content>
       <categories>
         <category>Python</category>
