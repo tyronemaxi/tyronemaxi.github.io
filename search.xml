@@ -1,423 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>RESTful API 最佳实践</title>
-    <url>/posts/ea12054a/</url>
-    <content><![CDATA[<h1 id="RESTful-API-最佳实践"><a href="#RESTful-API-最佳实践" class="headerlink" title="RESTful API 最佳实践"></a>RESTful API 最佳实践</h1><img src="https://betimdrenica.files.wordpress.com/2015/03/api2.png?w=300&h=176" alt="api2" style="zoom:100%;" />
-
-<h2 id="API-的关键要求"><a href="#API-的关键要求" class="headerlink" title="API 的关键要求"></a>API 的关键要求</h2><ul>
-<li>网络标准的使用</li>
-<li>对开发人员友好，并能通过浏览器地址栏进行探索</li>
-<li>简单、直观和一致，使用简单且愉快</li>
-<li>足够的灵活性</li>
-<li>高效的使用</li>
-</ul>
-<h2 id="RESTful-API"><a href="#RESTful-API" class="headerlink" title="RESTful API"></a>RESTful API</h2><h3 id="Media-Type"><a href="#Media-Type" class="headerlink" title="Media Type"></a>Media Type</h3><p><strong>默认媒体类型为 JSON</strong></p>
-<blockquote>
-<p>由于 HTTP 的最新势头和遵循标准，JSON 是最受欢迎的，因此应该明确成为默认的媒体类型</p>
-<p>XML 的有点是复杂的场景和历史（SOAP），XML 不是 API  的最佳选择。它冗长，难以解析，难以阅读，其数据模型与大多数编程语言的数据模型不兼容。</p>
-</blockquote>
-<h2 id="HTTP-动词"><a href="#HTTP-动词" class="headerlink" title="HTTP 动词"></a>HTTP 动词</h2><p>RESTful 关键原则是将一系列 API 资源通过 <strong>域名+资源名称 + HTTP methods</strong></p>
-<p>逻辑资源应该<strong>从 API 消费者的角度</strong>来进行考虑：<strong>使用有意义的名词s, 而不是动词</strong>，需要明确的是：名词是事物，动词是你对它所做的。</p>
-<p>定义资源后，对于每种的资源的不同操作映射为对应的 HTTP 请求方法：</p>
+    <title>技术人如何做到高效沟通</title>
+    <url>/posts/64aac8ff/</url>
+    <content><![CDATA[<h1 id="技术人如何做到高效沟通？"><a href="#技术人如何做到高效沟通？" class="headerlink" title="技术人如何做到高效沟通？"></a>技术人如何做到高效沟通？</h1><p><code>talk is cheap, show me the code</code> 这是技术人经常说的一句话。意思是光说不练是简单的，但是代码实现确实很复杂的。</p>
+<p>这句话是 linus 的语录，表明代码才是实现逻辑的关键。</p>
+<p>但是随着我们这一行的慢慢发展，我在工作中逐渐发现，对于一些需求而言，需要返回和产品以及技术沟通，才能真正弄清楚我们到底要实现什么？</p>
+<p>常见的一个需求沟通场景是：</p>
 <ul>
-<li>GET —— 获取资源信息(SELECT)</li>
-<li>POST —— 创建新的资源(CREATE)</li>
-<li>PUT —— 更新资源(UPDATE)</li>
-<li>PATCH —— 更新部分资源(UPDATE)</li>
-<li>DELETE —— 删除部分资源(DELETE)</li>
+<li>产品：这周我们要实现一个 A 功能</li>
+<li>技术：为什么要实现 A 功能？</li>
+<li>产品：背景是这样的：….</li>
+<li>技术：好的，我要做一下技术调研，明确一下技术复杂度</li>
+<li>技术：这个功能是否需要或者是否有其他的替代方式，感觉这个需求比较鸡肋</li>
+<li>产品：这是用户反馈的</li>
+<li>技术：我们是否可以有别的实现的方式？</li>
+<li>…..</li>
 </ul>
-<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /tickets - 检索票证列表</span><br><span class="line">GET /tickets/12 - 检索特定票证</span><br><span class="line">POST /tickets - 创建一个新票</span><br><span class="line">PUT /tickets/12 - 更新票 #12</span><br><span class="line">PATCH /tickets/12 - 部分更新票 #12</span><br><span class="line">DELETE /tickets/12 - 删除票 #12</span><br></pre></td></tr></table></figure>
-
-<p>不适合 CRUD 操作的世界应该怎么办？</p>
+<p>通过上面的例子，在一个产品功能落地的时候，往往是需要不断进行沟通的，从这个功能的背景，需求来源，是否合理，技术难度，优化迭代等等很多方面去进行考虑，这就需要我们不断进行沟通考量。</p>
+<p><strong>今天这篇文章就是讨论技术人员的职场软技能——如何做好沟通？也借此篇文章不断优化自己的沟通能力</strong></p>
+<h2 id="沟通的原理"><a href="#沟通的原理" class="headerlink" title="沟通的原理"></a>沟通的原理</h2><p>当我们与人进行沟通的时候，首先要明确一点，沟通建立的原理。</p>
+<p>就拿 TCP 协议来说，当 C/S 双方进行沟通的时候，首先要建立起沟通的桥梁，然后是使用双方都能编解码的信息进行通信。<strong>对于人与人之间的沟通也是，也是需要建立起沟通的桥梁，例如直接对话，电话，聊天软件，然后就是使用双方都能理解的语言。</strong>这里我举几个例子，让你明白我这句话的含义：</p>
 <ul>
-<li><strong>组合操作使其看起来像资源的字段。</strong></li>
+<li>中国人和中国人之间的对话</li>
+<li>中国人和英国人之间的对话</li>
+<li>技术和小白之间的对话</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">POST /template/apply # 应用一个模版</span><br></pre></td></tr></table></figure>
-
+<p>对于如何建立起沟通的桥梁而言，如果沟通双方都不能理解对方的语言，那么就形成了对牛弹琴，例如一个不会英文的中国人和一个不会中文的英国人之间是信息不通的。这也是沟通的前提，为什么很多外企都需要在招聘上写道：擅长英语口语交流。这是前提。</p>
+<p>对于一个技术和一个小白而言，可能也会存在很多沟通障碍，例如我说：<strong>这个系统可能需要用到分布式部署的方式，要解决高并发的问题，QPS 要到 1000 左右，部署的话采用云的方式是最好的。</strong>如果我是一个职场小白，对于分布式/QPS/云部署 这些概念我是一窍不通的，那么我可能要改变我说话的方式：<strong>对于我们这个系统的设计，要解决多用户使用的问题，例如同时支持上千个用户的任务请求，秒级别的在线人数要到 1000 的处理量，部署的方式最好购买云服务器，例如阿里云。</strong></p>
+<p>在上面的两个对话中，我们可以清晰的知道，<strong>对于沟通而言，需要因人而异的。也就是要学会换位思考，站在别人的角度上思考沟通的方式，沟通的话术</strong></p>
+<p><strong>当然，有人可能要说了，我怎么能比较清晰的知道这个人到底什么知道，什么不知道呢？</strong></p>
+<p>是的，对于每个人而言，我们不可能 100% 知道这个人的知识储备，于是，<strong>反馈机制就很重要</strong>，就类似 TCP 协议中的重传机制（这个例子可能不好）,对于我说的每一句话，对方是否知道，是否知道我的意思了。</p>
+<p>这里还是借上面的机制来说明：</p>
 <ul>
-<li><strong>将其视为符合 RESTful 原则的子资源。</strong></li>
+<li>我：这个系统需要分布式的方式来进行部署，要解决高并发的问题。</li>
+<li>other: 什么是分布式部署啊</li>
+<li>我：可以理解为多台机器协同的方式，这样比较稳定</li>
+<li>other：什么是高并发呢？</li>
+<li>我：可一理解为，同一时刻可以满足多人的任务请求，例如 1000 人同时在线且在提交请求。</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /zoos/id/animals # 获取某一个 动物园的 动物</span><br></pre></td></tr></table></figure>
+<p><strong>这个时候通过一问一答的方式，就建立起了反馈机制。这样可以解决信息的偏差问题</strong></p>
+<p>最后一点就是<strong>信息的完整性</strong></p>
+<p>对于领导或者同事的任务要求，最好是保证其原来的面貌。对于一个公司而言，信息往往是从上到下的，从一个理念到具体的实现，往往情况就是通过一层层的传导，信息的原貌会逐渐破坏。</p>
+<p>例如下面这个经典的图：</p>
+<img src="https://static001.geekbang.org/resource/image/cc/41/ccbd8bba1fd6c2de2f9ec25dd7a99d41.png?wh=939*704" alt="img" style="zoom:50%;" />
 
+
+
+<p>所以在传导信息时，最好加上信息的源头，现在的聊天软件，例如微信的引用功能，就能让我们知道每句话的理解来自哪里。</p>
+<h2 id="沟通中的阻碍"><a href="#沟通中的阻碍" class="headerlink" title="沟通中的阻碍"></a>沟通中的阻碍</h2><p>在日常工作中，你可能经常会听到某人说，这个人挺好沟通的。<strong>对于沟通的一方而言，其实比较关注的是我如何能在最小代价的情况下，获取到信息</strong>，那么导致这些阻碍主要是哪些方面</p>
+<p>那么如何提升准确性呢？我将从以下几个方面来阐述：</p>
 <ul>
-<li>无法确定正确的 RESTful 结构的，区别记录即可，无需强制使用。</li>
+<li>信息的不准确</li>
+<li>信息太多</li>
+<li>表达方式</li>
+<li>二手信息</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /search?text=&quot;搜索&quot;</span><br></pre></td></tr></table></figure>
-
-<h2 id="无处不在的-SSL"><a href="#无处不在的-SSL" class="headerlink" title="无处不在的 SSL"></a>无处不在的 SSL</h2><blockquote>
-<p>SSL 证书是一个数字证书，用于认证网站的身份并启用加密连接。SSL 代表安全套接字层，这是一个安全协议，可在 Web 服务器和 Web 浏览器之间创建加密链接。</p>
-</blockquote>
-<p><strong>始终使用 SSL —— 出于安全考虑。</strong></p>
-<p>始终使用 SSL 的另外一个优势是有保证的加密通信简化了身份验证工作——您可以使用简单的访问令牌，而不必签署每个 API 请求。</p>
-<h2 id="API-接口文档"><a href="#API-接口文档" class="headerlink" title="API 接口文档"></a>API 接口文档</h2><p><strong>API 的好坏取决于它的文档</strong>。这些文档应该很容易找到并且可以公开访问。大多数开发人员在尝试任何集成工作之前都会查看文档。</p>
-<p><strong>文档应显示完整请求/响应周期的示例。</strong></p>
-<p>一旦你发布了一个公共 API，就应该发布通知信息，告知关注者变更消息。</p>
-<p>例如 Apifox、yapi 等接口文档软件</p>
-<h2 id="版本控制"><a href="#版本控制" class="headerlink" title="版本控制"></a>版本控制</h2><p><strong>始终对您的 API 进行版本控制。</strong>版本控制可帮助您更快地迭代并防止无效请求到达更新的端点。它还有助于平滑任何主要的 API 版本转换。</p>
-<p>关于 API 版本应包含在 URL 中还是 header 中？有广泛的争论。</p>
-<p>本人比较喜欢将版本控制置于 URL 中</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /api/v1/zoos</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="结果过滤、排序和搜索"><a href="#结果过滤、排序和搜索" class="headerlink" title="结果过滤、排序和搜索"></a>结果过滤、排序和搜索</h2><p><strong>最好使基本资源 URL 尽可能精简。</strong></p>
-<p><strong>复杂的结果过滤器、排序要求和高级搜索（当仅限于单一类型的资源时）都可以作为基本 URL</strong>  </p>
-<p><strong>之上的查询参数轻松实现。</strong></p>
-<p>例如：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /tickets?state=open</span><br><span class="line">GET /tickets?order_by=create_time:desc,apply_time:desc</span><br></pre></td></tr></table></figure>
-
-<h2 id="JSON-采用-request-body-输入"><a href="#JSON-采用-request-body-输入" class="headerlink" title="JSON  采用 request body 输入"></a>JSON  采用 request body 输入</h2><ul>
-<li>POST</li>
-<li>PUT</li>
-<li>PATCH</li>
-</ul>
-<p>上述方法采用 request body 传输数据</p>
-<h3 id="字段名称的-snake-case-与-camelCase"><a href="#字段名称的-snake-case-与-camelCase" class="headerlink" title="字段名称的 snake_case 与 camelCase"></a>字段名称的 snake_case 与 camelCase</h3><p>根据 2010 年对 camelCase 和 snake_case （PDF）的眼动追踪研究，**snake_case 比 camelCase 更容易阅读 20%**这种对可读性的影响会影响 API 的可探索性和文档中的示例。</p>
-<h2 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h2><p>json 返回数据中，会包含一些分页数据；</p>
-<blockquote>
-<p>The right way to include pagination details today is using the <a href="https://tools.ietf.org/html/rfc8288">Link header introduced by RFC 8288</a>.</p>
-</blockquote>
-<p>以下是正确使用 Link 标头的示例，来自 GitHub:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Link: &lt;https://api.github.com/user/repos?page=3&amp;per_page=100&gt;; rel=&quot;next&quot;, &lt;https://api.github.com/user/repos?page=50&amp;per_page=100&gt;; rel=&quot;last&quot;</span><br></pre></td></tr></table></figure>
-
-<p>许多 API 确实需要额外的分页信息，例如可用结果总数的计数。需要发送计数的 API 可以使用自定义 HTTP 标头，如 <code>X-Total-Count</code>。</p>
-<h2 id="更新和限制资源应该返回资源表示"><a href="#更新和限制资源应该返回资源表示" class="headerlink" title="更新和限制资源应该返回资源表示"></a>更新和限制资源应该返回资源表示</h2><p>PUT、POST 或 PATCH 调用可能会修改不属于所提供参数的基础资源字段（例如：created_at 或 updated_at 时间戳）。为防止 API 使用者必须再次点击 API 以获得更新的表示，让 API 返回更新（或创建）的表示作为响应的一部分。</p>
-<p>如果 POST 导致创建，请使用 HTTP 201 状态码并包含指向新资源 URL 的 Location 标头。</p>
-<p>除了将新创建的资源表示作为响应主体之外，还应该包含这两个内容。</p>
-<h2 id="默认情况下，不使用-envelope-特殊情况下使用"><a href="#默认情况下，不使用-envelope-特殊情况下使用" class="headerlink" title="默认情况下，不使用 envelope, 特殊情况下使用"></a>默认情况下，不使用 envelope, 特殊情况下使用</h2><p>许多情况下：</p>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data&quot;</span>：&#123;</span><br><span class="line">  	<span class="attr">&quot;id&quot;</span>: <span class="number">123</span>,</span><br><span class="line">  	<span class="attr">&quot;name&quot;</span>: <span class="string">&quot;John&quot;</span></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>理由：</p>
+<h3 id="信息的复杂度"><a href="#信息的复杂度" class="headerlink" title="信息的复杂度"></a>信息的复杂度</h3><p>对于首次发起沟通的人来说，你可能在沟通之前需要思考一下，如何构建自己的语料。如果你自己都不能明确知道你将要说的话，那么我建议你在说话之前先整理一下将要进行沟通的语料。</p>
+<p><strong>常见的方式就是用文本化的方式整理出来，这也就是为什么很多公司在进行产品设计的时候，需要产品故事（pstory）、用户故事（user story）,需求详设等等，</strong>这些文本化的东西都是针对不同的受众而言的。</p>
+<p>对于一个复杂的需求而言，如何去文本化，如何拆解，是很重要的，也很考验我们的语言组织能力。当然，如果你认为个人的对话能力有限，就采用文本的方式进行沟通，如何提升自己这方面的能力呢？其实就是多练，多沟通。</p>
+<p>当然，对于你的领导同事而言，你可能有一些个人的想法需要包装，害怕太直接导致沟通受阻，于是就提升了信息的复杂度。</p>
+<p><strong>在我以前的工作中，当一个需求来的时候，我很多时候其实是不太了解其中需求的难度的，于是我通常会直接说明，需要时间去调研分析，而不是支支吾吾害怕暴露自己的技术水平，因为对于技术人员来说，技术是永远学不完的，没有谁能什么都懂。有话直说，这是最高效的沟通方式，也是对对方的一种尊重和信任，这样下来，事情往往更好解决。</strong></p>
+<h3 id="信息的交互"><a href="#信息的交互" class="headerlink" title="信息的交互"></a>信息的交互</h3><p>相信很多技术人都会遇到一个情况，那就是开会的时候，你的领导在介绍完一个技术或者说明一些部门情况时，往往会说一句：大家还有甚么问题吗？这个时候很多人都会沉默不语。</p>
+<p>这个时候信息的交流就变成了单向沟通，时间一长，对于部门的问题是很大的。</p>
+<p><strong>所以，对于这种情况，要能站在对方的角度上思考问题，降低表达自己真实想法的门槛，培养让大家畅所欲言的自由环境，引出一个问题，然后让大家思考表达，这样也许会更能了解大家的想法。</strong></p>
+<h3 id="信息的来源"><a href="#信息的来源" class="headerlink" title="信息的来源"></a>信息的来源</h3><p>由于信息在传递过程中会有一定的损耗，导致信息即使在没有主观意识上的修改之外，也会存在变化，故到信息的源头去，<strong>向当事人求证，会让这个世界更加和谐，也会让你变得更加有智慧。</strong></p>
+<h3 id="信息的透明"><a href="#信息的透明" class="headerlink" title="信息的透明"></a>信息的透明</h3><p>我们知道，在网络通信中，信息是有被篡改的风险的，如果当你想要向别人传达信息时，一定要保证信息的公开透明，而不是让其他人帮你传递信息</p>
+<h2 id="沟通的方式和技巧"><a href="#沟通的方式和技巧" class="headerlink" title="沟通的方式和技巧"></a>沟通的方式和技巧</h2><p><strong>好的沟通有多种表现形式，最常用的组合是：尊重，倾听和情绪控制</strong></p>
+<h3 id="尊重"><a href="#尊重" class="headerlink" title="尊重"></a>尊重</h3><p>尊重是沟通的前提，在你和对方进行沟通时，一定要尊重对方的观点：</p>
 <ul>
-<li>包含额外的元数据或分页信息，一些 REST 客户端不允许轻松访问 HTTP 标头，而 JSONP 请求无法访问 HTTP 标头。然而，随着 CORS 和 RFC 5988 等 Link 标头等标准被迅速采用，封装开始变得不必要了。</li>
+<li><strong>我可以不同意你的观点，但是我会捍卫你说话的权利</strong>：即便对方的观点你暂时是不同意的，也要尊重对方想要表达的欲望，这也是一个沟通的过程，当沟通多次后，你会发现，可能一开始你不同意的观点也是有可取之处的。</li>
+<li><strong>赢得对方的尊重首先要尊重对方</strong>：在你表现出对他人的尊重后，你也能赢得对方的尊重。</li>
 </ul>
-<h2 id="速率限制"><a href="#速率限制" class="headerlink" title="速率限制"></a>速率限制</h2><p>为防止滥用，标准做法是向 API 添加某种速率限制。</p>
-<blockquote>
-<p>To prevent abuse, it is standard practice to add some sort of rate limiting to an API. <a href="http://tools.ietf.org/html/rfc6585">RFC 6585</a> introduced a HTTP status code <a href="http://tools.ietf.org/html/rfc6585#section-4">429 Too Many Requests</a> to accommodate this.</p>
-<p>However, it can be very useful to notify the consumer of their limits before they actually hit it. This is an area that currently lacks standards but has a number of <a href="http://stackoverflow.com/questions/16022624/examples-of-http-api-rate-limiting-http-response-headers">popular conventions using HTTP response headers</a>.</p>
-<p>At a minimum, include the following headers:</p>
+<p><strong>沟通的目的不是去为了反驳或者附和对方，而是思维的碰撞，沟通是为了获得更完整更全面的认知。</strong></p>
+<h3 id="倾听"><a href="#倾听" class="headerlink" title="倾听"></a>倾听</h3><p>在 《沟通的艺术》这本书中将倾听定位为沟通的第一要则，足见其重要性。</p>
+<p><strong>我们之所以要倾听，是因为倾听可以让我们获得更多的信息，对对方有更多的了解。</strong>倾听能让对方感觉到自己被尊重，才会和你分享更多的信息。</p>
+<h3 id="情绪控制"><a href="#情绪控制" class="headerlink" title="情绪控制"></a>情绪控制</h3><p>能否控制好自己的情绪至关重要。如果不能控制自己的情绪，那么将让沟通难以进行。具体应该怎么做呢？</p>
 <ul>
-<li>X-Rate-Limit-Limit - The number of allowed requests in the current period</li>
-<li>X-Rate-Limit-Remaining - The number of remaining requests in the current period</li>
-<li>X-Rate-Limit-Reset - The number of seconds left in the current period</li>
+<li><p><strong>不要过早或者过度打岔和反驳</strong>：对于有些观点，知道事情的来龙去脉是很重要的，所以要听完别人的话后在进行分析理解，给予反馈</p>
+</li>
+<li><p><strong>求同存异，冷静客观：</strong>每个人的知识储备，生长背景，经历和性格不同，所以在看待问题时，自然会有很大的差异，所以要懂得尊重差异，客观公正地思考问题，并给出建议和方法。</p>
+<p><strong>切勿冲动给出一些观点或者说出过激的话，因为言语的杀伤力是很大的，难以估计</strong></p>
+</li>
 </ul>
-</blockquote>
-<h2 id="Authentication"><a href="#Authentication" class="headerlink" title="Authentication"></a>Authentication</h2><p>RESTful API 应该是无状态的。</p>
-<p>基于 SSL 身份验证凭据可以简化为随机生成的访问令牌，该令牌在 HTTP 基本身份验证的用户名字段中传送。</p>
-<ul>
-<li>session</li>
-<li>jwt</li>
-<li>access_token</li>
-<li>OAuth 2</li>
+<p>当然，人是情感动物，有时候在你和别人对话时，你不知道当时这个人所处什么样的情绪之下，有时候你不经意的一句话可能会让对方难以接受，所以要<strong>慎言慎行，察言观色</strong>，当发现沟通难以进行时，应及时反馈领导或者终止沟通，待环境变好时再进行。本人就是个急性子，所以也还在修行当中。</p>
+<h3 id="引起对方的兴趣"><a href="#引起对方的兴趣" class="headerlink" title="引起对方的兴趣"></a>引起对方的兴趣</h3><p>当你想让别人能够对于你的话题或者观点重视时，你就要引出一些让对方感兴趣的话题。例如我在一次团队分享时，我为了引起大家对 CodeReview 的重视，我的分享标题是：《Codereview 是如何降低我们的开发效率的》，文章一开始阐述了 CodeReview 需要我们关注的点，如何难以进行导致我们开发效率变低，引出 CR。然后再阐述 CodeReview 的优点，最后表明了 CodeReview 在长期发展下，反而提高了我们的开发效率和代码的稳定性。</p>
+<h3 id="直达主题，强化观点"><a href="#直达主题，强化观点" class="headerlink" title="直达主题，强化观点"></a>直达主题，强化观点</h3><p>当你想表达一个观点事，最好是强调重点，而不是一开始从细节上谈实现。但很多时候产品需求都是很模糊的。而且很多时候，整个世界都是模糊的、有歧义的。有的人这么说，有的人那么说。你都不知道自己该信谁。所以亚马逊要求员工有一个能力就是，你一定要有把模糊的理解变成准确理解的能力，因为如果不这样，你是写不出代码来的。</p>
+<p><strong>确定自己的目标，学会抓重点，知道自己要什么和不要什么，这样你要的才会更鲜明。当一些事情变得简明和鲜明起来时，你才会表现出有力量的观点和话语。而这些被强化过的观点和话语，只需要一句，就会在对方脑子里形成一个小爆点，要么击中了对方的软处（扎心），要么会让对方产生深度思考。</strong></p>
+<h3 id="基于数据和事实"><a href="#基于数据和事实" class="headerlink" title="基于数据和事实"></a>基于数据和事实</h3><p>第三是<strong>用数据和事实说话。</strong>你跟别人沟通，要尽量少说“可能、也许、我觉得就这样”等字眼，你最好通过数据和证据，通过权威的引用和证词，通过相关的实例和亲身的事例来让你的观点有不可被辩驳不可被质疑的特性。当你的信息出现了这样的特性时，接收信息的人，基本上来说，就会无条件地相信。别人会无条件地相信你说的话，你想想这是一种多么牛的沟能方式！</p>
+<h2 id="沟通的技术"><a href="#沟通的技术" class="headerlink" title="沟通的技术"></a>沟通的技术</h2><ul>
+<li>逻辑学</li>
+<li>信息 X/Y 的问题</li>
+<li>纬度</li>
+<li>共同点</li>
 </ul>
-<h2 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h2><p>HTTP 内置缓存框架</p>
-<ul>
-<li>ETag</li>
-<li>Last-Modified</li>
-</ul>
-<h2 id="Error-Handler"><a href="#Error-Handler" class="headerlink" title="Error Handler"></a>Error Handler</h2><p>类似 HTML 错误页面向访问者显示有用的错误信息一样，API 应该以已知的可使用格式提供有用的错误信息。错误的表示应该与任何资源的表示没有区别，只是具有自己的一组字段。</p>
-<ul>
-<li>API 应返回合理的 HTTP 状态代码。</li>
-</ul>
-<p>API 错误通常分为两种类型：</p>
-<ul>
-<li>客户端问题的 400 系列状态代码</li>
-<li>服务器问题的 500 系列状态代码</li>
-</ul>
-<p>对于具体的 400 系列和 500 系列状态代码，应带有可使用的 JSON 错误表示。</p>
-<p>JSON 错误正文应具有：</p>
-<ul>
-<li>错误信息</li>
-<li>唯一的错误代码</li>
-<li>以及可能的详细描述</li>
-</ul>
-<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;code&quot;</span> : <span class="number">1234</span>,</span><br><span class="line">  <span class="attr">&quot;message&quot;</span> : <span class="string">&quot;Something bad happened :(&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;description&quot;</span> : <span class="string">&quot;More details about the error here&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="HTTP-status-codes"><a href="#HTTP-status-codes" class="headerlink" title="HTTP status codes"></a>HTTP status codes</h2><blockquote>
-<ul>
-<li>200 OK - Response to a successful GET, PUT, PATCH or DELETE. Can also be used for a POST that doesn’t result in a creation.</li>
-<li>201 Created - Response to a POST that results in a creation. Should be combined with a <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location header</a> pointing to the location of the new resource</li>
-<li>204 No Content - Response to a successful request that won’t be returning a body (like a DELETE request)</li>
-<li>304 Not Modified - Used when HTTP caching headers are in play</li>
-<li>400 Bad Request - The request is malformed, such as if the body does not parse</li>
-<li>401 Unauthorized - When no or invalid authentication details are provided. Also useful to trigger an auth popup if the API is used from a browser</li>
-<li>403 Forbidden - When authentication succeeded but authenticated user doesn’t have access to the resource</li>
-<li>404 Not Found - When a non-existent resource is requested</li>
-<li>405 Method Not Allowed - When an HTTP method is being requested that isn’t allowed for the authenticated user</li>
-<li>410 Gone - Indicates that the resource at this end point is no longer available. Useful as a blanket response for old API versions</li>
-<li>415 Unsupported Media Type - If incorrect content type was provided as part of the request</li>
-<li>422 Unprocessable Entity - Used for validation errors</li>
-<li>429 Too Many Requests - When a request is rejected due to rate limiting</li>
-</ul>
-</blockquote>
-<ul>
-<li>200 OK - 对成功的 GET、PUT、PATCH 或 DELETE 的响应。也可用于不会导致创建的 POST。</li>
-<li>201 已创建- 对导致创建的 POST 的响应。应与指向新资源位置的<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location 标头结合</a></li>
-<li>204 No Content - 对不会返回正文的成功请求的响应（如 DELETE 请求）</li>
-<li>304 Not Modified - 在使用 HTTP 缓存标头时使用</li>
-<li>400 Bad Request - 请求格式错误，比如请求体没有解析</li>
-<li>401 Unauthorized - 当没有提供或提供无效的身份验证详细信息时。如果从浏览器使用 API，也可用于触发身份验证弹出窗口</li>
-<li>403 Forbidden - 当身份验证成功但经过身份验证的用户无权访问资源时</li>
-<li>404 Not Found - 当请求不存在的资源时</li>
-<li>405 Method Not Allowed - 当请求的 HTTP 方法不允许经过身份验证的用户使用时</li>
-<li>410 Gone - 表示此端点的资源不再可用。作为对旧 API 版本的全面响应很有用</li>
-<li>415 Unsupported Media Type - 如果作为请求的一部分提供了不正确的内容类型</li>
-<li>422 Unprocessable Entity - 用于验证错误</li>
-<li>429 Too Many Requests - 当请求由于速率限制而被拒绝时</li>
-</ul>
-<h2 id="In-Summary"><a href="#In-Summary" class="headerlink" title="In Summary"></a>In Summary</h2><p>API 是开发人员的用户界面。努力确保它不仅功能齐全而且使用起来愉快。</p>
-<p>由于开发语言有异，只有最适合的 API 规范，没有最好的 API 规范</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Best Practices for Designing a Pragmatic RESTful API:<a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api</a></p>
-<p>Idel restful api : <a href="https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/">https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/</a></p>
-<p><a href="https://www.ruanyifeng.com/blog/2014/05/restful_api.html">https://www.ruanyifeng.com/blog/2014/05/restful_api.html</a></p>
+<p>待补充</p>
 ]]></content>
       <categories>
-        <category>HTTP</category>
+        <category>软技能</category>
       </categories>
       <tags>
-        <tag>HTTP</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Python 内存管理，垃圾回收，缓存重用机制</title>
-    <url>/posts/ec5b3295/</url>
-    <content><![CDATA[<h2 id="详谈-python-的内存管理"><a href="#详谈-python-的内存管理" class="headerlink" title="详谈 python 的内存管理"></a>详谈 python 的内存管理</h2><blockquote>
-<p>python 作为一门高级语言，调用相关变量时，无需实现声明，变量无需指定类型，python 解释器会自动帮你回收，这一切都由<br><code>python 内存管理器</code>承担了复杂的内存管理工作。<br>这里主要介绍基于 Cpython 实现的内存管理</p>
-</blockquote>
-<blockquote>
-<p>python 内存管理机制 —— Pymalloc</p>
-</blockquote>
-<h3 id="主要实现方式"><a href="#主要实现方式" class="headerlink" title="主要实现方式"></a>主要实现方式</h3><ul>
-<li>针对<code>小对象</code>, 就是对象大小小于<code>256kb</code>时，pymalloc 会在<code>内存池中申请内存空间</code></li>
-<li>针对<code>大对象</code>, 对象大小<code>大于 256kb</code>时，会执行<code>new/malloc 行为</code>来申请新的内存空间</li>
-</ul>
-<h3 id="python-内存池（memory-pool）"><a href="#python-内存池（memory-pool）" class="headerlink" title="python 内存池（memory pool）"></a>python 内存池（memory pool）</h3><blockquote>
-<p>为什么要引入内存池？<br>当创建大量消耗小内存的对象时，频繁调用<code>new/malloc</code>会导致大量的内存碎片，导致效率降低</p>
-</blockquote>
-<ul>
-<li><code>内存池的作用就是预先在内存中申请一定数量的，大小相等的内存块（256kb）留作备用</code>，当有新的内存需求时，就优先从内存池中分配给这个需求。</li>
-<li>减少内存碎片化，提升效率</li>
-</ul>
-<img src="/images/python 内存池.png" width = "600" height = "700" alt="" align=center />
-
-<ul>
-<li><p>python 的对象管理主要位于 Level + 1 ~ Level +3 层</p>
-</li>
-<li><p>Level 3: 该层特定对象内存分配器，主要是 <code>python 内置的对象（int, dict, arr）</code>都有独立的私有内存池，对象<br>之间的内存池不共享，例如 <code>int</code> 释放的内存，不会被分配给 <code>float</code>使用。</p>
-</li>
-<li><p>Level 2: python 对象分配器：当申请的<code>内存大小小于256KB</code>时，内存对象的分配主要由<code>Python 对象</code> 分配器（python’s object allocator）实施</p>
-</li>
-<li><p>Level 1: python 内存分配器：当申请的<code>内存大小大于256KB</code>时，由 Python 原生的内存分配器进行分配，本质上是调用 C 标准库中的 malloc/readlloc 等函数</p>
-</li>
-</ul>
-<h3 id="内存池的内存释放"><a href="#内存池的内存释放" class="headerlink" title="内存池的内存释放"></a>内存池的内存释放</h3><blockquote>
-<p>内存释放，当一个对象的引用计算变为 0 时，Python 就会调用它的析构函数（__del__）。调用析构函数并不意味着最终一定会调用<br>free 来释放内存空间，会导致频繁申请、释放内存空间使得 Python 的执行效率大打折扣。因此在析构时也采用了内存池机制，内存池申请到的内存会被归还到内存池中，<br>以免频繁地申请和释放动作</p>
-</blockquote>
-<p>接下来就会讲到 Python 的垃圾回收机制。</p>
-<h1 id="垃圾回收机制"><a href="#垃圾回收机制" class="headerlink" title="垃圾回收机制"></a>垃圾回收机制</h1><blockquote>
-<p>如果别人问你，什么是 Python 的垃圾回收机制，你可以用一句话概括<br><strong>Python 的垃圾回收机制采用`引用计数为主，标记-清除和分代回收为辅的策略</strong></p>
-</blockquote>
-<p>Python 一切皆为对象，包括 int、str 等等基本的对象。Cpython 的实现中，有一个结构体为 PyObject, Cpython 中的每个其他对象都在使用它</p>
-<p>PyObject 是 Python 中所有对象的祖父，它只包含两件事：</p>
-<ul>
-<li>ob_refcnt: 引用计数器</li>
-<li>ob_type: 指向另一种类型的指针</li>
-</ul>
-<p>对于对象来说，无非是对象的创建和删除</p>
-<h2 id="引用计数"><a href="#引用计数" class="headerlink" title="引用计数"></a>引用计数</h2><blockquote>
-<p>每个对象都会维护一个 <code>ob_refcnt</code> 来记录当前对象被引用的次数</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">a = [<span class="number">2</span>]</span><br><span class="line"><span class="built_in">print</span>(sys.getrefcount(a))</span><br><span class="line"><span class="comment"># OUTPUT getrefcount 会增加一次引用</span></span><br><span class="line"><span class="number">2</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>对象引用计数 +1</p>
-<ul>
-<li><ol>
-<li>对象被创建 <code>a=1</code></li>
-</ol>
-</li>
-<li><ol start="2">
-<li>对象被引用 <code>a=b</code></li>
-</ol>
-</li>
-<li><ol start="3">
-<li>对象被作为参数，传入函数中 def count(a, b)</li>
-</ol>
-</li>
-<li><ol start="4">
-<li>对象作为一个元素被存储 <code>li = [1,2, a]</code></li>
-</ol>
-</li>
-</ul>
-</li>
-<li><p>对象的引用计数 -1</p>
-<ul>
-<li><ol>
-<li>对象的引用被显示销毁时，<code>del a</code></li>
-</ol>
-</li>
-<li><ol start="2">
-<li>对象的引用别名被赋予新的对象, <code>a=26</code></li>
-</ol>
-</li>
-<li><ol start="3">
-<li>一个对象离开它的作用域, 例如一个函数执行完成后，内部的<code>局部变量的引用计数器就会减一</code>(全局变量不变)</li>
-</ol>
-</li>
-<li><ol start="4">
-<li>将该元素从容器中删除时，或者容器被销毁</li>
-</ol>
-</li>
-</ul>
-</li>
-</ul>
-<p><strong>当指向对象的内存的引用计数为 0 时，该内存就会被 Python 虚拟机销毁</strong></p>
-<p>特性：</p>
-<blockquote>
-<p>优点：1. 高效。2。 实时性，一旦没有引用，内存就直接释放了。3. 对象有确定的生命周期 4. 易于实现<br>缺点：1. 维护引用计数消耗资源。2. 无法解决循环引用问题</p>
-</blockquote>
-<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><blockquote>
-<p>对于一个对象来说，当出现循环引用的时候，例如<code>a=1, b=a, a=b</code>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
-</blockquote>
-<h3 id="什么是标记清除？"><a href="#什么是标记清除？" class="headerlink" title="什么是标记清除？"></a>什么是标记清除？</h3><blockquote>
-<p>[标记清除（Mark-Sweep）] 算法是一种基于追踪回收（tracing GC）技术实现的垃圾回收算法。主要针对一些容器对象，例如<code>list</code>、<code>dict</code>、<code>tuple</code><br>对于字符串和数值对象是不可能造成循环引用的问题的（不可变对象，当出现引用时，会另外开辟空间存储，这个在缓存机制中会详细解释）。</p>
-</blockquote>
-<p>那么<code>标记清除</code>算法是如何运行的？<br>分为两个阶段：</p>
-<ul>
-<li><ol>
-<li>第一阶段是标记阶段，GC 会把所有的[活动对象]打上标记。</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>第二阶段是把那些没有标记的[非活动对象]进行回收。</li>
-</ol>
-</li>
-</ul>
-<p>活动对象和非活动对象的标记：<br>对象之间通过引用（指针）连在一起，构成一个有相图，对象构成这个有向图的节点，而引用关系构成这个有向图的边。<br>从根对象（root object）出发，沿着有向边遍历对象，可达的（reachable）对象标记为活动对象，不可达的对象就是要被清除的非活动对象。<br>根对象就是全局变量、调用栈、寄存器。</p>
-<img src="/images/有向图.png" width = "400" height = "200" alt="" align=center />
-
-<p>从以上的有向图中：</p>
-<ul>
-<li>活动对象：A, B, C</li>
-<li>非活动对象：D, E</li>
-</ul>
-<h2 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h2><blockquote>
-<p>在标记清除对象的回收中，整个应用程序会被暂停，为了减少应用程序暂停的时间，Python 通过<strong>分代回收（Generational Conlletion）</strong>以空间换时间的方法提高垃圾回收效率</p>
-</blockquote>
-<p>Python 将所有对象分为：</p>
-<ul>
-<li>年轻代（第 0 代）</li>
-<li>中年代（第 1 代）</li>
-<li>老年代（第 2 代）</li>
-</ul>
-<p>所有新建的对象默认是第 0 代对象，经过 GC 扫描存活下来的对象将被移至第一代，在第一代的 GC 扫描中存活下来的对象将被移至第二代。</p>
-<blockquote>
-<p>GC 扫描次数 (第 0 代 &gt; 第 1 代 &gt; 第 2 代)</p>
-</blockquote>
-<h3 id="GC-分代回收是如何触发的？"><a href="#GC-分代回收是如何触发的？" class="headerlink" title="GC 分代回收是如何触发的？"></a>GC 分代回收是如何触发的？</h3><blockquote>
-<p>当某个世代中被分配的对象与被释放的对象数量之差到达某一个阈值时，就会触发当前一代的 GC 扫描。<br>当某一世代被扫描时，比它年轻的一代也会被扫描<br>当第 2 代的 GC 扫描发生时，第 0，1 代的 GC 扫描也会发生，即为全代扫描。</p>
-</blockquote>
-<p>那么这个阈值是如何确定的?</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> gc </span><br><span class="line">gc.get_threshold() <span class="comment">## 分代回收机制的参数阈值设置</span></span><br><span class="line"><span class="comment"># (700, 10, 10)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>700=新分配的对象数量-释放的对象数量，第 0 代 gc 扫描被触发</li>
-<li>第一个10：第 0 代 gc 扫描发生 10 次，则第 1 代的 gc 扫描被触发</li>
-<li>第二个10：第 1 代的 gc 扫描发生 10 次，则第 2 代的 gc 扫描被触发</li>
-</ul>
-<h1 id="Python-的缓存重用机制"><a href="#Python-的缓存重用机制" class="headerlink" title="Python 的缓存重用机制"></a>Python 的缓存重用机制</h1><blockquote>
-<p>Python 缓存重用机制是为了提高程序执行的效率。Python 解释器启动时从内存空间中开辟出一小部分，用来存储高频使用的数据，这样可以大大减少高频使用的<br>数据创建时申请内存和销毁的开销</p>
-</blockquote>
-<img src="/images/缓存重用机制.png" width = "600" height = "300" alt="" align=center />
-
-<p>这里基本演示，更加详细的演示，读者可以自行尝试</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#范围在 [-5, 256] 之间的小整数</span></span><br><span class="line">int1 = -<span class="number">5</span></span><br><span class="line">int2 = -<span class="number">5</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;[-5, 256] 情况下的两个变量：&quot;</span>, <span class="built_in">id</span>(int1), <span class="built_in">id</span>(int2))</span><br><span class="line"><span class="comment"># output</span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment">#bool类型</span></span><br><span class="line">bool1 = <span class="literal">True</span></span><br><span class="line">bool2 = <span class="literal">True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bool类型情况下的两个变量：&quot;</span>,<span class="built_in">id</span>(bool1),<span class="built_in">id</span>(bool2))</span><br><span class="line"><span class="comment">#对于字符串</span></span><br><span class="line">s1 = <span class="string">&quot;3344&quot;</span></span><br><span class="line">s2 = <span class="string">&quot;3344&quot;</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;字符串情况下的两个交量&quot;</span>, <span class="built_in">id</span>(s1), <span class="built_in">id</span>(s2))</span><br><span class="line"><span class="comment">#大于 256 的整数</span></span><br><span class="line">int3 = <span class="number">257</span></span><br><span class="line">int4 = <span class="number">257</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 256 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(int3), <span class="built_in">id</span>(int4))</span><br><span class="line"><span class="comment">#大于 0 的浮点数</span></span><br><span class="line">f1 = <span class="number">256.4</span></span><br><span class="line">f2 = <span class="number">256.4</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f1), <span class="built_in">id</span>(f2))</span><br><span class="line"><span class="comment">#小于 0 的浮点数</span></span><br><span class="line">f3 = -<span class="number">2.45</span></span><br><span class="line">f4 = -<span class="number">2.45</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f3), <span class="built_in">id</span>(f4))</span><br><span class="line"><span class="comment">#小于 -5 的整数</span></span><br><span class="line">n1 = -<span class="number">6</span></span><br><span class="line">n2 = -<span class="number">6</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 -5 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(n1), <span class="built_in">id</span>(n2))</span><br></pre></td></tr></table></figure>
-<p>OUTPUT:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[-5, 256] 情况下的两个变量： 4479762592 4479762592</span><br><span class="line">bool类型情况下的两个变量： 4479360112 4479360112</span><br><span class="line">字符串情况下的两个交量 140680232254768 140680232254768</span><br><span class="line">大于 256 的整数情况下的两个变量 140680231657872 140680231657872</span><br><span class="line">大于 0 的浮点数情况下的两个变量 140680231658256 140680231658256</span><br><span class="line">小于 0 的浮点数情况下的两个变量 140680191914768 140680191914768</span><br><span class="line">小于 -5 的整数情况下的两个变量 140680232617328 140680232617328</span><br></pre></td></tr></table></figure>
-
-<p>总结：</p>
-<ul>
-<li>对于<code>int</code>, <code>str</code>,<code>bool</code> 类型而言：<ol>
-<li>对于同一个对象，都是缓存同一个内容来使用</li>
-</ol>
-</li>
-<li>对于<code>大于 256 的整数</code>, 浮点数<ol>
-<li>如果位于同一代码块，则使用相同的缓存内容；反之，则不使用</li>
-</ol>
-</li>
-<li>对于 <code>小于 0 的整数</code><ol>
-<li>Python 没有对其进行缓存操作</li>
-</ol>
-</li>
-</ul>
-<h1 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h1><p>在 Python 中，主要通过 <code>引用计数</code>来进行垃圾回收；通过<code>标记-清除</code>来解决一些容器对象的循环引用问题；<br>通过<code>分代回收</code>以空间换时间的方式提高垃圾回收效率。</p>
-<p>缓存重用机制，作用类似于内存池，提高 Python 的执行效率</p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p>「 python 垃圾回收机制 」- <a href="https://andrewpqc.github.io/2018/10/08/python-memory-management/">https://andrewpqc.github.io/2018/10/08/python-memory-management/</a><br>「 python GC 源代码 」- <a href="https://docs.python.org/2/library/gc.html">https://docs.python.org/2/library/gc.html</a><br>「 python 垃圾回收需要知道事 」- <a href="https://rushter.com/blog/python-garbage-collector/">https://rushter.com/blog/python-garbage-collector/</a> </p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>unix 中的五种 IO 模型</title>
-    <url>/posts/baf320b1/</url>
-    <content><![CDATA[<h2 id="unix-中的五种-IO-模型"><a href="#unix-中的五种-IO-模型" class="headerlink" title="unix 中的五种 IO 模型"></a>unix 中的五种 IO 模型</h2><ul>
-<li>阻塞式 I/O</li>
-<li>非阻塞式 I/O</li>
-<li>I/O 多路复用</li>
-<li>信号驱动式 I/O</li>
-<li>异步 I/O （POSIX 的 aio_系列函数）</li>
-</ul>
-<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="/images/unix_io_module/image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
-
-<p>当采用阻塞式时，必须等待任务处理完成才能继续。<strong>其整体的逻辑是链式的</strong></p>
-<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="/images/unix_io_module/image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
-
-<p>当采用非阻塞时，需要消耗 CPU 去做轮询的工作来得知任务是否处理完成，适用于多个不同类型任务的机制，但是采用 recvfrom 轮询的方式，不但消耗了 cpu 资源，也会增加代码的复杂度。</p>
-<h4 id="I-O-多路复用"><a href="#I-O-多路复用" class="headerlink" title="I/O 多路复用"></a>I/O 多路复用</h4><p>I/O 多路复用应用非常广泛，这里重点介绍一下：</p>
-<p>IO 多路复用是一种高效的编程模型<strong>，用于同时监控多个 IO 的可读，可写或异常状态，从而实现在单个线程中处理多个 IO 任务的能力</strong>。它通常用于网络编程中，以提高程序的并发性和性能。</p>
-<img src="/images/unix_io_module/image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
-
-<p>select 是阻塞的，可以监听多个文件句柄，当某一个文件句柄的状态发生变化时，会立即返回。</p>
-<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="/images/unix_io_module/image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
-
-
-
-<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="/images/unix_io_module/image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
-
-
-
-<p>其相对于 IO 多路复用而言，少了将数据从内核复制到用户空间的步骤，节省了时间</p>
-<h4 id="select-poll-epoll"><a href="#select-poll-epoll" class="headerlink" title="select\poll\epoll"></a>select\poll\epoll</h4><blockquote>
-<p><code>select</code>、<code>poll</code>和<code>epoll</code>是用于<strong>实现IO多路复用的系统调用或函数。它们在不同的操作系统中提供了类似的功能，允许程序同时监视多个IO对象的状态。</strong></p>
-<p>这些IO多路复用机制在网络编程中经常使用，特别是在服务器端的开发中，以处理大量并发的IO操作。它们允许程序同时监听多个套接字的可读、可写或异常状态，并在其中至少有一个套接字就绪时通知应用程序进行相应的处理。</p>
-<p>下面是对<code>select</code>、<code>poll</code>和<code>epoll</code>的简要解释：</p>
-<ol>
-<li><code>select</code>：<code>select</code>是最古老和最常见的IO多路复用机制之一。它使用三个文件描述符集合（读、写和异常）来检查多个IO对象的状态。然后，它会阻塞等待，直到其中至少一个IO对象就绪或达到超时时间。然后，它返回就绪的IO对象，应用程序可以对其进行相应的操作。**<code>select</code>在每次调用时都需要重新构建文件描述符集合，效率较低。**</li>
-<li><code>poll</code>：<code>poll</code>是相对于<code>select</code>更现代和高效的IO多路复用机制。类似于<code>select</code>，<code>poll</code>使用一个文件描述符数组来检查多个IO对象的状态。<strong>与<code>select</code>不同的是，<code>poll</code>不需要重新构建文件描述符集合，可以直接使用数组，从而提高了效率</strong>。它也能够处理更大的文件描述符数量。</li>
-<li><code>epoll</code>：<code>epoll</code>是在Linux系统中提供的高效的IO多路复用机制。它引入了三个主要的概念：<code>epoll_create</code>、<code>epoll_ctl</code>和<code>epoll_wait</code>。<code>epoll_create</code>用于创建一个epoll对象，<code>epoll_ctl</code>用于向epoll对象注册或删除IO对象，<code>epoll_wait</code>用于等待IO对象就绪。与<code>select</code>和<code>poll</code>不同，<code>epoll</code>使用了事件驱动的方式，只通知就绪的IO对象，从而避免了遍历整个IO对象集合的开销，提高了性能和扩展性。它还支持边缘触发（edge-triggered）和水平触发（level-triggered）两种模式。</li>
-</ol>
-<p>需要注意的是，这些IO多路复用机制的具体使用和细节可能因操作系统而异。在选择使用哪个机制时，需要考虑操作系统的支持、应用程序的需求以及性能等因素。对于大多数情况，<code>epoll</code>在Linux系统中通常是最佳选择，因为它提供了更高的性能和扩展性。</p>
-</blockquote>
-<p>简单概括：</p>
-<p>select 函数监听的文件描述符分为三类，分别是 writefds、readfds 和 exceptfds。调用后 select 函数会阻塞，直到有描述符就绪（有数据 可读、可写、或者有 except）或者超时（timeout 指定等待的时间，如果立即返回设置为 null 即可），函数返回。当 select 函数返回后，可以 通过遍历 fdset，来找到就绪的描述符。</p>
-<p><strong>select 目前几乎在所有平台上都支持，其良好的跨平台支持也是它的一个优点。select 的一个缺点在于单个进程能够监视的文件描述符的数量存在最大限制，在 linux 上一般为 1024，可以通过修改宏定义甚至重新编译内核的方式提升这一限制，但是这样也会造成效率的降低。</strong></p>
-<p>epool 是在 2.6 内核中提出的，是之前的 select 和 poll 的增强版本。相对于 select 和 poll 而言，epoll 更加灵活，没有描述符限制。epoll 使用一个文件描述符对象来管理多个描述符，将用户关系的文件描述符的事件存放于内核的一个事件表中，这样在用户空间和内核空间的 copy 只需要一次。</p>
-<p>epoll 的查询效率非常高，其背后的数据结构是因为其存储结构是一个红黑树实现的。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># epoll 并不一定比 select 好</span><br><span class="line"># 在高并发的情况下，连接活跃数不是很高，epoll 比 select 好</span><br><span class="line"># 并发性不高，同时连接很活跃，select 比 epoll 好</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>网络 IO 模型</category>
-      </categories>
-      <tags>
-        <tag>网络 IO 模型</tag>
+        <tag>软技能</tag>
       </tags>
   </entry>
   <entry>
@@ -516,6 +199,62 @@
       </tags>
   </entry>
   <entry>
+    <title>unix 中的五种 IO 模型</title>
+    <url>/posts/baf320b1/</url>
+    <content><![CDATA[<h2 id="unix-中的五种-IO-模型"><a href="#unix-中的五种-IO-模型" class="headerlink" title="unix 中的五种 IO 模型"></a>unix 中的五种 IO 模型</h2><ul>
+<li>阻塞式 I/O</li>
+<li>非阻塞式 I/O</li>
+<li>I/O 多路复用</li>
+<li>信号驱动式 I/O</li>
+<li>异步 I/O （POSIX 的 aio_系列函数）</li>
+</ul>
+<h4 id="阻塞式-I-O"><a href="#阻塞式-I-O" class="headerlink" title="阻塞式 I/O"></a>阻塞式 I/O</h4><img src="/images/unix_io_module/image-20230708100402340.png" alt="image-20230708100402340" style="zoom:50%;" />
+
+<p>当采用阻塞式时，必须等待任务处理完成才能继续。<strong>其整体的逻辑是链式的</strong></p>
+<h4 id="非阻塞式IO"><a href="#非阻塞式IO" class="headerlink" title="非阻塞式IO"></a>非阻塞式IO</h4><img src="/images/unix_io_module/image-20230708101215320.png" alt="image-20230708101215320" style="zoom:50%;" />
+
+<p>当采用非阻塞时，需要消耗 CPU 去做轮询的工作来得知任务是否处理完成，适用于多个不同类型任务的机制，但是采用 recvfrom 轮询的方式，不但消耗了 cpu 资源，也会增加代码的复杂度。</p>
+<h4 id="I-O-多路复用"><a href="#I-O-多路复用" class="headerlink" title="I/O 多路复用"></a>I/O 多路复用</h4><p>I/O 多路复用应用非常广泛，这里重点介绍一下：</p>
+<p>IO 多路复用是一种高效的编程模型<strong>，用于同时监控多个 IO 的可读，可写或异常状态，从而实现在单个线程中处理多个 IO 任务的能力</strong>。它通常用于网络编程中，以提高程序的并发性和性能。</p>
+<img src="/images/unix_io_module/image-20230708102943500.png" alt="image-20230708102943500" style="zoom:50%;" />
+
+<p>select 是阻塞的，可以监听多个文件句柄，当某一个文件句柄的状态发生变化时，会立即返回。</p>
+<h4 id="信号驱动式-IO"><a href="#信号驱动式-IO" class="headerlink" title="信号驱动式 IO"></a>信号驱动式 IO</h4><img src="/images/unix_io_module/image-20230708103516479.png" alt="image-20230708103516479" style="zoom:50%;" />
+
+
+
+<h4 id="异步-IO"><a href="#异步-IO" class="headerlink" title="异步 IO"></a>异步 IO</h4><img src="/images/unix_io_module/image-20230708104117935.png" alt="image-20230708104117935" style="zoom:50%;" />
+
+
+
+<p>其相对于 IO 多路复用而言，少了将数据从内核复制到用户空间的步骤，节省了时间</p>
+<h4 id="select-poll-epoll"><a href="#select-poll-epoll" class="headerlink" title="select\poll\epoll"></a>select\poll\epoll</h4><blockquote>
+<p><code>select</code>、<code>poll</code>和<code>epoll</code>是用于<strong>实现IO多路复用的系统调用或函数。它们在不同的操作系统中提供了类似的功能，允许程序同时监视多个IO对象的状态。</strong></p>
+<p>这些IO多路复用机制在网络编程中经常使用，特别是在服务器端的开发中，以处理大量并发的IO操作。它们允许程序同时监听多个套接字的可读、可写或异常状态，并在其中至少有一个套接字就绪时通知应用程序进行相应的处理。</p>
+<p>下面是对<code>select</code>、<code>poll</code>和<code>epoll</code>的简要解释：</p>
+<ol>
+<li><code>select</code>：<code>select</code>是最古老和最常见的IO多路复用机制之一。它使用三个文件描述符集合（读、写和异常）来检查多个IO对象的状态。然后，它会阻塞等待，直到其中至少一个IO对象就绪或达到超时时间。然后，它返回就绪的IO对象，应用程序可以对其进行相应的操作。**<code>select</code>在每次调用时都需要重新构建文件描述符集合，效率较低。**</li>
+<li><code>poll</code>：<code>poll</code>是相对于<code>select</code>更现代和高效的IO多路复用机制。类似于<code>select</code>，<code>poll</code>使用一个文件描述符数组来检查多个IO对象的状态。<strong>与<code>select</code>不同的是，<code>poll</code>不需要重新构建文件描述符集合，可以直接使用数组，从而提高了效率</strong>。它也能够处理更大的文件描述符数量。</li>
+<li><code>epoll</code>：<code>epoll</code>是在Linux系统中提供的高效的IO多路复用机制。它引入了三个主要的概念：<code>epoll_create</code>、<code>epoll_ctl</code>和<code>epoll_wait</code>。<code>epoll_create</code>用于创建一个epoll对象，<code>epoll_ctl</code>用于向epoll对象注册或删除IO对象，<code>epoll_wait</code>用于等待IO对象就绪。与<code>select</code>和<code>poll</code>不同，<code>epoll</code>使用了事件驱动的方式，只通知就绪的IO对象，从而避免了遍历整个IO对象集合的开销，提高了性能和扩展性。它还支持边缘触发（edge-triggered）和水平触发（level-triggered）两种模式。</li>
+</ol>
+<p>需要注意的是，这些IO多路复用机制的具体使用和细节可能因操作系统而异。在选择使用哪个机制时，需要考虑操作系统的支持、应用程序的需求以及性能等因素。对于大多数情况，<code>epoll</code>在Linux系统中通常是最佳选择，因为它提供了更高的性能和扩展性。</p>
+</blockquote>
+<p>简单概括：</p>
+<p>select 函数监听的文件描述符分为三类，分别是 writefds、readfds 和 exceptfds。调用后 select 函数会阻塞，直到有描述符就绪（有数据 可读、可写、或者有 except）或者超时（timeout 指定等待的时间，如果立即返回设置为 null 即可），函数返回。当 select 函数返回后，可以 通过遍历 fdset，来找到就绪的描述符。</p>
+<p><strong>select 目前几乎在所有平台上都支持，其良好的跨平台支持也是它的一个优点。select 的一个缺点在于单个进程能够监视的文件描述符的数量存在最大限制，在 linux 上一般为 1024，可以通过修改宏定义甚至重新编译内核的方式提升这一限制，但是这样也会造成效率的降低。</strong></p>
+<p>epool 是在 2.6 内核中提出的，是之前的 select 和 poll 的增强版本。相对于 select 和 poll 而言，epoll 更加灵活，没有描述符限制。epoll 使用一个文件描述符对象来管理多个描述符，将用户关系的文件描述符的事件存放于内核的一个事件表中，这样在用户空间和内核空间的 copy 只需要一次。</p>
+<p>epoll 的查询效率非常高，其背后的数据结构是因为其存储结构是一个红黑树实现的。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># epoll 并不一定比 select 好</span><br><span class="line"># 在高并发的情况下，连接活跃数不是很高，epoll 比 select 好</span><br><span class="line"># 并发性不高，同时连接很活跃，select 比 epoll 好</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>网络 IO 模型</category>
+      </categories>
+      <tags>
+        <tag>网络 IO 模型</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>多进程编程</title>
     <url>/posts/31a6b40/</url>
     <content><![CDATA[<h1 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h1><p>今天我们一起来学习多进程编程，在学习之前，首先介绍一下什么是进程：</p>
@@ -570,6 +309,111 @@
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SyncManager</span>(<span class="params">BaseManager</span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">BoundedSemaphore</span>(<span class="params">self, value: <span class="type">Any</span> = ...</span>) -&gt; threading.BoundedSemaphore:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Condition</span>(<span class="params">self, lock: <span class="type">Any</span> = ...</span>) -&gt; threading.Condition:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Event</span>(<span class="params">self</span>) -&gt; threading.Event:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Lock</span>(<span class="params">self</span>) -&gt; threading.Lock:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Namespace</span>(<span class="params">self</span>) -&gt; _Namespace:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Queue</span>(<span class="params">self, maxsize: <span class="built_in">int</span> = ...</span>) -&gt; queue.Queue[<span class="type">Any</span>]:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">RLock</span>(<span class="params">self</span>) -&gt; threading.RLock:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Semaphore</span>(<span class="params">self, value: <span class="type">Any</span> = ...</span>) -&gt; threading.Semaphore:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Array</span>(<span class="params">self, typecode: <span class="type">Any</span>, sequence: <span class="type">Sequence</span>[_T]</span>) -&gt; <span class="type">Sequence</span>[_T]:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">Value</span>(<span class="params">self, typecode: <span class="type">Any</span>, value: _T</span>) -&gt; ValueProxy[_T]:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">dict</span>(<span class="params">self, sequence: Mapping[_KT, _VT] = ...</span>) -&gt; _dict[_KT, _VT]:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">list</span>(<span class="params">self, sequence: <span class="type">Sequence</span>[_T] = ...</span>) -&gt; _list[_T]:</span> ...</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
 <p>这些都可以用于进程间的通信</p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>迭代器和生成器的实现原理</title>
+    <url>/posts/30d97d60/</url>
+    <content><![CDATA[<h1 id="迭代器"><a href="#迭代器" class="headerlink" title="迭代器"></a>迭代器</h1><h2 id="什么是迭代协议-？"><a href="#什么是迭代协议-？" class="headerlink" title="什么是迭代协议 ？"></a>什么是迭代协议 ？</h2><p>这里我们可以查看 <code>collections.abc</code> 中的两个对象：<code>Iterable</code> <code>Iterator</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@runtime_checkable</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Iterable</span>(<span class="params">Protocol[_T_co]</span>):</span></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>) -&gt; Iterator[_T_co]:</span> ...</span><br><span class="line"></span><br><span class="line"><span class="meta">@runtime_checkable</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Iterator</span>(<span class="params">Iterable[_T_co], Protocol[_T_co]</span>):</span></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__next__</span>(<span class="params">self</span>) -&gt; _T_co:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>) -&gt; Iterator[_T_co]:</span> ...</span><br></pre></td></tr></table></figure>
+
+<p>这里我们来观察一下 list 是否是可迭代对象或者是一个迭代器：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> collections.abc <span class="keyword">import</span> Iterator, Iterable</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterable))</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterator))</span><br><span class="line">    <span class="comment"># output</span></span><br><span class="line">    <span class="literal">True</span></span><br><span class="line">		<span class="literal">False</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>我们知道 list 只实现了一个 <code>__iter__</code> 方法，并未实现，所以 list 是一个可迭代对象而不是迭代器；</p>
+<p>所以，实现了 <code>__iter__</code> 魔法方法的对象是一个可迭代对象，实现了 <code>__iter__</code> &amp;&amp; <code>__next__</code> 方法的是一个迭代器。</p>
+<h2 id="如何将一个可迭代对象转换为迭代器"><a href="#如何将一个可迭代对象转换为迭代器" class="headerlink" title="如何将一个可迭代对象转换为迭代器"></a>如何将一个可迭代对象转换为迭代器</h2><p>答案是 python 内置的 <code>iter()</code></p>
+<p>这里只需要使用 iter() 就可以将 a 转换为一个迭代器：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]</span><br><span class="line">    a = <span class="built_in">iter</span>(a)</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterable))</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterator))</span><br><span class="line">		<span class="comment"># output</span></span><br><span class="line">    <span class="literal">True</span></span><br><span class="line">    <span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来，我们来看一个例子：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Company</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, employee_list</span>):</span></span><br><span class="line">        self.employee = employee_list</span><br><span class="line"></span><br><span class="line">    <span class="comment"># def __iter__(self):</span></span><br><span class="line">    <span class="comment">#     return self.employee</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__getitem__</span>(<span class="params">self, item</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.employee[item]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.employee)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    c = Company([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> c:</span><br><span class="line">        <span class="built_in">print</span>(i)</span><br></pre></td></tr></table></figure>
+
+<p>在这个类中 ，我们并未实现 <code>__iter__</code> 函数，而是实现了 <code>__getitem__</code> 函数，并且也能使用 for 循环，这是为什么呢？</p>
+<p>实际上，for 循环时，会自动去调用 <code>iter()</code>，然后去查找魔法方法 <code>__iter__</code> ，如果没有就会去查找 <code>__getitem__</code> 方法。</p>
+<p>为了更好地理解这些逻辑，我们将模仿 iter() 实现一个迭代器，将上述的 company 变为一个可迭代对象</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Company</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, employee_list</span>):</span></span><br><span class="line">        self.employee = employee_list</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> MyIter(self.employee)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># def __getitem__(self, item):</span></span><br><span class="line">    <span class="comment">#     return self.employee[item]</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.employee)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyIter</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, employee_list</span>):</span></span><br><span class="line">        self.employee = employee_list</span><br><span class="line">        self.index = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__next__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            word = self.employee[self.index]</span><br><span class="line">        <span class="keyword">except</span> IndexError:</span><br><span class="line">            <span class="keyword">raise</span> StopIteration</span><br><span class="line"></span><br><span class="line">        self.index += <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> word</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    c = Company([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> c:</span><br><span class="line">        <span class="built_in">print</span>(i)</span><br><span class="line">        </span><br><span class="line">    <span class="comment"># output: 1 2 3</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>实际上将 <code>__next__</code> 类定义在 Company 也可以，但是基于迭代器的设计模式，对于另外的属性，例如 self.index 会污染 Company 类属性。</p>
+<h2 id="生成器"><a href="#生成器" class="headerlink" title="生成器"></a>生成器</h2><p><strong>函数中只要有 yield 关键字，就是一个生成器函数</strong></p>
+<blockquote>
+<p> python 编译字节码的时候就生成了一个生成器对象</p>
+</blockquote>
+<p>先来看一段代码：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gen_func</span>():</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">2</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">3</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">func</span>():</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    gen = gen_func() <span class="comment"># 返回一个 generator 对象</span></span><br><span class="line">    fun = func()     <span class="comment"># 返回 1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> gen:</span><br><span class="line">        <span class="built_in">print</span>(i)</span><br><span class="line">        </span><br><span class="line">    <span class="comment"># output 1, 2, 3</span></span><br></pre></td></tr></table></figure>
+
+<p>在这段代码中，我们将 yield 关键字和 return 关键字进行了比较，可以看到，其两个函数返回的对象是不一致的，gen 返回了一个生成器对象，而 fun 返回了一个 int 类型的值。并且 gen 是可以被迭代的。</p>
+<p>这是为什么呢？这是因为 在 python 解释器编译字节码时，遇到 yield 关键字时，自动将其转换为了一个 生成器对象，且生成器也是实现了迭代器协议的。</p>
+<p>为了更好地解释 yield 关键字的用途，这里采用<strong>斐波拉契函数</strong>来进一步理解。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fib</span>(<span class="params">index</span>):</span></span><br><span class="line">    <span class="keyword">if</span> index == <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> <span class="number">0</span> &lt; index &lt;= <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> fib(index-<span class="number">1</span>) + fib(index-<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fib2</span>(<span class="params">index</span>):</span></span><br><span class="line">  re_list = []</span><br><span class="line">  n, a, b = <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">  <span class="keyword">while</span> n &lt; index:</span><br><span class="line">    re_list.append(b)</span><br><span class="line">    a, b = b, a+b</span><br><span class="line">    n = n+<span class="number">1</span></span><br><span class="line">  <span class="keyword">return</span> re_list</span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">   <span class="built_in">print</span>(fib(<span class="number">10</span>))</span><br><span class="line">   <span class="comment"># output 55</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>在上述的代码中，fib2 还原了斐波拉契的生成过程，记录了每次的值，但是当数据量非常大时，例如几千万上亿时，那么这个数据是非常大的，就会特别消耗内存。而 yield 关键字刚好能解决这个问题：</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fib2</span>(<span class="params">index</span>):</span></span><br><span class="line">  n, a, b = <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">  <span class="keyword">while</span> n &lt; index:</span><br><span class="line">		<span class="keyword">yield</span> b</span><br><span class="line">    a, b = b, a+b</span><br><span class="line">    n = n+<span class="number">1</span></span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">   <span class="keyword">for</span> i <span class="keyword">in</span> fib2(<span class="number">10</span>):</span><br><span class="line">      <span class="built_in">print</span>(i)</span><br><span class="line">   <span class="comment"># output</span></span><br><span class="line">   <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    1</span></span><br><span class="line"><span class="string">    1</span></span><br><span class="line"><span class="string">    2</span></span><br><span class="line"><span class="string">    3</span></span><br><span class="line"><span class="string">    5</span></span><br><span class="line"><span class="string">    8</span></span><br><span class="line"><span class="string">    13</span></span><br><span class="line"><span class="string">    21</span></span><br><span class="line"><span class="string">    34</span></span><br><span class="line"><span class="string">    55</span></span><br><span class="line"><span class="string">   &quot;&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这样改动下来，yield 只会占用一点点内存，且在 for 循环时，会记录每次的生成值，刚好解决了这个问题。</strong></p>
+<h2 id="生成器原理"><a href="#生成器原理" class="headerlink" title="生成器原理"></a>生成器原理</h2><h3 id="python-中函数的工作原理"><a href="#python-中函数的工作原理" class="headerlink" title="python 中函数的工作原理"></a>python 中函数的工作原理</h3><p>先了解一个 python 中函数的调用原理：</p>
+<blockquote>
+<p>在Python中，栈帧（stack frame）是独立存在的。每当一个函数被调用时，Python会在调用栈中创建一个栈帧来保存该函数的局部变量、参数、返回地址等信息。</p>
+<p>栈帧是函数调用的上下文，它包含了函数执行过程中的相关信息。每个栈帧都是独立的，包含了函数的局部状态，并且按照调用的顺序进行组织。当函数执行结束后，对应的栈帧会被弹出栈，从而回到上一个函数的执行环境。</p>
+<p>每个栈帧都包含以下几个重要的组成部分：</p>
+<ol>
+<li>局部变量：栈帧中保存了函数的局部变量，包括函数参数和在函数内部定义的变量。</li>
+<li>返回地址：栈帧中保存了函数执行结束后的返回地址，用于指示程序继续执行的位置。</li>
+<li>异常处理信息：栈帧中保存了与异常处理相关的信息，用于捕获和处理异常。</li>
+</ol>
+<p>由于栈帧是独立的，每个栈帧都可以保持自己的状态，并且可以同时存在多个栈帧。这使得Python可以实现递归调用和函数的嵌套调用。</p>
+<p>总结：在Python中，栈帧是独立存在的，它保存了函数调用的上下文信息，包括局部变量、返回地址和异常处理信息。每个函数调用都会创建一个新的栈帧，并按照调用顺序组织在调用栈中。栈帧的独立存在使得Python能够支持递归调用和函数的嵌套调用。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span>():</span></span><br><span class="line">    bar()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bar</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">import</span> dis <span class="comment"># 字节码库</span></span><br><span class="line">    <span class="built_in">print</span>(dis.dis(foo)) <span class="comment">#字节码执行过程</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">      9       0 LOAD_GLOBAL              0 (bar)</span></span><br><span class="line"><span class="string">              2 CALL_FUNCTION            0</span></span><br><span class="line"><span class="string">              4 POP_TOP</span></span><br><span class="line"><span class="string">              6 LOAD_CONST               0 (None)</span></span><br><span class="line"><span class="string">              8 RETURN_VALUE</span></span><br><span class="line"><span class="string">	   None</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>从上述的代码中，我们可以看到，对于 foo 函数而言，python 解释器会创建一个栈祯来保存该函数的相关信息</p>
+<p><strong>所有的栈祯都是分配在堆内存上，这就决定了栈祯可以独立于调用者存在</strong></p>
+<p>用一段代码来解释：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> inspect</span><br><span class="line">frame = <span class="literal">None</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span>():</span></span><br><span class="line">    bar()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bar</span>():</span></span><br><span class="line">    <span class="keyword">global</span> frame</span><br><span class="line">    frame = inspect.currentframe()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    foo()</span><br><span class="line">    <span class="built_in">print</span>(frame.f_code.co_name)</span><br><span class="line">    caller_frame = frame.f_back</span><br><span class="line">    <span class="built_in">print</span>(caller_frame.f_code.co_name)</span><br><span class="line"><span class="comment"># bar</span></span><br><span class="line"><span class="comment"># foo</span></span><br></pre></td></tr></table></figure>
+
+<p>在上述代码中，我们引入了 inspect 包来查看 栈祯保存的一些信息，</p>
+<p>通过 <code>frame = inspect.currentframe()</code> 来保存当前函数 bar 的栈祯。可以看到，通过 <code>frame.f_code.co_name</code> 打印的是 <code>bar</code>, 而且还可以通过 <code>frame.f_back </code> 还可以查看上一个栈祯的信息即 foo。</p>
+<p>通过这段代码，<strong>我们就能更加理解 python 解释器在运行一个 函数时的操作了，让我们明白对于递归调用而言，函数的调用是可控的，可溯源的，这也是 python 生成器的前提</strong></p>
+<p>![image-20230702003450166](/Users/tyronemaxi/Library/Application Support/typora-user-images/image-20230702003450166.png)</p>
+<p>![image-20230702003852334](/Users/tyronemaxi/Library/Application Support/typora-user-images/image-20230702003852334.png)</p>
+<p>用一段代码解释生成器的运行原理：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gen_func</span>():</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">1</span></span><br><span class="line">    name = <span class="string">&quot;bobby&quot;</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">2</span></span><br><span class="line">    age = <span class="number">30</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;imooc&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">import</span> dis</span><br><span class="line">    gen = gen_func()</span><br><span class="line">    <span class="built_in">print</span>(dis.dis(gen))</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br><span class="line">    <span class="built_in">next</span>(gen)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br><span class="line">    <span class="built_in">next</span>(gen)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br><span class="line">    <span class="built_in">next</span>(gen)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br></pre></td></tr></table></figure>
+
+<p>打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">  9           0 LOAD_CONST               1 (&#x27;哈哈&#x27;)</span><br><span class="line">              2 YIELD_VALUE</span><br><span class="line">              4 POP_TOP</span><br><span class="line"></span><br><span class="line"> 10           6 LOAD_CONST               2 (&#x27;bobby&#x27;)</span><br><span class="line">              8 STORE_FAST               0 (name)</span><br><span class="line"></span><br><span class="line"> 11          10 LOAD_CONST               3 (&#x27;嘻嘻&#x27;)</span><br><span class="line">             12 YIELD_VALUE</span><br><span class="line">             14 POP_TOP</span><br><span class="line"></span><br><span class="line"> 12          16 LOAD_CONST               4 (30)</span><br><span class="line">             18 STORE_FAST               1 (age)</span><br><span class="line"></span><br><span class="line"> 13          20 LOAD_CONST               5 (&#x27;imooc&#x27;)</span><br><span class="line">             22 RETURN_VALUE</span><br><span class="line">None</span><br><span class="line">-1</span><br><span class="line">&#123;&#125;</span><br><span class="line">2</span><br><span class="line">&#123;&#125;</span><br><span class="line">12</span><br><span class="line">&#123;&#x27;name&#x27;: &#x27;bobby&#x27;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们分析一下打印信息：</p>
+<p>首先，我们使用 dis 模块 <code>print(dis.dis(gen))</code> 打印栈祯的详细信息：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">  9           0 LOAD_CONST               1 (&#x27;哈哈&#x27;)</span><br><span class="line">              2 YIELD_VALUE</span><br><span class="line">              4 POP_TOP</span><br><span class="line"></span><br><span class="line"> 10           6 LOAD_CONST               2 (&#x27;bobby&#x27;)</span><br><span class="line">              8 STORE_FAST               0 (name)</span><br><span class="line"></span><br><span class="line"> 11          10 LOAD_CONST               3 (&#x27;嘻嘻&#x27;)</span><br><span class="line">             12 YIELD_VALUE</span><br><span class="line">             14 POP_TOP</span><br><span class="line"></span><br><span class="line"> 12          16 LOAD_CONST               4 (30)</span><br><span class="line">             18 STORE_FAST               1 (age)</span><br><span class="line"></span><br><span class="line"> 13          20 LOAD_CONST               5 (&#x27;imooc&#x27;)</span><br><span class="line">             22 RETURN_VALUE</span><br><span class="line">None</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到对于 <code>gen_func</code> 的每一行代码而言，都保存了相关信息；</p>
+<p>其中 <code>YIELD_VALUE</code> 就是对应 yield 关键字</p>
+<p><strong>通过 <code>gen.gi_frame</code> 打印 PyGenObject 中的 <code>f_lasti</code> <code>f_locals</code></strong></p>
+<ul>
+<li><strong>f_lasti 当前祯的最后指令的索引</strong></li>
+<li><strong>f_locals 当前祯的局部变量字典</strong></li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line"><span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br></pre></td></tr></table></figure>
+
+<h2 id="生成器如何读取一个大文件"><a href="#生成器如何读取一个大文件" class="headerlink" title="生成器如何读取一个大文件"></a>生成器如何读取一个大文件</h2><p>例如现在有一个巨大的文件 500G 左右，没有换行符，且只有一行数据，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">python is the best language in world | xi xi xi|xxxxxx| hahaha ....</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_big_file</span>(<span class="params">f, sep_str</span>):</span></span><br><span class="line">    buf = <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="keyword">while</span> sep_str <span class="keyword">in</span> buf:</span><br><span class="line">            pos = buf.index(sep_str)  <span class="comment"># 每次只读取一个分隔符内容部分</span></span><br><span class="line">            <span class="keyword">yield</span> buf[:pos]</span><br><span class="line">            buf = buf[pos + <span class="built_in">len</span>(sep_str):]</span><br><span class="line"></span><br><span class="line">        chunk = f.read(<span class="number">4096</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> chunk:</span><br><span class="line">            <span class="comment"># 已经读到了文件结尾</span></span><br><span class="line">            <span class="keyword">yield</span> buf</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        buf += chunk</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&quot;1.txt&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> content <span class="keyword">in</span> read_big_file(f, <span class="string">&quot;|&quot;</span>):</span><br><span class="line">            <span class="built_in">print</span>(content)</span><br></pre></td></tr></table></figure>
+
+<p>常规分块读取文件</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_file_in_chunks</span>(<span class="params">file_path, chunk_size</span>):</span></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> file:</span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            chunk = file.read(chunk_size)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> chunk:</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">yield</span> chunk</span><br><span class="line"></span><br><span class="line">file_path = <span class="string">&#x27;path/to/file.txt&#x27;</span></span><br><span class="line">chunk_size = <span class="number">1024</span>  <span class="comment"># 每次读取的块大小</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> chunk <span class="keyword">in</span> read_file_in_chunks(file_path, chunk_size):</span><br><span class="line">    <span class="comment"># 处理每个块的数据</span></span><br><span class="line">    <span class="built_in">print</span>(chunk)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="协程应用"><a href="#协程应用" class="headerlink" title="协程应用"></a>协程应用</h2><h3 id="C-10M-问题"><a href="#C-10M-问题" class="headerlink" title="C 10M 问题"></a>C 10M 问题</h3><p>如何利用 8 核 CPU , 64 G内存，在 10 g bps 的网络上保持 1000 万的并发连接；</p>
 ]]></content>
       <categories>
         <category>Python</category>
@@ -720,111 +564,6 @@
       </categories>
       <tags>
         <tag>设计原则</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>迭代器和生成器的实现原理</title>
-    <url>/posts/30d97d60/</url>
-    <content><![CDATA[<h1 id="迭代器"><a href="#迭代器" class="headerlink" title="迭代器"></a>迭代器</h1><h2 id="什么是迭代协议-？"><a href="#什么是迭代协议-？" class="headerlink" title="什么是迭代协议 ？"></a>什么是迭代协议 ？</h2><p>这里我们可以查看 <code>collections.abc</code> 中的两个对象：<code>Iterable</code> <code>Iterator</code></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@runtime_checkable</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Iterable</span>(<span class="params">Protocol[_T_co]</span>):</span></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>) -&gt; Iterator[_T_co]:</span> ...</span><br><span class="line"></span><br><span class="line"><span class="meta">@runtime_checkable</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Iterator</span>(<span class="params">Iterable[_T_co], Protocol[_T_co]</span>):</span></span><br><span class="line"><span class="meta">    @abstractmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__next__</span>(<span class="params">self</span>) -&gt; _T_co:</span> ...</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>) -&gt; Iterator[_T_co]:</span> ...</span><br></pre></td></tr></table></figure>
-
-<p>这里我们来观察一下 list 是否是可迭代对象或者是一个迭代器：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> collections.abc <span class="keyword">import</span> Iterator, Iterable</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterable))</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterator))</span><br><span class="line">    <span class="comment"># output</span></span><br><span class="line">    <span class="literal">True</span></span><br><span class="line">		<span class="literal">False</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>我们知道 list 只实现了一个 <code>__iter__</code> 方法，并未实现，所以 list 是一个可迭代对象而不是迭代器；</p>
-<p>所以，实现了 <code>__iter__</code> 魔法方法的对象是一个可迭代对象，实现了 <code>__iter__</code> &amp;&amp; <code>__next__</code> 方法的是一个迭代器。</p>
-<h2 id="如何将一个可迭代对象转换为迭代器"><a href="#如何将一个可迭代对象转换为迭代器" class="headerlink" title="如何将一个可迭代对象转换为迭代器"></a>如何将一个可迭代对象转换为迭代器</h2><p>答案是 python 内置的 <code>iter()</code></p>
-<p>这里只需要使用 iter() 就可以将 a 转换为一个迭代器：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]</span><br><span class="line">    a = <span class="built_in">iter</span>(a)</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterable))</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">isinstance</span>(a, Iterator))</span><br><span class="line">		<span class="comment"># output</span></span><br><span class="line">    <span class="literal">True</span></span><br><span class="line">    <span class="literal">True</span></span><br></pre></td></tr></table></figure>
-
-<p>接下来，我们来看一个例子：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Company</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, employee_list</span>):</span></span><br><span class="line">        self.employee = employee_list</span><br><span class="line"></span><br><span class="line">    <span class="comment"># def __iter__(self):</span></span><br><span class="line">    <span class="comment">#     return self.employee</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__getitem__</span>(<span class="params">self, item</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self.employee[item]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.employee)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    c = Company([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> c:</span><br><span class="line">        <span class="built_in">print</span>(i)</span><br></pre></td></tr></table></figure>
-
-<p>在这个类中 ，我们并未实现 <code>__iter__</code> 函数，而是实现了 <code>__getitem__</code> 函数，并且也能使用 for 循环，这是为什么呢？</p>
-<p>实际上，for 循环时，会自动去调用 <code>iter()</code>，然后去查找魔法方法 <code>__iter__</code> ，如果没有就会去查找 <code>__getitem__</code> 方法。</p>
-<p>为了更好地理解这些逻辑，我们将模仿 iter() 实现一个迭代器，将上述的 company 变为一个可迭代对象</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Company</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, employee_list</span>):</span></span><br><span class="line">        self.employee = employee_list</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> MyIter(self.employee)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># def __getitem__(self, item):</span></span><br><span class="line">    <span class="comment">#     return self.employee[item]</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(self.employee)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyIter</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self, employee_list</span>):</span></span><br><span class="line">        self.employee = employee_list</span><br><span class="line">        self.index = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__iter__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">return</span> self</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__next__</span>(<span class="params">self</span>):</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            word = self.employee[self.index]</span><br><span class="line">        <span class="keyword">except</span> IndexError:</span><br><span class="line">            <span class="keyword">raise</span> StopIteration</span><br><span class="line"></span><br><span class="line">        self.index += <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> word</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    c = Company([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> c:</span><br><span class="line">        <span class="built_in">print</span>(i)</span><br><span class="line">        </span><br><span class="line">    <span class="comment"># output: 1 2 3</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>实际上将 <code>__next__</code> 类定义在 Company 也可以，但是基于迭代器的设计模式，对于另外的属性，例如 self.index 会污染 Company 类属性。</p>
-<h2 id="生成器"><a href="#生成器" class="headerlink" title="生成器"></a>生成器</h2><p><strong>函数中只要有 yield 关键字，就是一个生成器函数</strong></p>
-<blockquote>
-<p> python 编译字节码的时候就生成了一个生成器对象</p>
-</blockquote>
-<p>先来看一段代码：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gen_func</span>():</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">2</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">3</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">func</span>():</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    gen = gen_func() <span class="comment"># 返回一个 generator 对象</span></span><br><span class="line">    fun = func()     <span class="comment"># 返回 1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> gen:</span><br><span class="line">        <span class="built_in">print</span>(i)</span><br><span class="line">        </span><br><span class="line">    <span class="comment"># output 1, 2, 3</span></span><br></pre></td></tr></table></figure>
-
-<p>在这段代码中，我们将 yield 关键字和 return 关键字进行了比较，可以看到，其两个函数返回的对象是不一致的，gen 返回了一个生成器对象，而 fun 返回了一个 int 类型的值。并且 gen 是可以被迭代的。</p>
-<p>这是为什么呢？这是因为 在 python 解释器编译字节码时，遇到 yield 关键字时，自动将其转换为了一个 生成器对象，且生成器也是实现了迭代器协议的。</p>
-<p>为了更好地解释 yield 关键字的用途，这里采用<strong>斐波拉契函数</strong>来进一步理解。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fib</span>(<span class="params">index</span>):</span></span><br><span class="line">    <span class="keyword">if</span> index == <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> <span class="number">0</span> &lt; index &lt;= <span class="number">2</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> fib(index-<span class="number">1</span>) + fib(index-<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fib2</span>(<span class="params">index</span>):</span></span><br><span class="line">  re_list = []</span><br><span class="line">  n, a, b = <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">  <span class="keyword">while</span> n &lt; index:</span><br><span class="line">    re_list.append(b)</span><br><span class="line">    a, b = b, a+b</span><br><span class="line">    n = n+<span class="number">1</span></span><br><span class="line">  <span class="keyword">return</span> re_list</span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">   <span class="built_in">print</span>(fib(<span class="number">10</span>))</span><br><span class="line">   <span class="comment"># output 55</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>在上述的代码中，fib2 还原了斐波拉契的生成过程，记录了每次的值，但是当数据量非常大时，例如几千万上亿时，那么这个数据是非常大的，就会特别消耗内存。而 yield 关键字刚好能解决这个问题：</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fib2</span>(<span class="params">index</span>):</span></span><br><span class="line">  n, a, b = <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">  <span class="keyword">while</span> n &lt; index:</span><br><span class="line">		<span class="keyword">yield</span> b</span><br><span class="line">    a, b = b, a+b</span><br><span class="line">    n = n+<span class="number">1</span></span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">   <span class="keyword">for</span> i <span class="keyword">in</span> fib2(<span class="number">10</span>):</span><br><span class="line">      <span class="built_in">print</span>(i)</span><br><span class="line">   <span class="comment"># output</span></span><br><span class="line">   <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    1</span></span><br><span class="line"><span class="string">    1</span></span><br><span class="line"><span class="string">    2</span></span><br><span class="line"><span class="string">    3</span></span><br><span class="line"><span class="string">    5</span></span><br><span class="line"><span class="string">    8</span></span><br><span class="line"><span class="string">    13</span></span><br><span class="line"><span class="string">    21</span></span><br><span class="line"><span class="string">    34</span></span><br><span class="line"><span class="string">    55</span></span><br><span class="line"><span class="string">   &quot;&quot;&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>这样改动下来，yield 只会占用一点点内存，且在 for 循环时，会记录每次的生成值，刚好解决了这个问题。</strong></p>
-<h2 id="生成器原理"><a href="#生成器原理" class="headerlink" title="生成器原理"></a>生成器原理</h2><h3 id="python-中函数的工作原理"><a href="#python-中函数的工作原理" class="headerlink" title="python 中函数的工作原理"></a>python 中函数的工作原理</h3><p>先了解一个 python 中函数的调用原理：</p>
-<blockquote>
-<p>在Python中，栈帧（stack frame）是独立存在的。每当一个函数被调用时，Python会在调用栈中创建一个栈帧来保存该函数的局部变量、参数、返回地址等信息。</p>
-<p>栈帧是函数调用的上下文，它包含了函数执行过程中的相关信息。每个栈帧都是独立的，包含了函数的局部状态，并且按照调用的顺序进行组织。当函数执行结束后，对应的栈帧会被弹出栈，从而回到上一个函数的执行环境。</p>
-<p>每个栈帧都包含以下几个重要的组成部分：</p>
-<ol>
-<li>局部变量：栈帧中保存了函数的局部变量，包括函数参数和在函数内部定义的变量。</li>
-<li>返回地址：栈帧中保存了函数执行结束后的返回地址，用于指示程序继续执行的位置。</li>
-<li>异常处理信息：栈帧中保存了与异常处理相关的信息，用于捕获和处理异常。</li>
-</ol>
-<p>由于栈帧是独立的，每个栈帧都可以保持自己的状态，并且可以同时存在多个栈帧。这使得Python可以实现递归调用和函数的嵌套调用。</p>
-<p>总结：在Python中，栈帧是独立存在的，它保存了函数调用的上下文信息，包括局部变量、返回地址和异常处理信息。每个函数调用都会创建一个新的栈帧，并按照调用顺序组织在调用栈中。栈帧的独立存在使得Python能够支持递归调用和函数的嵌套调用。</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span>():</span></span><br><span class="line">    bar()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bar</span>():</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">import</span> dis <span class="comment"># 字节码库</span></span><br><span class="line">    <span class="built_in">print</span>(dis.dis(foo)) <span class="comment">#字节码执行过程</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">      9       0 LOAD_GLOBAL              0 (bar)</span></span><br><span class="line"><span class="string">              2 CALL_FUNCTION            0</span></span><br><span class="line"><span class="string">              4 POP_TOP</span></span><br><span class="line"><span class="string">              6 LOAD_CONST               0 (None)</span></span><br><span class="line"><span class="string">              8 RETURN_VALUE</span></span><br><span class="line"><span class="string">	   None</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>从上述的代码中，我们可以看到，对于 foo 函数而言，python 解释器会创建一个栈祯来保存该函数的相关信息</p>
-<p><strong>所有的栈祯都是分配在堆内存上，这就决定了栈祯可以独立于调用者存在</strong></p>
-<p>用一段代码来解释：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> inspect</span><br><span class="line">frame = <span class="literal">None</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span>():</span></span><br><span class="line">    bar()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bar</span>():</span></span><br><span class="line">    <span class="keyword">global</span> frame</span><br><span class="line">    frame = inspect.currentframe()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    foo()</span><br><span class="line">    <span class="built_in">print</span>(frame.f_code.co_name)</span><br><span class="line">    caller_frame = frame.f_back</span><br><span class="line">    <span class="built_in">print</span>(caller_frame.f_code.co_name)</span><br><span class="line"><span class="comment"># bar</span></span><br><span class="line"><span class="comment"># foo</span></span><br></pre></td></tr></table></figure>
-
-<p>在上述代码中，我们引入了 inspect 包来查看 栈祯保存的一些信息，</p>
-<p>通过 <code>frame = inspect.currentframe()</code> 来保存当前函数 bar 的栈祯。可以看到，通过 <code>frame.f_code.co_name</code> 打印的是 <code>bar</code>, 而且还可以通过 <code>frame.f_back </code> 还可以查看上一个栈祯的信息即 foo。</p>
-<p>通过这段代码，<strong>我们就能更加理解 python 解释器在运行一个 函数时的操作了，让我们明白对于递归调用而言，函数的调用是可控的，可溯源的，这也是 python 生成器的前提</strong></p>
-<p>![image-20230702003450166](/Users/tyronemaxi/Library/Application Support/typora-user-images/image-20230702003450166.png)</p>
-<p>![image-20230702003852334](/Users/tyronemaxi/Library/Application Support/typora-user-images/image-20230702003852334.png)</p>
-<p>用一段代码解释生成器的运行原理：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gen_func</span>():</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">1</span></span><br><span class="line">    name = <span class="string">&quot;bobby&quot;</span></span><br><span class="line">    <span class="keyword">yield</span> <span class="number">2</span></span><br><span class="line">    age = <span class="number">30</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;imooc&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">import</span> dis</span><br><span class="line">    gen = gen_func()</span><br><span class="line">    <span class="built_in">print</span>(dis.dis(gen))</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br><span class="line">    <span class="built_in">next</span>(gen)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br><span class="line">    <span class="built_in">next</span>(gen)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br><span class="line">    <span class="built_in">next</span>(gen)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line">    <span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br></pre></td></tr></table></figure>
-
-<p>打印信息：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">  9           0 LOAD_CONST               1 (&#x27;哈哈&#x27;)</span><br><span class="line">              2 YIELD_VALUE</span><br><span class="line">              4 POP_TOP</span><br><span class="line"></span><br><span class="line"> 10           6 LOAD_CONST               2 (&#x27;bobby&#x27;)</span><br><span class="line">              8 STORE_FAST               0 (name)</span><br><span class="line"></span><br><span class="line"> 11          10 LOAD_CONST               3 (&#x27;嘻嘻&#x27;)</span><br><span class="line">             12 YIELD_VALUE</span><br><span class="line">             14 POP_TOP</span><br><span class="line"></span><br><span class="line"> 12          16 LOAD_CONST               4 (30)</span><br><span class="line">             18 STORE_FAST               1 (age)</span><br><span class="line"></span><br><span class="line"> 13          20 LOAD_CONST               5 (&#x27;imooc&#x27;)</span><br><span class="line">             22 RETURN_VALUE</span><br><span class="line">None</span><br><span class="line">-1</span><br><span class="line">&#123;&#125;</span><br><span class="line">2</span><br><span class="line">&#123;&#125;</span><br><span class="line">12</span><br><span class="line">&#123;&#x27;name&#x27;: &#x27;bobby&#x27;&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我们分析一下打印信息：</p>
-<p>首先，我们使用 dis 模块 <code>print(dis.dis(gen))</code> 打印栈祯的详细信息：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">  9           0 LOAD_CONST               1 (&#x27;哈哈&#x27;)</span><br><span class="line">              2 YIELD_VALUE</span><br><span class="line">              4 POP_TOP</span><br><span class="line"></span><br><span class="line"> 10           6 LOAD_CONST               2 (&#x27;bobby&#x27;)</span><br><span class="line">              8 STORE_FAST               0 (name)</span><br><span class="line"></span><br><span class="line"> 11          10 LOAD_CONST               3 (&#x27;嘻嘻&#x27;)</span><br><span class="line">             12 YIELD_VALUE</span><br><span class="line">             14 POP_TOP</span><br><span class="line"></span><br><span class="line"> 12          16 LOAD_CONST               4 (30)</span><br><span class="line">             18 STORE_FAST               1 (age)</span><br><span class="line"></span><br><span class="line"> 13          20 LOAD_CONST               5 (&#x27;imooc&#x27;)</span><br><span class="line">             22 RETURN_VALUE</span><br><span class="line">None</span><br></pre></td></tr></table></figure>
-
-<p>我们可以看到对于 <code>gen_func</code> 的每一行代码而言，都保存了相关信息；</p>
-<p>其中 <code>YIELD_VALUE</code> 就是对应 yield 关键字</p>
-<p><strong>通过 <code>gen.gi_frame</code> 打印 PyGenObject 中的 <code>f_lasti</code> <code>f_locals</code></strong></p>
-<ul>
-<li><strong>f_lasti 当前祯的最后指令的索引</strong></li>
-<li><strong>f_locals 当前祯的局部变量字典</strong></li>
-</ul>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(gen.gi_frame.f_lasti)</span><br><span class="line"><span class="built_in">print</span>(gen.gi_frame.f_locals)</span><br></pre></td></tr></table></figure>
-
-<h2 id="生成器如何读取一个大文件"><a href="#生成器如何读取一个大文件" class="headerlink" title="生成器如何读取一个大文件"></a>生成器如何读取一个大文件</h2><p>例如现在有一个巨大的文件 500G 左右，没有换行符，且只有一行数据，例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">python is the best language in world | xi xi xi|xxxxxx| hahaha ....</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_big_file</span>(<span class="params">f, sep_str</span>):</span></span><br><span class="line">    buf = <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="keyword">while</span> sep_str <span class="keyword">in</span> buf:</span><br><span class="line">            pos = buf.index(sep_str)  <span class="comment"># 每次只读取一个分隔符内容部分</span></span><br><span class="line">            <span class="keyword">yield</span> buf[:pos]</span><br><span class="line">            buf = buf[pos + <span class="built_in">len</span>(sep_str):]</span><br><span class="line"></span><br><span class="line">        chunk = f.read(<span class="number">4096</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> chunk:</span><br><span class="line">            <span class="comment"># 已经读到了文件结尾</span></span><br><span class="line">            <span class="keyword">yield</span> buf</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        buf += chunk</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&quot;1.txt&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> content <span class="keyword">in</span> read_big_file(f, <span class="string">&quot;|&quot;</span>):</span><br><span class="line">            <span class="built_in">print</span>(content)</span><br></pre></td></tr></table></figure>
-
-<p>常规分块读取文件</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_file_in_chunks</span>(<span class="params">file_path, chunk_size</span>):</span></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> file:</span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            chunk = file.read(chunk_size)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> chunk:</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">yield</span> chunk</span><br><span class="line"></span><br><span class="line">file_path = <span class="string">&#x27;path/to/file.txt&#x27;</span></span><br><span class="line">chunk_size = <span class="number">1024</span>  <span class="comment"># 每次读取的块大小</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> chunk <span class="keyword">in</span> read_file_in_chunks(file_path, chunk_size):</span><br><span class="line">    <span class="comment"># 处理每个块的数据</span></span><br><span class="line">    <span class="built_in">print</span>(chunk)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="协程应用"><a href="#协程应用" class="headerlink" title="协程应用"></a>协程应用</h2><h3 id="C-10M-问题"><a href="#C-10M-问题" class="headerlink" title="C 10M 问题"></a>C 10M 问题</h3><p>如何利用 8 核 CPU , 64 G内存，在 10 g bps 的网络上保持 1000 万的并发连接；</p>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
       </tags>
   </entry>
   <entry>
@@ -2653,6 +2392,187 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>RESTful API 最佳实践</title>
+    <url>/posts/ea12054a/</url>
+    <content><![CDATA[<h1 id="RESTful-API-最佳实践"><a href="#RESTful-API-最佳实践" class="headerlink" title="RESTful API 最佳实践"></a>RESTful API 最佳实践</h1><img src="https://betimdrenica.files.wordpress.com/2015/03/api2.png?w=300&h=176" alt="api2" style="zoom:100%;" />
+
+<h2 id="API-的关键要求"><a href="#API-的关键要求" class="headerlink" title="API 的关键要求"></a>API 的关键要求</h2><ul>
+<li>网络标准的使用</li>
+<li>对开发人员友好，并能通过浏览器地址栏进行探索</li>
+<li>简单、直观和一致，使用简单且愉快</li>
+<li>足够的灵活性</li>
+<li>高效的使用</li>
+</ul>
+<h2 id="RESTful-API"><a href="#RESTful-API" class="headerlink" title="RESTful API"></a>RESTful API</h2><h3 id="Media-Type"><a href="#Media-Type" class="headerlink" title="Media Type"></a>Media Type</h3><p><strong>默认媒体类型为 JSON</strong></p>
+<blockquote>
+<p>由于 HTTP 的最新势头和遵循标准，JSON 是最受欢迎的，因此应该明确成为默认的媒体类型</p>
+<p>XML 的有点是复杂的场景和历史（SOAP），XML 不是 API  的最佳选择。它冗长，难以解析，难以阅读，其数据模型与大多数编程语言的数据模型不兼容。</p>
+</blockquote>
+<h2 id="HTTP-动词"><a href="#HTTP-动词" class="headerlink" title="HTTP 动词"></a>HTTP 动词</h2><p>RESTful 关键原则是将一系列 API 资源通过 <strong>域名+资源名称 + HTTP methods</strong></p>
+<p>逻辑资源应该<strong>从 API 消费者的角度</strong>来进行考虑：<strong>使用有意义的名词s, 而不是动词</strong>，需要明确的是：名词是事物，动词是你对它所做的。</p>
+<p>定义资源后，对于每种的资源的不同操作映射为对应的 HTTP 请求方法：</p>
+<ul>
+<li>GET —— 获取资源信息(SELECT)</li>
+<li>POST —— 创建新的资源(CREATE)</li>
+<li>PUT —— 更新资源(UPDATE)</li>
+<li>PATCH —— 更新部分资源(UPDATE)</li>
+<li>DELETE —— 删除部分资源(DELETE)</li>
+</ul>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">GET /tickets - 检索票证列表</span><br><span class="line">GET /tickets/12 - 检索特定票证</span><br><span class="line">POST /tickets - 创建一个新票</span><br><span class="line">PUT /tickets/12 - 更新票 #12</span><br><span class="line">PATCH /tickets/12 - 部分更新票 #12</span><br><span class="line">DELETE /tickets/12 - 删除票 #12</span><br></pre></td></tr></table></figure>
+
+<p>不适合 CRUD 操作的世界应该怎么办？</p>
+<ul>
+<li><strong>组合操作使其看起来像资源的字段。</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">POST /template/apply # 应用一个模版</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>将其视为符合 RESTful 原则的子资源。</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /zoos/id/animals # 获取某一个 动物园的 动物</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>无法确定正确的 RESTful 结构的，区别记录即可，无需强制使用。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /search?text=&quot;搜索&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="无处不在的-SSL"><a href="#无处不在的-SSL" class="headerlink" title="无处不在的 SSL"></a>无处不在的 SSL</h2><blockquote>
+<p>SSL 证书是一个数字证书，用于认证网站的身份并启用加密连接。SSL 代表安全套接字层，这是一个安全协议，可在 Web 服务器和 Web 浏览器之间创建加密链接。</p>
+</blockquote>
+<p><strong>始终使用 SSL —— 出于安全考虑。</strong></p>
+<p>始终使用 SSL 的另外一个优势是有保证的加密通信简化了身份验证工作——您可以使用简单的访问令牌，而不必签署每个 API 请求。</p>
+<h2 id="API-接口文档"><a href="#API-接口文档" class="headerlink" title="API 接口文档"></a>API 接口文档</h2><p><strong>API 的好坏取决于它的文档</strong>。这些文档应该很容易找到并且可以公开访问。大多数开发人员在尝试任何集成工作之前都会查看文档。</p>
+<p><strong>文档应显示完整请求/响应周期的示例。</strong></p>
+<p>一旦你发布了一个公共 API，就应该发布通知信息，告知关注者变更消息。</p>
+<p>例如 Apifox、yapi 等接口文档软件</p>
+<h2 id="版本控制"><a href="#版本控制" class="headerlink" title="版本控制"></a>版本控制</h2><p><strong>始终对您的 API 进行版本控制。</strong>版本控制可帮助您更快地迭代并防止无效请求到达更新的端点。它还有助于平滑任何主要的 API 版本转换。</p>
+<p>关于 API 版本应包含在 URL 中还是 header 中？有广泛的争论。</p>
+<p>本人比较喜欢将版本控制置于 URL 中</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /api/v1/zoos</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="结果过滤、排序和搜索"><a href="#结果过滤、排序和搜索" class="headerlink" title="结果过滤、排序和搜索"></a>结果过滤、排序和搜索</h2><p><strong>最好使基本资源 URL 尽可能精简。</strong></p>
+<p><strong>复杂的结果过滤器、排序要求和高级搜索（当仅限于单一类型的资源时）都可以作为基本 URL</strong>  </p>
+<p><strong>之上的查询参数轻松实现。</strong></p>
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">GET /tickets?state=open</span><br><span class="line">GET /tickets?order_by=create_time:desc,apply_time:desc</span><br></pre></td></tr></table></figure>
+
+<h2 id="JSON-采用-request-body-输入"><a href="#JSON-采用-request-body-输入" class="headerlink" title="JSON  采用 request body 输入"></a>JSON  采用 request body 输入</h2><ul>
+<li>POST</li>
+<li>PUT</li>
+<li>PATCH</li>
+</ul>
+<p>上述方法采用 request body 传输数据</p>
+<h3 id="字段名称的-snake-case-与-camelCase"><a href="#字段名称的-snake-case-与-camelCase" class="headerlink" title="字段名称的 snake_case 与 camelCase"></a>字段名称的 snake_case 与 camelCase</h3><p>根据 2010 年对 camelCase 和 snake_case （PDF）的眼动追踪研究，**snake_case 比 camelCase 更容易阅读 20%**这种对可读性的影响会影响 API 的可探索性和文档中的示例。</p>
+<h2 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h2><p>json 返回数据中，会包含一些分页数据；</p>
+<blockquote>
+<p>The right way to include pagination details today is using the <a href="https://tools.ietf.org/html/rfc8288">Link header introduced by RFC 8288</a>.</p>
+</blockquote>
+<p>以下是正确使用 Link 标头的示例，来自 GitHub:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">Link: &lt;https://api.github.com/user/repos?page=3&amp;per_page=100&gt;; rel=&quot;next&quot;, &lt;https://api.github.com/user/repos?page=50&amp;per_page=100&gt;; rel=&quot;last&quot;</span><br></pre></td></tr></table></figure>
+
+<p>许多 API 确实需要额外的分页信息，例如可用结果总数的计数。需要发送计数的 API 可以使用自定义 HTTP 标头，如 <code>X-Total-Count</code>。</p>
+<h2 id="更新和限制资源应该返回资源表示"><a href="#更新和限制资源应该返回资源表示" class="headerlink" title="更新和限制资源应该返回资源表示"></a>更新和限制资源应该返回资源表示</h2><p>PUT、POST 或 PATCH 调用可能会修改不属于所提供参数的基础资源字段（例如：created_at 或 updated_at 时间戳）。为防止 API 使用者必须再次点击 API 以获得更新的表示，让 API 返回更新（或创建）的表示作为响应的一部分。</p>
+<p>如果 POST 导致创建，请使用 HTTP 201 状态码并包含指向新资源 URL 的 Location 标头。</p>
+<p>除了将新创建的资源表示作为响应主体之外，还应该包含这两个内容。</p>
+<h2 id="默认情况下，不使用-envelope-特殊情况下使用"><a href="#默认情况下，不使用-envelope-特殊情况下使用" class="headerlink" title="默认情况下，不使用 envelope, 特殊情况下使用"></a>默认情况下，不使用 envelope, 特殊情况下使用</h2><p>许多情况下：</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data&quot;</span>：&#123;</span><br><span class="line">  	<span class="attr">&quot;id&quot;</span>: <span class="number">123</span>,</span><br><span class="line">  	<span class="attr">&quot;name&quot;</span>: <span class="string">&quot;John&quot;</span></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>理由：</p>
+<ul>
+<li>包含额外的元数据或分页信息，一些 REST 客户端不允许轻松访问 HTTP 标头，而 JSONP 请求无法访问 HTTP 标头。然而，随着 CORS 和 RFC 5988 等 Link 标头等标准被迅速采用，封装开始变得不必要了。</li>
+</ul>
+<h2 id="速率限制"><a href="#速率限制" class="headerlink" title="速率限制"></a>速率限制</h2><p>为防止滥用，标准做法是向 API 添加某种速率限制。</p>
+<blockquote>
+<p>To prevent abuse, it is standard practice to add some sort of rate limiting to an API. <a href="http://tools.ietf.org/html/rfc6585">RFC 6585</a> introduced a HTTP status code <a href="http://tools.ietf.org/html/rfc6585#section-4">429 Too Many Requests</a> to accommodate this.</p>
+<p>However, it can be very useful to notify the consumer of their limits before they actually hit it. This is an area that currently lacks standards but has a number of <a href="http://stackoverflow.com/questions/16022624/examples-of-http-api-rate-limiting-http-response-headers">popular conventions using HTTP response headers</a>.</p>
+<p>At a minimum, include the following headers:</p>
+<ul>
+<li>X-Rate-Limit-Limit - The number of allowed requests in the current period</li>
+<li>X-Rate-Limit-Remaining - The number of remaining requests in the current period</li>
+<li>X-Rate-Limit-Reset - The number of seconds left in the current period</li>
+</ul>
+</blockquote>
+<h2 id="Authentication"><a href="#Authentication" class="headerlink" title="Authentication"></a>Authentication</h2><p>RESTful API 应该是无状态的。</p>
+<p>基于 SSL 身份验证凭据可以简化为随机生成的访问令牌，该令牌在 HTTP 基本身份验证的用户名字段中传送。</p>
+<ul>
+<li>session</li>
+<li>jwt</li>
+<li>access_token</li>
+<li>OAuth 2</li>
+</ul>
+<h2 id="Cache"><a href="#Cache" class="headerlink" title="Cache"></a>Cache</h2><p>HTTP 内置缓存框架</p>
+<ul>
+<li>ETag</li>
+<li>Last-Modified</li>
+</ul>
+<h2 id="Error-Handler"><a href="#Error-Handler" class="headerlink" title="Error Handler"></a>Error Handler</h2><p>类似 HTML 错误页面向访问者显示有用的错误信息一样，API 应该以已知的可使用格式提供有用的错误信息。错误的表示应该与任何资源的表示没有区别，只是具有自己的一组字段。</p>
+<ul>
+<li>API 应返回合理的 HTTP 状态代码。</li>
+</ul>
+<p>API 错误通常分为两种类型：</p>
+<ul>
+<li>客户端问题的 400 系列状态代码</li>
+<li>服务器问题的 500 系列状态代码</li>
+</ul>
+<p>对于具体的 400 系列和 500 系列状态代码，应带有可使用的 JSON 错误表示。</p>
+<p>JSON 错误正文应具有：</p>
+<ul>
+<li>错误信息</li>
+<li>唯一的错误代码</li>
+<li>以及可能的详细描述</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;code&quot;</span> : <span class="number">1234</span>,</span><br><span class="line">  <span class="attr">&quot;message&quot;</span> : <span class="string">&quot;Something bad happened :(&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;description&quot;</span> : <span class="string">&quot;More details about the error here&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="HTTP-status-codes"><a href="#HTTP-status-codes" class="headerlink" title="HTTP status codes"></a>HTTP status codes</h2><blockquote>
+<ul>
+<li>200 OK - Response to a successful GET, PUT, PATCH or DELETE. Can also be used for a POST that doesn’t result in a creation.</li>
+<li>201 Created - Response to a POST that results in a creation. Should be combined with a <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location header</a> pointing to the location of the new resource</li>
+<li>204 No Content - Response to a successful request that won’t be returning a body (like a DELETE request)</li>
+<li>304 Not Modified - Used when HTTP caching headers are in play</li>
+<li>400 Bad Request - The request is malformed, such as if the body does not parse</li>
+<li>401 Unauthorized - When no or invalid authentication details are provided. Also useful to trigger an auth popup if the API is used from a browser</li>
+<li>403 Forbidden - When authentication succeeded but authenticated user doesn’t have access to the resource</li>
+<li>404 Not Found - When a non-existent resource is requested</li>
+<li>405 Method Not Allowed - When an HTTP method is being requested that isn’t allowed for the authenticated user</li>
+<li>410 Gone - Indicates that the resource at this end point is no longer available. Useful as a blanket response for old API versions</li>
+<li>415 Unsupported Media Type - If incorrect content type was provided as part of the request</li>
+<li>422 Unprocessable Entity - Used for validation errors</li>
+<li>429 Too Many Requests - When a request is rejected due to rate limiting</li>
+</ul>
+</blockquote>
+<ul>
+<li>200 OK - 对成功的 GET、PUT、PATCH 或 DELETE 的响应。也可用于不会导致创建的 POST。</li>
+<li>201 已创建- 对导致创建的 POST 的响应。应与指向新资源位置的<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30">Location 标头结合</a></li>
+<li>204 No Content - 对不会返回正文的成功请求的响应（如 DELETE 请求）</li>
+<li>304 Not Modified - 在使用 HTTP 缓存标头时使用</li>
+<li>400 Bad Request - 请求格式错误，比如请求体没有解析</li>
+<li>401 Unauthorized - 当没有提供或提供无效的身份验证详细信息时。如果从浏览器使用 API，也可用于触发身份验证弹出窗口</li>
+<li>403 Forbidden - 当身份验证成功但经过身份验证的用户无权访问资源时</li>
+<li>404 Not Found - 当请求不存在的资源时</li>
+<li>405 Method Not Allowed - 当请求的 HTTP 方法不允许经过身份验证的用户使用时</li>
+<li>410 Gone - 表示此端点的资源不再可用。作为对旧 API 版本的全面响应很有用</li>
+<li>415 Unsupported Media Type - 如果作为请求的一部分提供了不正确的内容类型</li>
+<li>422 Unprocessable Entity - 用于验证错误</li>
+<li>429 Too Many Requests - 当请求由于速率限制而被拒绝时</li>
+</ul>
+<h2 id="In-Summary"><a href="#In-Summary" class="headerlink" title="In Summary"></a>In Summary</h2><p>API 是开发人员的用户界面。努力确保它不仅功能齐全而且使用起来愉快。</p>
+<p>由于开发语言有异，只有最适合的 API 规范，没有最好的 API 规范</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Best Practices for Designing a Pragmatic RESTful API:<a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api</a></p>
+<p>Idel restful api : <a href="https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/">https://betimdrenica.wordpress.com/2015/03/09/ideal-rest-api-design/</a></p>
+<p><a href="https://www.ruanyifeng.com/blog/2014/05/restful_api.html">https://www.ruanyifeng.com/blog/2014/05/restful_api.html</a></p>
+]]></content>
+      <categories>
+        <category>HTTP</category>
+      </categories>
+      <tags>
+        <tag>HTTP</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>golang 垃圾回收机制</title>
     <url>/posts/88f7796/</url>
     <content><![CDATA[<h1 id="Golang-垃圾回收"><a href="#Golang-垃圾回收" class="headerlink" title="Golang 垃圾回收"></a>Golang 垃圾回收</h1><blockquote>
@@ -3501,156 +3421,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
-    <title>常用 linux 命令</title>
-    <url>/posts/92072779/</url>
-    <content><![CDATA[<h1 id="linx-面试题"><a href="#linx-面试题" class="headerlink" title="linx 面试题"></a>linx 面试题</h1><p>参考：<a href="https://segmentfault.com/a/1190000040007585">https://segmentfault.com/a/1190000040007585</a><br><a href="https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/">https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/</a></p>
-<h2 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vat vi vim ls mkdir touch cp mv</span><br></pre></td></tr></table></figure>
-<p>查找是否存在文件名：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find / -name mysql</span><br></pre></td></tr></table></figure>
-<h2 id="日志操作"><a href="#日志操作" class="headerlink" title="日志操作"></a>日志操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tail -f /var/www/data.log.out</span><br></pre></td></tr></table></figure>
-<p>抓取关键字</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat  data.log.out | grep &quot;error&quot;</span><br><span class="line">grep -i &quot;返回 resp &quot; data.log</span><br></pre></td></tr></table></figure>
-
-<h2 id="解压"><a href="#解压" class="headerlink" title="解压"></a>解压</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -zxvf filename.tar.gz</span><br></pre></td></tr></table></figure>
-
-<h2 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar –cvf jpg.tar *.jpg</span><br></pre></td></tr></table></figure>
-
-<h2 id="查找进程"><a href="#查找进程" class="headerlink" title="查找进程"></a>查找进程</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -aux | grep java</span><br></pre></td></tr></table></figure>
-
-<h2 id="系统、内存、磁盘、网络相关"><a href="#系统、内存、磁盘、网络相关" class="headerlink" title="系统、内存、磁盘、网络相关"></a>系统、内存、磁盘、网络相关</h2><p>top 查看内存、cpu 情况<br>du、df 查看磁盘、文件大小</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">du -s -h /data</span><br></pre></td></tr></table></figure>
-<p>ping、curl 查看网络是否正常</p>
-<h2 id="权限相关"><a href="#权限相关" class="headerlink" title="权限相关"></a>权限相关</h2><p>chmod: 修改文件或者目录的权限<br>chown: 即 change owner, 修改文件和目录的所有者权限<br>chattr: chmod 的底层操作，锁定文件<br>例如，你想设置权限，使用户可以读取、写入和执行它，并且你的组的成员可以读取和执行它，而其他人只能读取它<br>chmod u=rwx,g=rx,o=r a  ilename<br>chmod 751 filename<br>绝对模式</p>
-<table>
-<thead>
-<tr>
-<th><strong>0</strong></th>
-<th>没有权限</th>
-<th>– – –</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>1</strong></td>
-<td>执行权限</td>
-<td>- - X</td>
-</tr>
-<tr>
-<td><strong>2</strong></td>
-<td>写权限</td>
-<td>– w –</td>
-</tr>
-<tr>
-<td><strong>3</strong></td>
-<td>执行和写入权限：1（执行）+2（写入）=3</td>
-<td>– wx</td>
-</tr>
-<tr>
-<td><strong>4</strong></td>
-<td>读取权限</td>
-<td>r – –</td>
-</tr>
-<tr>
-<td><strong>5</strong></td>
-<td>读取和执行权限：4（读取）+1（执行）=5</td>
-<td>r - x</td>
-</tr>
-<tr>
-<td><strong>6</strong></td>
-<td>读写权限：4（读）+2（写）=6</td>
-<td>rw—— _</td>
-</tr>
-<tr>
-<td><strong>7</strong></td>
-<td>所有权限：4（读取）+ 2（写入）+ 1（执行）= 7</td>
-<td>rwx</td>
-</tr>
-<tr>
-<td><img src="img.png" alt="img.png"></td>
-<td></td>
-<td></td>
-</tr>
-</tbody></table>
-<h2 id="内存命令"><a href="#内存命令" class="headerlink" title="内存命令"></a>内存命令</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top </span><br><span class="line">free -h</span><br><span class="line">vmstat</span><br><span class="line">htop</span><br><span class="line">free -h -s 3 3 秒一次的间隔秒数</span><br></pre></td></tr></table></figure>
-
-<h2 id="buff-cache"><a href="#buff-cache" class="headerlink" title="buff/cache"></a>buff/cache</h2><p>缓冲/缓存是两种类型的内存。<br>先总结一下：<br><strong>缓冲</strong>主要目的是进行流量整形，把突发的大数量较小规模的 I/O 整理成平稳的<br>小数量较大规模的 I/O ，以<strong>减少响应次数</strong>。（比如从网上下电影，你不能下一点点数据就写一下硬盘，而是积攒一定量的数据以后一整块一起写，不然硬盘都要被你玩坏了）<br><strong>缓存</strong> 是为了弥补高速设备和低速设备的鸿沟而引入的中间层，最终起到<strong>加快访问速度</strong><br>的作用。</p>
-<h2 id="CPU-负载很高怎么办"><a href="#CPU-负载很高怎么办" class="headerlink" title="CPU 负载很高怎么办"></a>CPU 负载很高怎么办</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -axjf 查看 STAT 这一列是否存在 D 状态进程</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>D 状态是指不可中断的睡眠状态。该状态的进程无法被 kill, 也无法自行退出<br>只能通过恢复其依赖的资源或者重启系统来解决。</p>
-</blockquote>
-<h2 id="如何查看-CPU-和-CPU-核心？"><a href="#如何查看-CPU-和-CPU-核心？" class="headerlink" title="如何查看 CPU 和 CPU 核心？"></a>如何查看 CPU 和 CPU 核心？</h2><p>查看 cpu 和 cpu 核心？</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;model name&quot;</span><br></pre></td></tr></table></figure>
-<p>查看 cpu 核心</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;cpu cores&quot;</span><br></pre></td></tr></table></figure>
-
-<h2 id="查看硬盘的使用情况"><a href="#查看硬盘的使用情况" class="headerlink" title="查看硬盘的使用情况"></a>查看硬盘的使用情况</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">df -hl</span><br><span class="line">du -s -h /root</span><br></pre></td></tr></table></figure>
-<h2 id="怎么杀死进程？"><a href="#怎么杀死进程？" class="headerlink" title="怎么杀死进程？"></a>怎么杀死进程？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">查看进程</span><br><span class="line">ps -aux | grep  python</span><br><span class="line">找到需要杀死的进程</span><br><span class="line">kill -9 3827</span><br></pre></td></tr></table></figure>
-<h2 id="linux-vm-内核参数优化设置"><a href="#linux-vm-内核参数优化设置" class="headerlink" title="linux vm 内核参数优化设置"></a>linux vm 内核参数优化设置</h2><h3 id="CPU"><a href="#CPU" class="headerlink" title="CPU"></a>CPU</h3><p>使用 uptime 查看 CPU 使用情况</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">uptime</span><br></pre></td></tr></table></figure>
-<p>vmstat 查看 CPU 使用情况</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vmstat 2 10</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何合理的查找（find）"><a href="#如何合理的查找（find）" class="headerlink" title="如何合理的查找（find）"></a>如何合理的查找（find）</h2><h3 id="在-software-目录下找出大小超过-10-MB的文件"><a href="#在-software-目录下找出大小超过-10-MB的文件" class="headerlink" title="在 /software 目录下找出大小超过 10 MB的文件"></a>在 /software 目录下找出大小超过 10 MB的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software -type f -size +10240k</span><br></pre></td></tr></table></figure>
-
-<h3 id="在-目录下找出-365-天未被访问过的文件"><a href="#在-目录下找出-365-天未被访问过的文件" class="headerlink" title="在 目录下找出 365 天未被访问过的文件"></a>在 目录下找出 365 天未被访问过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software \! -atime -365</span><br></pre></td></tr></table></figure>
-
-<h3 id="目录下找出-365-天之前被修改过的文件"><a href="#目录下找出-365-天之前被修改过的文件" class="headerlink" title="目录下找出 365 天之前被修改过的文件"></a>目录下找出 365 天之前被修改过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /home -mtime +365</span><br></pre></td></tr></table></figure>
-
-<h2 id="什么是-inode-和-process-id"><a href="#什么是-inode-和-process-id" class="headerlink" title="什么是 inode 和 process id ?"></a>什么是 inode 和 process id ?</h2><p>inode 是操作系统赋予每个文件的唯一名称。同样，进程 ID 是赋予每个进程的唯一 ID</p>
-<h2 id="什么是守护进程（daemon）"><a href="#什么是守护进程（daemon）" class="headerlink" title="什么是守护进程（daemon）"></a>什么是守护进程（daemon）</h2><p>守护进程是作为后台进程运行以提供基本操作系统中可能不可用的功能的计算机程序。守护进程通常用于在后台运行服务，<br>而不直接控制交互式用户。守护进程的目的是处理周期性请求，然后将请求转发给适当程序执行。</p>
-<h2 id="Linux-中的进程状态有哪些？"><a href="#Linux-中的进程状态有哪些？" class="headerlink" title="Linux 中的进程状态有哪些？"></a>Linux 中的进程状态有哪些？</h2><ul>
-<li>Ready: 进程已创建并准备运行</li>
-<li>Running: 进程正在执行</li>
-<li>Blocked or wait: 进程正在等待用户输入</li>
-<li>Terminated or Completed: 进程已完成或者被操作系统终止</li>
-<li>Zombie:进程终止，但进程表仍然存在信息</li>
-</ul>
-<h2 id="解释-Linux-中的进程管理系统调用"><a href="#解释-Linux-中的进程管理系统调用" class="headerlink" title="解释 Linux 中的进程管理系统调用"></a>解释 Linux 中的进程管理系统调用</h2><p>管理进程的系统调用：</p>
-<ul>
-<li>fork(): 用户创建新进程</li>
-<li>exec(): 执行一个新进程</li>
-<li>wait(): 等待进程完成执行</li>
-<li>exit(): 退出进程</li>
-</ul>
-<h2 id="为什么要使用-tar-命令？"><a href="#为什么要使用-tar-命令？" class="headerlink" title="为什么要使用 tar 命令？"></a>为什么要使用 tar 命令？</h2><blockquote>
-<p>tar 命令用于提取或创建归档文件</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -xvzf sample.tar.gz</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -cvzf filename.tar.gz</span><br></pre></td></tr></table></figure>
-<p>其中 c: 创建存档；x: 提取；v: 详细；f: 文件</p>
-<h2 id="如何查看-Linux-上挂载的设备列表？"><a href="#如何查看-Linux-上挂载的设备列表？" class="headerlink" title="如何查看 Linux 上挂载的设备列表？"></a>如何查看 Linux 上挂载的设备列表？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mount -l</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何查找两个配置文件的不同之处"><a href="#如何查找两个配置文件的不同之处" class="headerlink" title="如何查找两个配置文件的不同之处"></a>如何查找两个配置文件的不同之处</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">diff abc.conf xyz.conf</span><br></pre></td></tr></table></figure>
-<p><img src="img_1.png" alt="img_1.png"></p>
-<h2 id="你会如何在-linux-中安排任务？"><a href="#你会如何在-linux-中安排任务？" class="headerlink" title="你会如何在 linux 中安排任务？"></a>你会如何在 linux 中安排任务？</h2><p>linux 中有两个用于调度任务的命令：cron 和 at。<br>cron 命令用于在特定时间重复调度任务。任务存储在 cron 文件中，然后使用 cron 命令执行。<br>cron 命令从该文件中<code>读取字符串</code>并安排任务。<br>cron 文件语法：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">&lt;minute&gt; &lt;hour&gt; &lt;day&gt; &lt;month&gt; &lt;weekday&gt; &lt;command&gt;</span><br></pre></td></tr></table></figure>
-<p>假设您想在每周日下午 4 点运行一个命令，那么字符串将是：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">0 16 * * 0 &lt;command&gt;</span><br></pre></td></tr></table></figure>
-<p>假设您想在今天下午 6 点关闭系统，那么执行操作的命令将是：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;shutdown now&quot; | at -m 18:00</span><br></pre></td></tr></table></figure>
-<h2 id="如何识别你使用的是哪个-shell"><a href="#如何识别你使用的是哪个-shell" class="headerlink" title="如何识别你使用的是哪个 shell?"></a>如何识别你使用的是哪个 shell?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo $SHELL</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何从您的系统登陆到您网络中的另一个系统？"><a href="#如何从您的系统登陆到您网络中的另一个系统？" class="headerlink" title="如何从您的系统登陆到您网络中的另一个系统？"></a>如何从您的系统登陆到您网络中的另一个系统？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ssh &lt;username&gt;@&lt;ip address&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何使用-vim-编辑器以只读模式打开文件？"><a href="#如何使用-vim-编辑器以只读模式打开文件？" class="headerlink" title="如何使用 vim 编辑器以只读模式打开文件？"></a>如何使用 vim 编辑器以<code>只读</code>模式打开文件？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim -R &lt;filename&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何使用-vim-编辑器在文件中搜索特定的员工-ID"><a href="#如何使用-vim-编辑器在文件中搜索特定的员工-ID" class="headerlink" title="如何使用 vim 编辑器在文件中搜索特定的员工 ID ?"></a>如何使用 vim 编辑器在文件中搜索特定的员工 ID ?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;employee id to be searched&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何使用-vim-编辑器跳转到文件中的特定行？"><a href="#如何使用-vim-编辑器跳转到文件中的特定行？" class="headerlink" title="如何使用 vim 编辑器跳转到文件中的特定行？"></a>如何使用 vim 编辑器跳转到文件中的特定行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;line number&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何按照升序对文本文件中的条目进行排序"><a href="#如何按照升序对文本文件中的条目进行排序" class="headerlink" title="如何按照升序对文本文件中的条目进行排序?"></a>如何按照升序对文本文件中的条目进行排序?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sort sample.txt</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何检查特定服务是否在运行？"><a href="#如何检查特定服务是否在运行？" class="headerlink" title="如何检查特定服务是否在运行？"></a>如何检查特定服务是否在运行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service &lt;service-name&gt; status</span><br></pre></td></tr></table></figure>
-
-<h2 id="如何查看所有服务的状态"><a href="#如何查看所有服务的状态" class="headerlink" title="如何查看所有服务的状态?"></a>如何查看所有服务的状态?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service --status-all</span><br></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>linux</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>linux shell 脚本</title>
     <url>/posts/77fe4966/</url>
     <content><![CDATA[<h1 id="Shell"><a href="#Shell" class="headerlink" title="Shell"></a>Shell</h1><h1 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h1><p>什么是 shell ?</p>
@@ -4198,6 +3968,185 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </tags>
   </entry>
   <entry>
+    <title>iter()</title>
+    <url>/posts/3a33b362/</url>
+    <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
+<blockquote>
+<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
+</blockquote>
+<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
+<li><p>iter(object[, sentinel])</p>
+</li>
+<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
+</li>
+<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
+</li>
+</ul>
+<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>常用 linux 命令</title>
+    <url>/posts/92072779/</url>
+    <content><![CDATA[<h1 id="linx-面试题"><a href="#linx-面试题" class="headerlink" title="linx 面试题"></a>linx 面试题</h1><p>参考：<a href="https://segmentfault.com/a/1190000040007585">https://segmentfault.com/a/1190000040007585</a><br><a href="https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/">https://www.edureka.co/blog/interview-questions/linux-interview-questions-for-beginners/</a></p>
+<h2 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vat vi vim ls mkdir touch cp mv</span><br></pre></td></tr></table></figure>
+<p>查找是否存在文件名：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find / -name mysql</span><br></pre></td></tr></table></figure>
+<h2 id="日志操作"><a href="#日志操作" class="headerlink" title="日志操作"></a>日志操作</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tail -f /var/www/data.log.out</span><br></pre></td></tr></table></figure>
+<p>抓取关键字</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat  data.log.out | grep &quot;error&quot;</span><br><span class="line">grep -i &quot;返回 resp &quot; data.log</span><br></pre></td></tr></table></figure>
+
+<h2 id="解压"><a href="#解压" class="headerlink" title="解压"></a>解压</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -zxvf filename.tar.gz</span><br></pre></td></tr></table></figure>
+
+<h2 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar –cvf jpg.tar *.jpg</span><br></pre></td></tr></table></figure>
+
+<h2 id="查找进程"><a href="#查找进程" class="headerlink" title="查找进程"></a>查找进程</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -aux | grep java</span><br></pre></td></tr></table></figure>
+
+<h2 id="系统、内存、磁盘、网络相关"><a href="#系统、内存、磁盘、网络相关" class="headerlink" title="系统、内存、磁盘、网络相关"></a>系统、内存、磁盘、网络相关</h2><p>top 查看内存、cpu 情况<br>du、df 查看磁盘、文件大小</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">du -s -h /data</span><br></pre></td></tr></table></figure>
+<p>ping、curl 查看网络是否正常</p>
+<h2 id="权限相关"><a href="#权限相关" class="headerlink" title="权限相关"></a>权限相关</h2><p>chmod: 修改文件或者目录的权限<br>chown: 即 change owner, 修改文件和目录的所有者权限<br>chattr: chmod 的底层操作，锁定文件<br>例如，你想设置权限，使用户可以读取、写入和执行它，并且你的组的成员可以读取和执行它，而其他人只能读取它<br>chmod u=rwx,g=rx,o=r a  ilename<br>chmod 751 filename<br>绝对模式</p>
+<table>
+<thead>
+<tr>
+<th><strong>0</strong></th>
+<th>没有权限</th>
+<th>– – –</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1</strong></td>
+<td>执行权限</td>
+<td>- - X</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>写权限</td>
+<td>– w –</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>执行和写入权限：1（执行）+2（写入）=3</td>
+<td>– wx</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>读取权限</td>
+<td>r – –</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>读取和执行权限：4（读取）+1（执行）=5</td>
+<td>r - x</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>读写权限：4（读）+2（写）=6</td>
+<td>rw—— _</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>所有权限：4（读取）+ 2（写入）+ 1（执行）= 7</td>
+<td>rwx</td>
+</tr>
+<tr>
+<td><img src="img.png" alt="img.png"></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id="内存命令"><a href="#内存命令" class="headerlink" title="内存命令"></a>内存命令</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">top </span><br><span class="line">free -h</span><br><span class="line">vmstat</span><br><span class="line">htop</span><br><span class="line">free -h -s 3 3 秒一次的间隔秒数</span><br></pre></td></tr></table></figure>
+
+<h2 id="buff-cache"><a href="#buff-cache" class="headerlink" title="buff/cache"></a>buff/cache</h2><p>缓冲/缓存是两种类型的内存。<br>先总结一下：<br><strong>缓冲</strong>主要目的是进行流量整形，把突发的大数量较小规模的 I/O 整理成平稳的<br>小数量较大规模的 I/O ，以<strong>减少响应次数</strong>。（比如从网上下电影，你不能下一点点数据就写一下硬盘，而是积攒一定量的数据以后一整块一起写，不然硬盘都要被你玩坏了）<br><strong>缓存</strong> 是为了弥补高速设备和低速设备的鸿沟而引入的中间层，最终起到<strong>加快访问速度</strong><br>的作用。</p>
+<h2 id="CPU-负载很高怎么办"><a href="#CPU-负载很高怎么办" class="headerlink" title="CPU 负载很高怎么办"></a>CPU 负载很高怎么办</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ps -axjf 查看 STAT 这一列是否存在 D 状态进程</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>D 状态是指不可中断的睡眠状态。该状态的进程无法被 kill, 也无法自行退出<br>只能通过恢复其依赖的资源或者重启系统来解决。</p>
+</blockquote>
+<h2 id="如何查看-CPU-和-CPU-核心？"><a href="#如何查看-CPU-和-CPU-核心？" class="headerlink" title="如何查看 CPU 和 CPU 核心？"></a>如何查看 CPU 和 CPU 核心？</h2><p>查看 cpu 和 cpu 核心？</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;model name&quot;</span><br></pre></td></tr></table></figure>
+<p>查看 cpu 核心</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep &quot;cpu cores&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="查看硬盘的使用情况"><a href="#查看硬盘的使用情况" class="headerlink" title="查看硬盘的使用情况"></a>查看硬盘的使用情况</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">df -hl</span><br><span class="line">du -s -h /root</span><br></pre></td></tr></table></figure>
+<h2 id="怎么杀死进程？"><a href="#怎么杀死进程？" class="headerlink" title="怎么杀死进程？"></a>怎么杀死进程？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">查看进程</span><br><span class="line">ps -aux | grep  python</span><br><span class="line">找到需要杀死的进程</span><br><span class="line">kill -9 3827</span><br></pre></td></tr></table></figure>
+<h2 id="linux-vm-内核参数优化设置"><a href="#linux-vm-内核参数优化设置" class="headerlink" title="linux vm 内核参数优化设置"></a>linux vm 内核参数优化设置</h2><h3 id="CPU"><a href="#CPU" class="headerlink" title="CPU"></a>CPU</h3><p>使用 uptime 查看 CPU 使用情况</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">uptime</span><br></pre></td></tr></table></figure>
+<p>vmstat 查看 CPU 使用情况</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vmstat 2 10</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何合理的查找（find）"><a href="#如何合理的查找（find）" class="headerlink" title="如何合理的查找（find）"></a>如何合理的查找（find）</h2><h3 id="在-software-目录下找出大小超过-10-MB的文件"><a href="#在-software-目录下找出大小超过-10-MB的文件" class="headerlink" title="在 /software 目录下找出大小超过 10 MB的文件"></a>在 /software 目录下找出大小超过 10 MB的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software -type f -size +10240k</span><br></pre></td></tr></table></figure>
+
+<h3 id="在-目录下找出-365-天未被访问过的文件"><a href="#在-目录下找出-365-天未被访问过的文件" class="headerlink" title="在 目录下找出 365 天未被访问过的文件"></a>在 目录下找出 365 天未被访问过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /software \! -atime -365</span><br></pre></td></tr></table></figure>
+
+<h3 id="目录下找出-365-天之前被修改过的文件"><a href="#目录下找出-365-天之前被修改过的文件" class="headerlink" title="目录下找出 365 天之前被修改过的文件"></a>目录下找出 365 天之前被修改过的文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find /home -mtime +365</span><br></pre></td></tr></table></figure>
+
+<h2 id="什么是-inode-和-process-id"><a href="#什么是-inode-和-process-id" class="headerlink" title="什么是 inode 和 process id ?"></a>什么是 inode 和 process id ?</h2><p>inode 是操作系统赋予每个文件的唯一名称。同样，进程 ID 是赋予每个进程的唯一 ID</p>
+<h2 id="什么是守护进程（daemon）"><a href="#什么是守护进程（daemon）" class="headerlink" title="什么是守护进程（daemon）"></a>什么是守护进程（daemon）</h2><p>守护进程是作为后台进程运行以提供基本操作系统中可能不可用的功能的计算机程序。守护进程通常用于在后台运行服务，<br>而不直接控制交互式用户。守护进程的目的是处理周期性请求，然后将请求转发给适当程序执行。</p>
+<h2 id="Linux-中的进程状态有哪些？"><a href="#Linux-中的进程状态有哪些？" class="headerlink" title="Linux 中的进程状态有哪些？"></a>Linux 中的进程状态有哪些？</h2><ul>
+<li>Ready: 进程已创建并准备运行</li>
+<li>Running: 进程正在执行</li>
+<li>Blocked or wait: 进程正在等待用户输入</li>
+<li>Terminated or Completed: 进程已完成或者被操作系统终止</li>
+<li>Zombie:进程终止，但进程表仍然存在信息</li>
+</ul>
+<h2 id="解释-Linux-中的进程管理系统调用"><a href="#解释-Linux-中的进程管理系统调用" class="headerlink" title="解释 Linux 中的进程管理系统调用"></a>解释 Linux 中的进程管理系统调用</h2><p>管理进程的系统调用：</p>
+<ul>
+<li>fork(): 用户创建新进程</li>
+<li>exec(): 执行一个新进程</li>
+<li>wait(): 等待进程完成执行</li>
+<li>exit(): 退出进程</li>
+</ul>
+<h2 id="为什么要使用-tar-命令？"><a href="#为什么要使用-tar-命令？" class="headerlink" title="为什么要使用 tar 命令？"></a>为什么要使用 tar 命令？</h2><blockquote>
+<p>tar 命令用于提取或创建归档文件</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -xvzf sample.tar.gz</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">tar -cvzf filename.tar.gz</span><br></pre></td></tr></table></figure>
+<p>其中 c: 创建存档；x: 提取；v: 详细；f: 文件</p>
+<h2 id="如何查看-Linux-上挂载的设备列表？"><a href="#如何查看-Linux-上挂载的设备列表？" class="headerlink" title="如何查看 Linux 上挂载的设备列表？"></a>如何查看 Linux 上挂载的设备列表？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mount -l</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何查找两个配置文件的不同之处"><a href="#如何查找两个配置文件的不同之处" class="headerlink" title="如何查找两个配置文件的不同之处"></a>如何查找两个配置文件的不同之处</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">diff abc.conf xyz.conf</span><br></pre></td></tr></table></figure>
+<p><img src="img_1.png" alt="img_1.png"></p>
+<h2 id="你会如何在-linux-中安排任务？"><a href="#你会如何在-linux-中安排任务？" class="headerlink" title="你会如何在 linux 中安排任务？"></a>你会如何在 linux 中安排任务？</h2><p>linux 中有两个用于调度任务的命令：cron 和 at。<br>cron 命令用于在特定时间重复调度任务。任务存储在 cron 文件中，然后使用 cron 命令执行。<br>cron 命令从该文件中<code>读取字符串</code>并安排任务。<br>cron 文件语法：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">&lt;minute&gt; &lt;hour&gt; &lt;day&gt; &lt;month&gt; &lt;weekday&gt; &lt;command&gt;</span><br></pre></td></tr></table></figure>
+<p>假设您想在每周日下午 4 点运行一个命令，那么字符串将是：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">0 16 * * 0 &lt;command&gt;</span><br></pre></td></tr></table></figure>
+<p>假设您想在今天下午 6 点关闭系统，那么执行操作的命令将是：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;shutdown now&quot; | at -m 18:00</span><br></pre></td></tr></table></figure>
+<h2 id="如何识别你使用的是哪个-shell"><a href="#如何识别你使用的是哪个-shell" class="headerlink" title="如何识别你使用的是哪个 shell?"></a>如何识别你使用的是哪个 shell?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo $SHELL</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何从您的系统登陆到您网络中的另一个系统？"><a href="#如何从您的系统登陆到您网络中的另一个系统？" class="headerlink" title="如何从您的系统登陆到您网络中的另一个系统？"></a>如何从您的系统登陆到您网络中的另一个系统？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ssh &lt;username&gt;@&lt;ip address&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何使用-vim-编辑器以只读模式打开文件？"><a href="#如何使用-vim-编辑器以只读模式打开文件？" class="headerlink" title="如何使用 vim 编辑器以只读模式打开文件？"></a>如何使用 vim 编辑器以<code>只读</code>模式打开文件？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim -R &lt;filename&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何使用-vim-编辑器在文件中搜索特定的员工-ID"><a href="#如何使用-vim-编辑器在文件中搜索特定的员工-ID" class="headerlink" title="如何使用 vim 编辑器在文件中搜索特定的员工 ID ?"></a>如何使用 vim 编辑器在文件中搜索特定的员工 ID ?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;employee id to be searched&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何使用-vim-编辑器跳转到文件中的特定行？"><a href="#如何使用-vim-编辑器跳转到文件中的特定行？" class="headerlink" title="如何使用 vim 编辑器跳转到文件中的特定行？"></a>如何使用 vim 编辑器跳转到文件中的特定行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim +/&lt;line number&gt; &lt;filename&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何按照升序对文本文件中的条目进行排序"><a href="#如何按照升序对文本文件中的条目进行排序" class="headerlink" title="如何按照升序对文本文件中的条目进行排序?"></a>如何按照升序对文本文件中的条目进行排序?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sort sample.txt</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何检查特定服务是否在运行？"><a href="#如何检查特定服务是否在运行？" class="headerlink" title="如何检查特定服务是否在运行？"></a>如何检查特定服务是否在运行？</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service &lt;service-name&gt; status</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何查看所有服务的状态"><a href="#如何查看所有服务的状态" class="headerlink" title="如何查看所有服务的状态?"></a>如何查看所有服务的状态?</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">service --status-all</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>linux</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>GIL 解释及探究</title>
     <url>/posts/723b604d/</url>
     <content><![CDATA[<h1 id="什么是-GIL-？"><a href="#什么是-GIL-？" class="headerlink" title="什么是 GIL ？"></a>什么是 GIL ？</h1><p>GIL，全称 <code>Global Interpreter Lock</code>, 即<code>全局解释器锁</code>, 它的官方解释如下：</p>
@@ -4234,35 +4183,6 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <li>更换没有 GIL 的 Python 解释器，需要预评估运行结果是否与 CPython 一致</li>
 <li>编写 Python 的 C 扩展模块，将 CPU 密集型任务交给 C 模块处理。</li>
 </ul>
-]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>iter()</title>
-    <url>/posts/3a33b362/</url>
-    <content><![CDATA[<h1 id="iter-妙用"><a href="#iter-妙用" class="headerlink" title="iter 妙用"></a>iter 妙用</h1><p>refs: <a href="https://www.geeksforgeeks.org/python-iter-method/">https://www.geeksforgeeks.org/python-iter-method/</a></p>
-<blockquote>
-<p>今天在对文件进行 md5 生成时，考虑到大文件，需要分块读取，查询相关资料后，iter() 方法可以很巧妙的实现</p>
-</blockquote>
-<h2 id="iter-用法"><a href="#iter-用法" class="headerlink" title="iter 用法"></a>iter 用法</h2><ul>
-<li><p>iter(object[, sentinel])</p>
-</li>
-<li><p>当第二个参数不存在， 第一个参数必须是<strong>支持迭代协议的容器类型对象</strong>，例如字典等， 或者是支持序列协议的序列类型对象，例如列表等，如果都不支持则报错。</p>
-</li>
-<li><p>当第二个参数存在， 即<strong>哨兵参数</strong>存在，则第一个参数必须是可调用对象，即函数等，以此种方式创建的迭代器对象将会调用object，可调用对象参数调用时不需要参数，<strong>如果可调用对象调用后返回值与哨兵对象值相同， 则会引发 stopiteration ，调用结束。</strong></p>
-</li>
-</ul>
-<h2 id="使用示例："><a href="#使用示例：" class="headerlink" title="使用示例："></a>使用示例：</h2><p>sentinel </p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Iterator</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_number</span>():</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;随机生成1-10的整数&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    num=random.randint(<span class="number">1</span>,<span class="number">5</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;The random number is <span class="subst">&#123;num&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> num</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">random_number=<span class="built_in">iter</span>(get_number,<span class="number">5</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">isinstance</span>(random_number,Iterator))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> random_number:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;get number: <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">--&gt;   </span><br><span class="line"><span class="literal">True</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">2</span></span><br><span class="line">get number: <span class="number">2</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">3</span></span><br><span class="line">get number: <span class="number">3</span></span><br><span class="line">The random number <span class="keyword">is</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="分块读取文件"><a href="#分块读取文件" class="headerlink" title="分块读取文件"></a>分块读取文件</h2><p>当读取到 <code>b&#39;&#39;</code> 时，表示文件读取完成</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">file_md5</span>(<span class="params">file_path</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    get file md5 checksum</span></span><br><span class="line"><span class="string">    :param file_path:</span></span><br><span class="line"><span class="string">    :return:</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    hash_md5 = hashlib.md5()</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_path, <span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">for</span> chunk <span class="keyword">in</span> <span class="built_in">iter</span>(<span class="keyword">lambda</span>: f.read(<span class="number">1024</span>), <span class="string">b&#x27;&#x27;</span>):</span><br><span class="line">            <span class="built_in">print</span>(chunk)</span><br><span class="line">            hash_md5.update(chunk)</span><br><span class="line">    <span class="keyword">return</span> hash_md5.hexdigest()</span><br></pre></td></tr></table></figure>
-
 ]]></content>
       <categories>
         <category>Python</category>
@@ -4397,6 +4317,189 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
       </categories>
       <tags>
         <tag>数据结构与算法</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python 内存管理，垃圾回收，缓存重用机制</title>
+    <url>/posts/ec5b3295/</url>
+    <content><![CDATA[<h2 id="详谈-python-的内存管理"><a href="#详谈-python-的内存管理" class="headerlink" title="详谈 python 的内存管理"></a>详谈 python 的内存管理</h2><blockquote>
+<p>python 作为一门高级语言，调用相关变量时，无需实现声明，变量无需指定类型，python 解释器会自动帮你回收，这一切都由<br><code>python 内存管理器</code>承担了复杂的内存管理工作。<br>这里主要介绍基于 Cpython 实现的内存管理</p>
+</blockquote>
+<blockquote>
+<p>python 内存管理机制 —— Pymalloc</p>
+</blockquote>
+<h3 id="主要实现方式"><a href="#主要实现方式" class="headerlink" title="主要实现方式"></a>主要实现方式</h3><ul>
+<li>针对<code>小对象</code>, 就是对象大小小于<code>256kb</code>时，pymalloc 会在<code>内存池中申请内存空间</code></li>
+<li>针对<code>大对象</code>, 对象大小<code>大于 256kb</code>时，会执行<code>new/malloc 行为</code>来申请新的内存空间</li>
+</ul>
+<h3 id="python-内存池（memory-pool）"><a href="#python-内存池（memory-pool）" class="headerlink" title="python 内存池（memory pool）"></a>python 内存池（memory pool）</h3><blockquote>
+<p>为什么要引入内存池？<br>当创建大量消耗小内存的对象时，频繁调用<code>new/malloc</code>会导致大量的内存碎片，导致效率降低</p>
+</blockquote>
+<ul>
+<li><code>内存池的作用就是预先在内存中申请一定数量的，大小相等的内存块（256kb）留作备用</code>，当有新的内存需求时，就优先从内存池中分配给这个需求。</li>
+<li>减少内存碎片化，提升效率</li>
+</ul>
+<img src="/images/python 内存池.png" width = "600" height = "700" alt="" align=center />
+
+<ul>
+<li><p>python 的对象管理主要位于 Level + 1 ~ Level +3 层</p>
+</li>
+<li><p>Level 3: 该层特定对象内存分配器，主要是 <code>python 内置的对象（int, dict, arr）</code>都有独立的私有内存池，对象<br>之间的内存池不共享，例如 <code>int</code> 释放的内存，不会被分配给 <code>float</code>使用。</p>
+</li>
+<li><p>Level 2: python 对象分配器：当申请的<code>内存大小小于256KB</code>时，内存对象的分配主要由<code>Python 对象</code> 分配器（python’s object allocator）实施</p>
+</li>
+<li><p>Level 1: python 内存分配器：当申请的<code>内存大小大于256KB</code>时，由 Python 原生的内存分配器进行分配，本质上是调用 C 标准库中的 malloc/readlloc 等函数</p>
+</li>
+</ul>
+<h3 id="内存池的内存释放"><a href="#内存池的内存释放" class="headerlink" title="内存池的内存释放"></a>内存池的内存释放</h3><blockquote>
+<p>内存释放，当一个对象的引用计算变为 0 时，Python 就会调用它的析构函数（__del__）。调用析构函数并不意味着最终一定会调用<br>free 来释放内存空间，会导致频繁申请、释放内存空间使得 Python 的执行效率大打折扣。因此在析构时也采用了内存池机制，内存池申请到的内存会被归还到内存池中，<br>以免频繁地申请和释放动作</p>
+</blockquote>
+<p>接下来就会讲到 Python 的垃圾回收机制。</p>
+<h1 id="垃圾回收机制"><a href="#垃圾回收机制" class="headerlink" title="垃圾回收机制"></a>垃圾回收机制</h1><blockquote>
+<p>如果别人问你，什么是 Python 的垃圾回收机制，你可以用一句话概括<br><strong>Python 的垃圾回收机制采用`引用计数为主，标记-清除和分代回收为辅的策略</strong></p>
+</blockquote>
+<p>Python 一切皆为对象，包括 int、str 等等基本的对象。Cpython 的实现中，有一个结构体为 PyObject, Cpython 中的每个其他对象都在使用它</p>
+<p>PyObject 是 Python 中所有对象的祖父，它只包含两件事：</p>
+<ul>
+<li>ob_refcnt: 引用计数器</li>
+<li>ob_type: 指向另一种类型的指针</li>
+</ul>
+<p>对于对象来说，无非是对象的创建和删除</p>
+<h2 id="引用计数"><a href="#引用计数" class="headerlink" title="引用计数"></a>引用计数</h2><blockquote>
+<p>每个对象都会维护一个 <code>ob_refcnt</code> 来记录当前对象被引用的次数</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">a = [<span class="number">2</span>]</span><br><span class="line"><span class="built_in">print</span>(sys.getrefcount(a))</span><br><span class="line"><span class="comment"># OUTPUT getrefcount 会增加一次引用</span></span><br><span class="line"><span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>对象引用计数 +1</p>
+<ul>
+<li><ol>
+<li>对象被创建 <code>a=1</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对象被引用 <code>a=b</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>对象被作为参数，传入函数中 def count(a, b)</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>对象作为一个元素被存储 <code>li = [1,2, a]</code></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>对象的引用计数 -1</p>
+<ul>
+<li><ol>
+<li>对象的引用被显示销毁时，<code>del a</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>对象的引用别名被赋予新的对象, <code>a=26</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>一个对象离开它的作用域, 例如一个函数执行完成后，内部的<code>局部变量的引用计数器就会减一</code>(全局变量不变)</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>将该元素从容器中删除时，或者容器被销毁</li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>当指向对象的内存的引用计数为 0 时，该内存就会被 Python 虚拟机销毁</strong></p>
+<p>特性：</p>
+<blockquote>
+<p>优点：1. 高效。2。 实时性，一旦没有引用，内存就直接释放了。3. 对象有确定的生命周期 4. 易于实现<br>缺点：1. 维护引用计数消耗资源。2. 无法解决循环引用问题</p>
+</blockquote>
+<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><blockquote>
+<p>对于一个对象来说，当出现循环引用的时候，例如<code>a=1, b=a, a=b</code>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
+</blockquote>
+<h3 id="什么是标记清除？"><a href="#什么是标记清除？" class="headerlink" title="什么是标记清除？"></a>什么是标记清除？</h3><blockquote>
+<p>[标记清除（Mark-Sweep）] 算法是一种基于追踪回收（tracing GC）技术实现的垃圾回收算法。主要针对一些容器对象，例如<code>list</code>、<code>dict</code>、<code>tuple</code><br>对于字符串和数值对象是不可能造成循环引用的问题的（不可变对象，当出现引用时，会另外开辟空间存储，这个在缓存机制中会详细解释）。</p>
+</blockquote>
+<p>那么<code>标记清除</code>算法是如何运行的？<br>分为两个阶段：</p>
+<ul>
+<li><ol>
+<li>第一阶段是标记阶段，GC 会把所有的[活动对象]打上标记。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>第二阶段是把那些没有标记的[非活动对象]进行回收。</li>
+</ol>
+</li>
+</ul>
+<p>活动对象和非活动对象的标记：<br>对象之间通过引用（指针）连在一起，构成一个有相图，对象构成这个有向图的节点，而引用关系构成这个有向图的边。<br>从根对象（root object）出发，沿着有向边遍历对象，可达的（reachable）对象标记为活动对象，不可达的对象就是要被清除的非活动对象。<br>根对象就是全局变量、调用栈、寄存器。</p>
+<img src="/images/有向图.png" width = "400" height = "200" alt="" align=center />
+
+<p>从以上的有向图中：</p>
+<ul>
+<li>活动对象：A, B, C</li>
+<li>非活动对象：D, E</li>
+</ul>
+<h2 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h2><blockquote>
+<p>在标记清除对象的回收中，整个应用程序会被暂停，为了减少应用程序暂停的时间，Python 通过<strong>分代回收（Generational Conlletion）</strong>以空间换时间的方法提高垃圾回收效率</p>
+</blockquote>
+<p>Python 将所有对象分为：</p>
+<ul>
+<li>年轻代（第 0 代）</li>
+<li>中年代（第 1 代）</li>
+<li>老年代（第 2 代）</li>
+</ul>
+<p>所有新建的对象默认是第 0 代对象，经过 GC 扫描存活下来的对象将被移至第一代，在第一代的 GC 扫描中存活下来的对象将被移至第二代。</p>
+<blockquote>
+<p>GC 扫描次数 (第 0 代 &gt; 第 1 代 &gt; 第 2 代)</p>
+</blockquote>
+<h3 id="GC-分代回收是如何触发的？"><a href="#GC-分代回收是如何触发的？" class="headerlink" title="GC 分代回收是如何触发的？"></a>GC 分代回收是如何触发的？</h3><blockquote>
+<p>当某个世代中被分配的对象与被释放的对象数量之差到达某一个阈值时，就会触发当前一代的 GC 扫描。<br>当某一世代被扫描时，比它年轻的一代也会被扫描<br>当第 2 代的 GC 扫描发生时，第 0，1 代的 GC 扫描也会发生，即为全代扫描。</p>
+</blockquote>
+<p>那么这个阈值是如何确定的?</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> gc </span><br><span class="line">gc.get_threshold() <span class="comment">## 分代回收机制的参数阈值设置</span></span><br><span class="line"><span class="comment"># (700, 10, 10)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>700=新分配的对象数量-释放的对象数量，第 0 代 gc 扫描被触发</li>
+<li>第一个10：第 0 代 gc 扫描发生 10 次，则第 1 代的 gc 扫描被触发</li>
+<li>第二个10：第 1 代的 gc 扫描发生 10 次，则第 2 代的 gc 扫描被触发</li>
+</ul>
+<h1 id="Python-的缓存重用机制"><a href="#Python-的缓存重用机制" class="headerlink" title="Python 的缓存重用机制"></a>Python 的缓存重用机制</h1><blockquote>
+<p>Python 缓存重用机制是为了提高程序执行的效率。Python 解释器启动时从内存空间中开辟出一小部分，用来存储高频使用的数据，这样可以大大减少高频使用的<br>数据创建时申请内存和销毁的开销</p>
+</blockquote>
+<img src="/images/缓存重用机制.png" width = "600" height = "300" alt="" align=center />
+
+<p>这里基本演示，更加详细的演示，读者可以自行尝试</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#范围在 [-5, 256] 之间的小整数</span></span><br><span class="line">int1 = -<span class="number">5</span></span><br><span class="line">int2 = -<span class="number">5</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;[-5, 256] 情况下的两个变量：&quot;</span>, <span class="built_in">id</span>(int1), <span class="built_in">id</span>(int2))</span><br><span class="line"><span class="comment"># output</span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment">#bool类型</span></span><br><span class="line">bool1 = <span class="literal">True</span></span><br><span class="line">bool2 = <span class="literal">True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bool类型情况下的两个变量：&quot;</span>,<span class="built_in">id</span>(bool1),<span class="built_in">id</span>(bool2))</span><br><span class="line"><span class="comment">#对于字符串</span></span><br><span class="line">s1 = <span class="string">&quot;3344&quot;</span></span><br><span class="line">s2 = <span class="string">&quot;3344&quot;</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;字符串情况下的两个交量&quot;</span>, <span class="built_in">id</span>(s1), <span class="built_in">id</span>(s2))</span><br><span class="line"><span class="comment">#大于 256 的整数</span></span><br><span class="line">int3 = <span class="number">257</span></span><br><span class="line">int4 = <span class="number">257</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 256 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(int3), <span class="built_in">id</span>(int4))</span><br><span class="line"><span class="comment">#大于 0 的浮点数</span></span><br><span class="line">f1 = <span class="number">256.4</span></span><br><span class="line">f2 = <span class="number">256.4</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;大于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f1), <span class="built_in">id</span>(f2))</span><br><span class="line"><span class="comment">#小于 0 的浮点数</span></span><br><span class="line">f3 = -<span class="number">2.45</span></span><br><span class="line">f4 = -<span class="number">2.45</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 0 的浮点数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(f3), <span class="built_in">id</span>(f4))</span><br><span class="line"><span class="comment">#小于 -5 的整数</span></span><br><span class="line">n1 = -<span class="number">6</span></span><br><span class="line">n2 = -<span class="number">6</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;小于 -5 的整数情况下的两个变量&quot;</span>, <span class="built_in">id</span>(n1), <span class="built_in">id</span>(n2))</span><br></pre></td></tr></table></figure>
+<p>OUTPUT:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[-5, 256] 情况下的两个变量： 4479762592 4479762592</span><br><span class="line">bool类型情况下的两个变量： 4479360112 4479360112</span><br><span class="line">字符串情况下的两个交量 140680232254768 140680232254768</span><br><span class="line">大于 256 的整数情况下的两个变量 140680231657872 140680231657872</span><br><span class="line">大于 0 的浮点数情况下的两个变量 140680231658256 140680231658256</span><br><span class="line">小于 0 的浮点数情况下的两个变量 140680191914768 140680191914768</span><br><span class="line">小于 -5 的整数情况下的两个变量 140680232617328 140680232617328</span><br></pre></td></tr></table></figure>
+
+<p>总结：</p>
+<ul>
+<li>对于<code>int</code>, <code>str</code>,<code>bool</code> 类型而言：<ol>
+<li>对于同一个对象，都是缓存同一个内容来使用</li>
+</ol>
+</li>
+<li>对于<code>大于 256 的整数</code>, 浮点数<ol>
+<li>如果位于同一代码块，则使用相同的缓存内容；反之，则不使用</li>
+</ol>
+</li>
+<li>对于 <code>小于 0 的整数</code><ol>
+<li>Python 没有对其进行缓存操作</li>
+</ol>
+</li>
+</ul>
+<h1 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h1><p>在 Python 中，主要通过 <code>引用计数</code>来进行垃圾回收；通过<code>标记-清除</code>来解决一些容器对象的循环引用问题；<br>通过<code>分代回收</code>以空间换时间的方式提高垃圾回收效率。</p>
+<p>缓存重用机制，作用类似于内存池，提高 Python 的执行效率</p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p>「 python 垃圾回收机制 」- <a href="https://andrewpqc.github.io/2018/10/08/python-memory-management/">https://andrewpqc.github.io/2018/10/08/python-memory-management/</a><br>「 python GC 源代码 」- <a href="https://docs.python.org/2/library/gc.html">https://docs.python.org/2/library/gc.html</a><br>「 python 垃圾回收需要知道事 」- <a href="https://rushter.com/blog/python-garbage-collector/">https://rushter.com/blog/python-garbage-collector/</a> </p>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
       </tags>
   </entry>
   <entry>
