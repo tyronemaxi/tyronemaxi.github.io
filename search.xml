@@ -4417,9 +4417,12 @@ output:<figure class="highlight markdown"><table><tr><td class="code"><pre><span
 <blockquote>
 <p>优点：1. 高效。2。 实时性，一旦没有引用，内存就直接释放了。3. 对象有确定的生命周期 4. 易于实现<br>缺点：1. 维护引用计数消耗资源。2. 无法解决循环引用问题</p>
 </blockquote>
-<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><blockquote>
-<p>对于一个对象来说，当出现循环引用的时候，例如<code>a=1, b=a, a=b</code>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
+<h2 id="为什么要使用标记清除"><a href="#为什么要使用标记清除" class="headerlink" title="为什么要使用标记清除"></a>为什么要使用标记清除</h2><p>标记清除算法作为Python的辅助垃圾收集技术，主要处理的是一些容器对象，比如list、dict、tuple等，因为对于字符串、数值对象是不可能造成循环引用问题。</p>
+<blockquote>
+<p>对于一个对象来说，当出现循环引用的时候，例如：</p>
 </blockquote>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a = []</span><br><span class="line">b = []</span><br><span class="line">a.append(b)</span><br><span class="line">b.append(a)</span><br></pre></td></tr></table></figure>
+<p>的时候，就出现了循环引用的情况，这样该对象的引用计数<br>的值都会是 1 而不是 0，那么垃圾回收的机制就会失效，针对这种情况，又出现了标记清除的功能来解决循环引用的问题。</p>
 <h3 id="什么是标记清除？"><a href="#什么是标记清除？" class="headerlink" title="什么是标记清除？"></a>什么是标记清除？</h3><blockquote>
 <p>[标记清除（Mark-Sweep）] 算法是一种基于追踪回收（tracing GC）技术实现的垃圾回收算法。主要针对一些容器对象，例如<code>list</code>、<code>dict</code>、<code>tuple</code><br>对于字符串和数值对象是不可能造成循环引用的问题的（不可变对象，当出现引用时，会另外开辟空间存储，这个在缓存机制中会详细解释）。</p>
 </blockquote>
